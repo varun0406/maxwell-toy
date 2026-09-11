@@ -47,3 +47,4 @@ dist-ssr/
 # SQLite
 *.sqlite3
 *.db
+maxwelll-*.json

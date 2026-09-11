@@ -103,6 +103,7 @@ class Invoice(Base):
     due_date = Column(DateTime(timezone=True), nullable=True)
     is_paid = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
+    delivery_challan_url = Column(String(500), nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

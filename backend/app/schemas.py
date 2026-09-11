@@ -140,6 +140,7 @@ class InvoiceCreate(BaseModel):
     due_date: Optional[datetime] = None
     billing_address: Optional[str] = None
     shipping_address: Optional[str] = None
+    delivery_challan_url: Optional[str] = None
     items: List[InvoiceItemCreate]
 
 
@@ -149,6 +150,7 @@ class InvoiceUpdate(BaseModel):
     invoice_date: Optional[datetime] = None
     billing_address: Optional[str] = None
     shipping_address: Optional[str] = None
+    delivery_challan_url: Optional[str] = None
     items: Optional[List[InvoiceItemCreate]] = None
 
 
@@ -163,6 +165,7 @@ class InvoiceOut(BaseModel):
     description: Optional[str]
     invoice_date: datetime
     due_date: Optional[datetime]
+    delivery_challan_url: Optional[str] = None
     is_paid: bool
     is_deleted: bool
     created_at: datetime

@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..gcs import upload_file_to_gcs
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
@@ -13,6 +14,18 @@ router = APIRouter(prefix="/invoices", tags=["invoices"])
 def _next_invoice_number(user_id: int, db: Session) -> str:
     count = db.query(models.Invoice).filter(models.Invoice.created_by == user_id).count()
     return f"INV-{count + 1:05d}"
+
+
+@router.post("/upload")
+def upload_challan(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user)
+):
+    try:
+        url = upload_file_to_gcs(file.file, file.filename, file.content_type)
+        return {"url": url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/", response_model=List[schemas.InvoiceOut])
