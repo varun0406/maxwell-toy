@@ -146,6 +146,10 @@ class InvoiceCreate(BaseModel):
 class InvoiceUpdate(BaseModel):
     description: Optional[str] = None
     due_date: Optional[datetime] = None
+    invoice_date: Optional[datetime] = None
+    billing_address: Optional[str] = None
+    shipping_address: Optional[str] = None
+    items: Optional[List[InvoiceItemCreate]] = None
 
 
 class InvoiceOut(BaseModel):
@@ -160,6 +164,7 @@ class InvoiceOut(BaseModel):
     invoice_date: datetime
     due_date: Optional[datetime]
     is_paid: bool
+    is_deleted: bool
     created_at: datetime
     items: List[InvoiceItemOut]
 
@@ -200,6 +205,7 @@ class PaymentOut(BaseModel):
     payment_date: datetime
     note: Optional[str]
     mode: Optional[str]
+    is_deleted: bool
     created_at: datetime
     allocations: List[AllocationOut] = []
 
@@ -220,7 +226,8 @@ class JournalEntryOut(BaseModel):
     party_id: int
     amount: Decimal
     entry_date: datetime
-    description: Optional[str] = None
+    description: Optional[str]
+    is_deleted: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

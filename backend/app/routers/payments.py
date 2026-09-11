@@ -20,7 +20,7 @@ def list_payments(
     query = (
         db.query(models.Payment)
         .options(joinedload(models.Payment.allocations).joinedload(models.PaymentAllocation.invoice))
-        .filter(models.Payment.created_by == current_user.id)
+        .filter(models.Payment.created_by == current_user.id, models.Payment.is_deleted == False)
     )
     if party_id:
         query = query.filter(models.Payment.party_id == party_id)
@@ -93,7 +93,7 @@ def get_payment(
     payment = (
         db.query(models.Payment)
         .options(joinedload(models.Payment.allocations).joinedload(models.PaymentAllocation.invoice))
-        .filter(models.Payment.id == payment_id, models.Payment.created_by == current_user.id)
+        .filter(models.Payment.id == payment_id, models.Payment.created_by == current_user.id, models.Payment.is_deleted == False)
         .first()
     )
     if not payment:
@@ -143,4 +143,33 @@ def allocate_payment(
     db.commit()
     db.refresh(payment)
     return payment
+
+@router.delete("/{payment_id}", status_code=204)
+def delete_payment(
+    payment_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from decimal import Decimal
+    payment = (
+        db.query(models.Payment)
+        .filter(models.Payment.id == payment_id, models.Payment.created_by == current_user.id, models.Payment.is_deleted == False)
+        .first()
+    )
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+        
+    payment.is_deleted = True
+    
+    # Recalibrate: Unallocate from all invoices
+    allocations = db.query(models.PaymentAllocation).filter(models.PaymentAllocation.payment_id == payment.id).all()
+    for alloc in allocations:
+        invoice = db.query(models.Invoice).filter(models.Invoice.id == alloc.invoice_id).first()
+        if invoice:
+            invoice.balance_due = Decimal(str(invoice.balance_due)) + Decimal(str(alloc.allocated_amount))
+            invoice.is_paid = (invoice.balance_due <= 0)
+        db.delete(alloc)
+        
+    db.commit()
+    return None
 

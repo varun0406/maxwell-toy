@@ -102,6 +102,7 @@ class Invoice(Base):
     invoice_date = Column(DateTime(timezone=True), nullable=False)
     due_date = Column(DateTime(timezone=True), nullable=True)
     is_paid = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
 
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
@@ -145,6 +146,7 @@ class Payment(Base):
     payment_date = Column(DateTime(timezone=True), nullable=False)
     note = Column(Text, nullable=True)
     mode = Column(String(30), nullable=True)  # cash / upi / bank
+    is_deleted = Column(Boolean, default=False)
 
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
@@ -185,6 +187,7 @@ class JournalEntry(Base):
     amount = Column(Numeric(12, 2), nullable=False)  # Positive = Increase Due (Debit), Negative = Decrease Due (Credit)
     entry_date = Column(DateTime(timezone=True), nullable=False)
     description = Column(Text, nullable=True)
+    is_deleted = Column(Boolean, default=False)
 
     created_at = Column(DateTime(timezone=True), default=utcnow)
 

@@ -116,6 +116,7 @@ def party_ledger(
 
     entries = []
     for inv in party.invoices:
+        if inv.is_deleted: continue
         entries.append({
             "type": "invoice",
             "date": inv.invoice_date,
@@ -124,6 +125,7 @@ def party_ledger(
             "balance_due": inv.balance_due,
         })
     for pmt in party.payments:
+        if pmt.is_deleted: continue
         entries.append({
             "type": "payment",
             "date": pmt.payment_date,
@@ -132,6 +134,7 @@ def party_ledger(
             "balance_due": None,
         })
     for jnl in party.journal_entries:
+        if jnl.is_deleted: continue
         entries.append({
             "type": "journal",
             "date": jnl.entry_date,
@@ -181,3 +184,21 @@ def create_journal_entry(
     db.commit()
     db.refresh(db_entry)
     return db_entry
+
+@router.delete("/journal/{journal_id}", status_code=204)
+def delete_journal(
+    journal_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    jnl = (
+        db.query(models.JournalEntry)
+        .filter(models.JournalEntry.id == journal_id, models.JournalEntry.created_by == current_user.id, models.JournalEntry.is_deleted == False)
+        .first()
+    )
+    if not jnl:
+        raise HTTPException(status_code=404, detail="Journal entry not found")
+        
+    jnl.is_deleted = True
+    db.commit()
+    return None

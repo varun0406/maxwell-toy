@@ -24,7 +24,7 @@ def list_invoices(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.Invoice).filter(models.Invoice.created_by == current_user.id)
+    query = db.query(models.Invoice).filter(models.Invoice.created_by == current_user.id, models.Invoice.is_deleted == False)
     if party_id:
         query = query.filter(models.Invoice.party_id == party_id)
     if unpaid_only:
@@ -102,7 +102,7 @@ def get_invoice(
 ):
     inv = (
         db.query(models.Invoice)
-        .filter(models.Invoice.id == invoice_id, models.Invoice.created_by == current_user.id)
+        .filter(models.Invoice.id == invoice_id, models.Invoice.created_by == current_user.id, models.Invoice.is_deleted == False)
         .first()
     )
     if not inv:
@@ -117,15 +117,109 @@ def update_invoice(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    from decimal import Decimal
     inv = (
         db.query(models.Invoice)
-        .filter(models.Invoice.id == invoice_id, models.Invoice.created_by == current_user.id)
+        .filter(models.Invoice.id == invoice_id, models.Invoice.created_by == current_user.id, models.Invoice.is_deleted == False)
         .first()
     )
     if not inv:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+        
+    update_data = payload.model_dump(exclude_unset=True)
+    
+    # Handle item modifications and recalibration
+    if "items" in update_data:
+        items_data = update_data.pop("items")
+        
+        # Calculate new total amount
+        new_amount = sum((Decimal(str(item["meter"])) * Decimal(str(item["rate"]))) for item in items_data)
+        old_amount = Decimal(str(inv.amount))
+        diff = new_amount - old_amount
+        
+        if diff != 0:
+            # Reconstruct items
+            db.query(models.InvoiceItem).filter(models.InvoiceItem.invoice_id == inv.id).delete()
+            for item in items_data:
+                db_item = models.InvoiceItem(
+                    invoice_id=inv.id,
+                    item_name=item["item_name"],
+                    meter=item["meter"],
+                    rate=item["rate"],
+                    total=Decimal(str(item["meter"])) * Decimal(str(item["rate"]))
+                )
+                db.add(db_item)
+                
+            inv.amount = new_amount
+            
+            if diff > 0:
+                inv.balance_due = Decimal(str(inv.balance_due)) + diff
+            else:
+                # diff < 0. Amount decreased.
+                # If balance_due + diff < 0, it means the invoice is now overpaid.
+                new_balance = Decimal(str(inv.balance_due)) + diff
+                if new_balance < 0:
+                    overpaid_amount = abs(new_balance)
+                    
+                    # We must unallocate `overpaid_amount` from existing allocations for this invoice.
+                    allocations = db.query(models.PaymentAllocation).filter(models.PaymentAllocation.invoice_id == inv.id).all()
+                    
+                    for alloc in allocations:
+                        if overpaid_amount <= 0:
+                            break
+                        
+                        to_unallocate = min(overpaid_amount, Decimal(str(alloc.allocated_amount)))
+                        alloc.allocated_amount = Decimal(str(alloc.allocated_amount)) - to_unallocate
+                        
+                        # Return money to the payment's unallocated pool
+                        payment = db.query(models.Payment).filter(models.Payment.id == alloc.payment_id).first()
+                        if payment:
+                            payment.unallocated = Decimal(str(payment.unallocated)) + to_unallocate
+                            
+                        overpaid_amount -= to_unallocate
+                        
+                        if alloc.allocated_amount == 0:
+                            db.delete(alloc)
+                            
+                    inv.balance_due = Decimal("0")
+                else:
+                    inv.balance_due = new_balance
+                    
+            inv.is_paid = (inv.balance_due <= 0)
+
+    # Update other fields
+    for field, value in update_data.items():
         setattr(inv, field, value)
+        
     db.commit()
     db.refresh(inv)
     return inv
+
+
+@router.delete("/{invoice_id}", status_code=204)
+def delete_invoice(
+    invoice_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from decimal import Decimal
+    inv = (
+        db.query(models.Invoice)
+        .filter(models.Invoice.id == invoice_id, models.Invoice.created_by == current_user.id, models.Invoice.is_deleted == False)
+        .first()
+    )
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+        
+    inv.is_deleted = True
+    
+    # Recalibrate: Unallocate all payments
+    allocations = db.query(models.PaymentAllocation).filter(models.PaymentAllocation.invoice_id == inv.id).all()
+    for alloc in allocations:
+        payment = db.query(models.Payment).filter(models.Payment.id == alloc.payment_id).first()
+        if payment:
+            payment.unallocated = Decimal(str(payment.unallocated)) + Decimal(str(alloc.allocated_amount))
+        db.delete(alloc)
+        
+    db.commit()
+    return None
