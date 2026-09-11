@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Maxwell Accounting</string>
+    <string name="title_activity_main">Maxwell Accounting</string>
+    <string name="package_name">com.maxwell.accounting</string>
+    <string name="custom_url_scheme">com.maxwell.accounting</string>
+</resources>

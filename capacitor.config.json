@@ -1,0 +1,11 @@
+{
+  "appId": "com.maxwell.accounting",
+  "appName": "Maxwell Accounting",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "minSdkVersion": 24
+  }
+}
