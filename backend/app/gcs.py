@@ -23,8 +23,8 @@ def upload_file_to_gcs(file_obj, filename: str, content_type: str) -> str:
     blob = bucket.blob(unique_filename)
     blob.upload_from_file(file_obj, content_type=content_type)
     
-    # Make the blob publicly viewable (optional, but needed for a simple URL approach)
-    # Alternatively, you can use signed URLs if it should be private.
-    blob.make_public()
+    # Since Uniform Bucket-Level Access is enabled on the bucket, 
+    # we cannot use ACLs (make_public). 
+    # Ensure the bucket itself has "Storage Object Viewer" for "allUsers" in GCP Console if you want public access.
     
     return blob.public_url
