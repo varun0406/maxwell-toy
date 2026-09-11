@@ -253,14 +253,14 @@ class LedgerEntry(BaseModel):
 # Analytics
 # ---------------------------------------------------------------------------
 
-class AnalyticsParty(BaseModel):
-    id: int
-    name: str
+class PartySummary(BaseModel):
+    party_id: int
+    party_name: str
     total_invoiced: Decimal
     total_paid: Decimal
     outstanding: Decimal
-    last_invoice_date: Optional[datetime]
-    last_payment_date: Optional[datetime]
+    invoice_count: int
+    payment_count: int
 
 # ---------------------------------------------------------------------------
 # Address Book
