@@ -32,6 +32,13 @@ export const invoicesApi = {
   get: (id: number) => api.get(`/invoices/${id}`),
   update: (id: number, data: unknown) => api.put(`/invoices/${id}`, data),
   delete: (id: number) => api.delete(`/invoices/${id}`),
+  upload: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/invoices/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
 };
 
 // ── Payments ─────────────────────────────────────────────────────────────────

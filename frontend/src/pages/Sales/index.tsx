@@ -28,6 +28,7 @@ const schema = z.object({
   due_days: z.coerce.number().min(0, 'Must be >= 0').optional(),
   billing_address: z.string().optional(),
   shipping_address: z.string().optional(),
+  delivery_challan_url: z.string().optional(),
   items: z.array(itemSchema).min(1, 'At least one item required'),
 });
 type InvoiceForm = z.infer<typeof schema>;
@@ -100,6 +101,11 @@ export function InvoicesList() {
               <div className="list-item-body">
                 <p className="list-item-title">{getPartyName(inv.party_id)}</p>
                 <p className="list-item-sub">{formatDate(inv.invoice_date)}{inv.due_date ? ` · Due ${formatDate(inv.due_date)}` : ''}</p>
+                {inv.delivery_challan_url && (
+                  <a href={inv.delivery_challan_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, display: 'inline-block', marginTop: 4 }}>
+                    📎 View Challan
+                  </a>
+                )}
               </div>
               <div className="list-item-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                 <p style={{ fontWeight: 700, fontSize: 14, color: inv.is_paid ? 'var(--success)' : 'var(--warning)' }}>
@@ -182,6 +188,7 @@ export function NewInvoice() {
   const [showAddressPicker, setShowAddressPicker] = useState<'billing' | 'shipping' | null>(null);
   const [addressSearch, setAddressSearch] = useState('');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  const [uploadingChallan, setUploadingChallan] = useState(false);
   
   const editId = searchParams.get('edit') ? Number(searchParams.get('edit')) : null;
 
@@ -229,6 +236,9 @@ export function NewInvoice() {
       setValue('shipping_address', editInvoice.shipping_address || '');
       if (editInvoice.items && editInvoice.items.length > 0) {
         setValue('items', editInvoice.items.map((i: any) => ({ item_name: i.item_name, meter: i.meter, rate: i.rate })));
+      }
+      if (editInvoice.delivery_challan_url) {
+        setValue('delivery_challan_url', editInvoice.delivery_challan_url);
       }
     }
   }, [editInvoice, setValue]);
@@ -399,6 +409,38 @@ export function NewInvoice() {
           <div className="form-group">
             <label className="form-label">Description</label>
             <textarea className="form-textarea" placeholder="Goods/services description…" {...register('description')} />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Delivery Challan</label>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                className="form-input"
+                style={{ flex: 1, padding: '8px' }}
+                onChange={async (e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setUploadingChallan(true);
+                    try {
+                      const res = await invoicesApi.upload(e.target.files[0]);
+                      setValue('delivery_challan_url', res.data.url);
+                    } catch (error) {
+                      console.error("Upload failed", error);
+                      alert("Failed to upload Delivery Challan");
+                    } finally {
+                      setUploadingChallan(false);
+                    }
+                  }
+                }}
+              />
+              {watch('delivery_challan_url') && (
+                <a href={watch('delivery_challan_url')} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
+                  View Uploaded
+                </a>
+              )}
+              {uploadingChallan && <div className="spinner" style={{ width: 20, height: 20 }} />}
+            </div>
           </div>
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 8 }}>
