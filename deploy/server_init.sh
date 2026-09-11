@@ -67,13 +67,34 @@ npm run build
 echo "   Frontend built to: $APP_DIR/frontend/dist"
 
 # ── Install Nginx config ──────────────────────────────────────────────────────
-echo "==> Installing Nginx config..."
+echo "==> Installing Nginx config (HTTP only — certbot will add SSL)..."
 DIST_PATH="$APP_DIR/frontend/dist"
 
-# Patch the nginx config root path to match actual location
-sed "s|/var/www/maxwell/frontend/dist|$DIST_PATH|g" \
-    "$APP_DIR/deploy/calculator.rovark.in" \
-    > /etc/nginx/sites-available/calculator.rovark.in
+cat > /etc/nginx/sites-available/calculator.rovark.in << NGINXEOF
+server {
+    listen 80;
+    server_name calculator.rovark.in;
+
+    root $DIST_PATH;
+    index index.html;
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    location /api/ {
+        rewrite ^/api/(.*) /\$1 break;
+        proxy_pass         http://127.0.0.1:9833;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              \$host;
+        proxy_set_header   X-Real-IP         \$remote_addr;
+        proxy_set_header   X-Forwarded-For   \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 120s;
+        client_max_body_size 20M;
+    }
+}
+NGINXEOF
 
 ln -sf /etc/nginx/sites-available/calculator.rovark.in \
        /etc/nginx/sites-enabled/calculator.rovark.in
