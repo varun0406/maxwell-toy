@@ -7,7 +7,7 @@ Type=simple
 User=ubuntu
 WorkingDirectory=/opt/maxwell-accounting/backend
 Environment="PATH=/opt/maxwell-accounting/venv/bin"
-ExecStart=/opt/maxwell-accounting/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+ExecStart=/opt/maxwell-accounting/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 9833 --workers 2
 Restart=always
 RestartSec=5
 

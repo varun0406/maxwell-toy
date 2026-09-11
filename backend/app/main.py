@@ -38,6 +38,8 @@ app.add_middleware(
         "capacitor://localhost",
         "ionic://localhost",
         "https://localhost",
+        "https://calculator.rovark.in",
+        "http://calculator.rovark.in",
     ],
     allow_credentials=True,
     allow_methods=["*"],

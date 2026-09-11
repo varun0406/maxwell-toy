@@ -47,4 +47,14 @@ dist-ssr/
 # SQLite
 *.sqlite3
 *.db
+
+# Google Service Account credentials — never commit these
 maxwelll-*.json
+
+# Local env overrides — never commit these
+.env
+frontend/.env
+
+# Allow env templates and production configs to be tracked
+!.env.example
+!frontend/.env.production
