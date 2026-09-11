@@ -6,8 +6,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi, partiesApi, addressBookApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2 } from 'lucide-react';
+import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2 } from 'lucide-react';
 import { generateAndShareInvoice } from '../../utils/pdfGenerator';
+import { SecureActionModal } from '../../components/SecureActionModal';
 import { SearchCombobox } from '../../components/SearchCombobox';
 import type { ComboboxOption } from '../../components/SearchCombobox';
 import { ItemAutocomplete } from '../../components/ItemAutocomplete';
@@ -41,6 +42,9 @@ export function InvoicesList() {
     queryKey: ['invoices', filter],
     queryFn: () => invoicesApi.list(undefined, filter === 'unpaid').then((r) => r.data),
   });
+  
+  const qc = useQueryClient();
+  const [secureAction, setSecureAction] = useState<{ type: 'edit' | 'delete', id: number } | null>(null);
   
   const { data: parties = [] } = useQuery({
     queryKey: ['parties'],
@@ -107,10 +111,20 @@ export function InvoicesList() {
                     style={{ padding: 4, background: 'rgba(108,99,255,0.1)', color: 'var(--accent)' }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/invoices/new?edit=${inv.id}`);
+                      setSecureAction({ type: 'edit', id: inv.id });
                     }}
                   >
                     <Edit2 size={14} />
+                  </button>
+                  <button
+                    className="btn-icon"
+                    style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSecureAction({ type: 'delete', id: inv.id });
+                    }}
+                  >
+                    <Trash2 size={14} />
                   </button>
                   <button
                     className="btn-icon"
@@ -137,6 +151,23 @@ export function InvoicesList() {
       <button className="fab" onClick={() => navigate('/invoices/new')}>
         <Plus size={24} />
       </button>
+
+      <SecureActionModal
+        isOpen={secureAction !== null}
+        onClose={() => setSecureAction(null)}
+        title={secureAction?.type === 'edit' ? 'Edit Invoice' : 'Delete Invoice'}
+        message={secureAction?.type === 'edit' ? 'Enter Master PIN to edit this invoice.' : 'Enter Master PIN to delete this invoice. Balances will be recalibrated.'}
+        onConfirm={async () => {
+          if (secureAction?.type === 'edit') {
+            navigate(`/invoices/new?edit=${secureAction.id}`);
+          } else if (secureAction?.type === 'delete') {
+            await invoicesApi.delete(secureAction.id);
+            qc.invalidateQueries({ queryKey: ['invoices'] });
+            qc.invalidateQueries({ queryKey: ['dashboard'] });
+          }
+          setSecureAction(null);
+        }}
+      />
     </div>
   );
 }
