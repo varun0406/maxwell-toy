@@ -194,3 +194,18 @@ class JournalEntry(Base):
 
     party = relationship("Party", back_populates="journal_entries")
     created_by_user = relationship("User")
+
+# ---------------------------------------------------------------------------
+# Address Book
+# ---------------------------------------------------------------------------
+
+class AddressBook(Base):
+    __tablename__ = "address_book"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(120), nullable=False)
+    phone = Column(String(20), nullable=True)
+    address_line1 = Column(String(255), nullable=True)
+    address_line2 = Column(String(255), nullable=True)
+    city = Column(String(120), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
