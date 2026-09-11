@@ -253,14 +253,37 @@ class LedgerEntry(BaseModel):
 # Analytics
 # ---------------------------------------------------------------------------
 
-class PartySummary(BaseModel):
-    party_id: int
-    party_name: str
+class AnalyticsParty(BaseModel):
+    id: int
+    name: str
     total_invoiced: Decimal
     total_paid: Decimal
     outstanding: Decimal
-    invoice_count: int
-    payment_count: int
+    last_invoice_date: Optional[datetime]
+    last_payment_date: Optional[datetime]
+
+# ---------------------------------------------------------------------------
+# Address Book
+# ---------------------------------------------------------------------------
+
+class AddressBookCreate(BaseModel):
+    name: str
+    phone: Optional[str] = None
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    city: Optional[str] = None
+
+class AddressBookUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    city: Optional[str] = None
+
+class AddressBookOut(AddressBookCreate):
+    id: int
+    created_at: datetime
+    model_config = {"from_attributes": True}
 
 
 class AgingBucket(BaseModel):
