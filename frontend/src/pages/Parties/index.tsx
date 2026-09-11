@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { partiesApi, paymentsApi, invoicesApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Share as ShareIcon, Plus, Phone, MapPin, Search, Edit2, NotebookPen, FileText, CreditCard, ChevronRight, X, User, Trash2 } from 'lucide-react';
+import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2 } from 'lucide-react';
 import { generateAndSharePartyStatement, openWhatsApp } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
 
@@ -31,8 +31,10 @@ type PartyForm = z.infer<typeof schema>;
 // ── Party List ──────────────────────────────────────────────────────────────
 export function PartiesList() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [secureActionId, setSecureActionId] = useState<number | null>(null);
 
   const { data: parties = [], isLoading, refetch } = useQuery({
     queryKey: ['parties', search],
@@ -75,11 +77,23 @@ export function PartiesList() {
                 <p className="list-item-title">{p.name}</p>
                 <p className="list-item-sub">{p.phone || p.email || 'No contact info'}</p>
               </div>
-              <div className="list-item-right">
+              <div className="list-item-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <p style={{ fontWeight: 700, fontSize: 14, color: p.outstanding > 0 ? 'var(--warning)' : 'var(--success)' }}>
                   {formatCurrency(p.outstanding)}
                 </p>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>due</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>due</p>
+                  <button 
+                    className="btn-icon" 
+                    style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSecureActionId(p.id);
+                    }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -90,7 +104,24 @@ export function PartiesList() {
         <Plus size={24} />
       </button>
 
-      {showAdd && <AddPartyModal onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); refetch(); }} />}
+      {showAdd && (
+        <AddPartyModal onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); refetch(); }} />
+      )}
+
+      <SecureActionModal
+        isOpen={secureActionId !== null}
+        onClose={() => setSecureActionId(null)}
+        title="Delete Party"
+        message="Enter Master PIN to archive this party. It will be hidden from the list."
+        onConfirm={async () => {
+          if (secureActionId) {
+            await partiesApi.delete(secureActionId);
+            qc.invalidateQueries({ queryKey: ['parties'] });
+            qc.invalidateQueries({ queryKey: ['dashboard'] });
+          }
+          setSecureActionId(null);
+        }}
+      />
     </div>
   );
 }
