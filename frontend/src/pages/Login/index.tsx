@@ -90,7 +90,7 @@ export default function Login() {
             margin: '0 auto 20px',
             boxShadow: 'var(--shadow-accent), 0 0 0 8px var(--accent-glow)',
           }}>
-            <Shield size={36} color="#fff" />
+            <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: -0.8, color: 'var(--text-primary)' }}>
             Welcome Back
