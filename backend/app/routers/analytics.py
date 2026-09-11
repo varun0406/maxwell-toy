@@ -20,26 +20,20 @@ def dashboard_summary(
     now = datetime.now(timezone.utc)
 
     parties = db.query(models.Party).filter(
-        models.Party.created_by == current_user.id,
         models.Party.is_active == True,
     ).all()
 
-    invoices = db.query(models.Invoice).filter(
-        models.Invoice.created_by == current_user.id
-    ).all()
+    invoices = db.query(models.Invoice).all()
 
     payments = (
         db.query(models.Payment)
-        .filter(models.Payment.created_by == current_user.id)
         .order_by(models.Payment.payment_date.desc())
         .limit(5)
         .all()
     )
 
     total_invoiced = sum(i.amount for i in invoices) or Decimal("0")
-    total_collected = sum(p.amount for p in db.query(models.Payment).filter(
-        models.Payment.created_by == current_user.id
-    ).all()) or Decimal("0")
+    total_collected = sum(p.amount for p in db.query(models.Payment).all()) or Decimal("0")
     total_outstanding = total_invoiced - total_collected
 
     overdue = sum(
@@ -64,7 +58,6 @@ def party_summaries(
     db: Session = Depends(get_db),
 ):
     parties = db.query(models.Party).filter(
-        models.Party.created_by == current_user.id,
         models.Party.is_active == True,
     ).all()
 
@@ -96,7 +89,7 @@ def party_analytics(
 ):
     p = (
         db.query(models.Party)
-        .filter(models.Party.id == party_id, models.Party.created_by == current_user.id)
+        .filter(models.Party.id == party_id)
         .first()
     )
     if not p:
@@ -123,7 +116,6 @@ def aging_report(
 ):
     now = datetime.now(timezone.utc)
     parties = db.query(models.Party).filter(
-        models.Party.created_by == current_user.id,
         models.Party.is_active == True,
     ).all()
 
