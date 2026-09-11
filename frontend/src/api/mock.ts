@@ -144,10 +144,19 @@ export function setupMockInterceptors() {
       parties = parties.map((p) => p.id === partyId ? { ...p, outstanding: p.outstanding + entry.amount } : p);
       return ok(entry, 201);
     }
+    if (url.match(/^\/journal\/(\d+)$/) && method === 'delete') {
+      const id = Number(url.split('/')[2]);
+      const jnl = journalEntries.find((j) => j.id === id);
+      if (jnl) {
+        jnl.is_deleted = true;
+        parties = parties.map(p => p.id === jnl.party_id ? { ...p, outstanding: p.outstanding - jnl.amount } : p);
+      }
+      return ok(null, 204);
+    }
 
     // ── Invoices ──────────────────────────────────────────────────────────
     if (url === '/invoices/' && method === 'get') {
-      let result = [...invoices];
+      let result = invoices.filter(i => !i.is_deleted);
       if (params.party_id) result = result.filter((i) => i.party_id === Number(params.party_id));
       if (params.unpaid_only) result = result.filter((i) => !i.is_paid);
       return ok(result.sort((a, b) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime()));
@@ -177,10 +186,85 @@ export function setupMockInterceptors() {
       const id = Number(url.split('/')[2]);
       return ok(invoices.find((i) => i.id === id));
     }
+    if (url.match(/^\/invoices\/(\d+)$/) && method === 'put') {
+      const id = Number(url.split('/')[2]);
+      const inv = invoices.find((i) => i.id === id);
+      if (!inv) return ok({ detail: 'Not found' }, 404);
+
+      let diff = 0;
+      if (body.items) {
+        const newAmount = body.items.reduce((sum: number, item: any) => sum + (item.meter * item.rate), 0);
+        diff = newAmount - inv.amount;
+        
+        inv.amount = newAmount;
+        inv.items = body.items.map((item: any, i: number) => ({ ...item, id: i + 1, invoice_id: inv.id, total: item.meter * item.rate }));
+        
+        if (diff > 0) {
+          inv.balance_due += diff;
+        } else if (diff < 0) {
+          const newBalance = inv.balance_due + diff;
+          if (newBalance < 0) {
+            let overpaid = Math.abs(newBalance);
+            // Unallocate from payments
+            for (const pmt of payments) {
+              if (overpaid <= 0) break;
+              const allocIdx = pmt.allocations.findIndex((a: any) => a.invoice_id === inv.id);
+              if (allocIdx > -1) {
+                const alloc = pmt.allocations[allocIdx];
+                const toUnallocate = Math.min(overpaid, alloc.allocated_amount);
+                alloc.allocated_amount -= toUnallocate;
+                pmt.unallocated += toUnallocate;
+                overpaid -= toUnallocate;
+                if (alloc.allocated_amount <= 0) {
+                  pmt.allocations.splice(allocIdx, 1);
+                }
+              }
+            }
+            inv.balance_due = 0;
+          } else {
+            inv.balance_due = newBalance;
+          }
+        }
+        inv.is_paid = (inv.balance_due <= 0);
+        
+        // Update party totals
+        parties = parties.map((p) =>
+          p.id === inv.party_id
+            ? { ...p, total_invoiced: p.total_invoiced + diff, outstanding: p.outstanding + diff }
+            : p
+        );
+      }
+
+      if (body.invoice_date) inv.invoice_date = body.invoice_date;
+      if (body.due_date !== undefined) inv.due_date = body.due_date;
+      if (body.description !== undefined) inv.description = body.description;
+      if (body.billing_address !== undefined) inv.billing_address = body.billing_address;
+      if (body.shipping_address !== undefined) inv.shipping_address = body.shipping_address;
+
+      return ok(inv);
+    }
+    if (url.match(/^\/invoices\/(\d+)$/) && method === 'delete') {
+      const id = Number(url.split('/')[2]);
+      const inv = invoices.find((i) => i.id === id);
+      if (inv) {
+        inv.is_deleted = true;
+        // Recalibrate: Unallocate all payments
+        for (const pmt of payments) {
+          const allocIdx = pmt.allocations.findIndex((a: any) => a.invoice_id === inv.id);
+          if (allocIdx > -1) {
+            const alloc = pmt.allocations[allocIdx];
+            pmt.unallocated += alloc.allocated_amount;
+            pmt.allocations.splice(allocIdx, 1);
+          }
+        }
+        parties = parties.map(p => p.id === inv.party_id ? { ...p, total_invoiced: p.total_invoiced - inv.amount, outstanding: p.outstanding - inv.balance_due } : p);
+      }
+      return ok(null, 204);
+    }
 
     // ── Payments ──────────────────────────────────────────────────────────
     if (url === '/payments/' && method === 'get') {
-      let result = [...payments];
+      let result = payments.filter(p => !p.is_deleted);
       if (params.party_id) result = result.filter((p) => p.party_id === Number(params.party_id));
       return ok(result.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()));
     }
@@ -232,6 +316,23 @@ export function setupMockInterceptors() {
     if (url.match(/^\/payments\/(\d+)$/) && method === 'get') {
       const id = Number(url.split('/')[2]);
       return ok(payments.find((p) => p.id === id));
+    }
+    if (url.match(/^\/payments\/(\d+)$/) && method === 'delete') {
+      const id = Number(url.split('/')[2]);
+      const pmt = payments.find((p) => p.id === id);
+      if (pmt) {
+        pmt.is_deleted = true;
+        // Recalibrate: Unallocate from invoices
+        for (const alloc of pmt.allocations) {
+          const inv = invoices.find(i => i.id === alloc.invoice_id);
+          if (inv) {
+            inv.balance_due += alloc.allocated_amount;
+            inv.is_paid = (inv.balance_due <= 0);
+          }
+        }
+        parties = parties.map(p => p.id === pmt.party_id ? { ...p, total_paid: p.total_paid - pmt.amount, outstanding: p.outstanding + (pmt.amount - pmt.unallocated) } : p);
+      }
+      return ok(null, 204);
     }
     if (url.match(/^\/payments\/(\d+)\/allocations$/)) {
       const id = Number(url.split('/')[2]);

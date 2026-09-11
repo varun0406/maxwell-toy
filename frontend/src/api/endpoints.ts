@@ -21,6 +21,7 @@ export const partiesApi = {
   ledger: (id: number) => api.get(`/parties/${id}/ledger`),
   addJournalEntry: (id: number, data: { amount: number; entry_date: string; description: string }) =>
     api.post(`/parties/${id}/journal`, data),
+  deleteJournalEntry: (journalId: number) => api.delete(`/journal/${journalId}`),
 };
 
 // ── Invoices ─────────────────────────────────────────────────────────────────
@@ -29,6 +30,8 @@ export const invoicesApi = {
     api.get('/invoices/', { params: { ...(partyId && { party_id: partyId }), ...(unpaidOnly && { unpaid_only: true }) } }),
   create: (data: unknown) => api.post('/invoices/', data),
   get: (id: number) => api.get(`/invoices/${id}`),
+  update: (id: number, data: unknown) => api.put(`/invoices/${id}`, data),
+  delete: (id: number) => api.delete(`/invoices/${id}`),
 };
 
 // ── Payments ─────────────────────────────────────────────────────────────────
@@ -38,6 +41,7 @@ export const paymentsApi = {
   create: (data: unknown) => api.post('/payments/', data),
   get: (id: number) => api.get(`/payments/${id}`),
   allocate: (id: number, data: unknown) => api.post(`/payments/${id}/allocate`, data),
+  delete: (id: number) => api.delete(`/payments/${id}`),
 };
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

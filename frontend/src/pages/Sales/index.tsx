@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi, partiesApi, addressBookApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin } from 'lucide-react';
+import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2 } from 'lucide-react';
 import { generateAndShareInvoice } from '../../utils/pdfGenerator';
 import { SearchCombobox } from '../../components/SearchCombobox';
 import type { ComboboxOption } from '../../components/SearchCombobox';
@@ -105,6 +105,16 @@ export function InvoicesList() {
                   <button
                     className="btn-icon"
                     style={{ padding: 4, background: 'rgba(108,99,255,0.1)', color: 'var(--accent)' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/invoices/new?edit=${inv.id}`);
+                    }}
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    className="btn-icon"
+                    style={{ padding: 4, background: 'rgba(108,99,255,0.1)', color: 'var(--accent)' }}
                     onClick={async (e) => {
                       e.stopPropagation();
                       const party = (await partiesApi.get(inv.party_id)).data;
@@ -141,6 +151,14 @@ export function NewInvoice() {
   const [showAddressPicker, setShowAddressPicker] = useState<'billing' | 'shipping' | null>(null);
   const [addressSearch, setAddressSearch] = useState('');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  
+  const editId = searchParams.get('edit') ? Number(searchParams.get('edit')) : null;
+
+  const { data: editInvoice } = useQuery({
+    queryKey: ['invoice', editId],
+    queryFn: () => invoicesApi.get(editId!).then(r => r.data),
+    enabled: !!editId,
+  });
 
   const { data: parties = [] } = useQuery({
     queryKey: ['parties'],
@@ -163,6 +181,26 @@ export function NewInvoice() {
       due_days: 0,
     },
   });
+
+  useEffect(() => {
+    if (editInvoice) {
+      setValue('party_id', editInvoice.party_id);
+      setValue('invoice_number', editInvoice.invoice_number);
+      setValue('invoice_date', editInvoice.invoice_date.split('T')[0]);
+      if (editInvoice.due_date) {
+        const diffTime = new Date(editInvoice.due_date).getTime() - new Date(editInvoice.invoice_date).getTime();
+        setValue('due_days', Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24))));
+      } else {
+        setValue('due_days', 0);
+      }
+      setValue('description', editInvoice.description || '');
+      setValue('billing_address', editInvoice.billing_address || '');
+      setValue('shipping_address', editInvoice.shipping_address || '');
+      if (editInvoice.items && editInvoice.items.length > 0) {
+        setValue('items', editInvoice.items.map((i: any) => ({ item_name: i.item_name, meter: i.meter, rate: i.rate })));
+      }
+    }
+  }, [editInvoice, setValue]);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchItems = watch('items');
@@ -201,11 +239,19 @@ export function NewInvoice() {
         computedDueDate = d.toISOString();
       }
 
-      await invoicesApi.create({
-        ...data,
-        invoice_date: new Date(data.invoice_date).toISOString(),
-        due_date: computedDueDate,
-      });
+      if (editId) {
+        await invoicesApi.update(editId, {
+          ...data,
+          invoice_date: new Date(data.invoice_date).toISOString(),
+          due_date: computedDueDate,
+        });
+      } else {
+        await invoicesApi.create({
+          ...data,
+          invoice_date: new Date(data.invoice_date).toISOString(),
+          due_date: computedDueDate,
+        });
+      }
       qc.invalidateQueries({ queryKey: ['invoices'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       navigate(-1);
@@ -219,7 +265,7 @@ export function NewInvoice() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 20px 16px', borderBottom: '1px solid var(--border)' }}>
         <button className="btn-icon btn" onClick={() => navigate(-1)}><ChevronLeft size={20} /></button>
-        <h1 className="page-title">New Invoice</h1>
+        <h1 className="page-title">{editId ? 'Edit Invoice' : 'New Invoice'}</h1>
       </div>
 
       <div className="page-content" style={{ paddingTop: 20, paddingLeft: 20, paddingRight: 20 }}>
@@ -325,7 +371,7 @@ export function NewInvoice() {
           </div>
 
           <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 8 }}>
-            {loading ? 'Creating…' : 'Create Invoice'}
+            {loading ? 'Saving…' : (editId ? 'Update Invoice' : 'Create Invoice')}
           </button>
         </form>
       </div>
