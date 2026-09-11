@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { analyticsApi } from '../../api/endpoints';
-import { formatCurrency } from '../../utils/format';
+import { analyticsApi, invoicesApi, paymentsApi, partiesApi } from '../../api/endpoints';
+import { formatCurrency, formatDate } from '../../utils/format';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -9,6 +10,7 @@ import {
 const COLORS = ['#6c63ff', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 export default function Analytics() {
+  const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar'>('overview');
   const { data: summary } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => analyticsApi.summary().then((r) => r.data),
@@ -20,7 +22,27 @@ export default function Analytics() {
   const { data: aging = [] } = useQuery({
     queryKey: ['aging'],
     queryFn: () => analyticsApi.aging().then((r) => r.data),
+    enabled: tab === 'overview',
   });
+
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['reports-invoices'],
+    queryFn: () => invoicesApi.list().then(r => r.data),
+    enabled: tab === 'sales',
+  });
+
+  const { data: payments = [] } = useQuery({
+    queryKey: ['reports-payments'],
+    queryFn: () => paymentsApi.list().then(r => r.data),
+    enabled: tab === 'collections',
+  });
+
+  const { data: partyList = [] } = useQuery({
+    queryKey: ['reports-parties'],
+    queryFn: () => partiesApi.list().then(r => r.data),
+  });
+
+  const getPartyName = (id: number) => partyList.find((p: any) => p.id === id)?.name || `Party #${id}`;
 
   const top5 = parties.slice(0, 5);
 
@@ -53,11 +75,20 @@ export default function Analytics() {
   return (
     <div className="page-content">
       <div className="page-header">
-        <h1 className="page-title">Analytics</h1>
-        <p className="page-subtitle">Business overview</p>
+        <h1 className="page-title">Reports Hub</h1>
+        <p className="page-subtitle">Business & Accounting Reports</p>
       </div>
 
-      {/* Summary Row */}
+      <div className="chips" style={{ marginBottom: 16 }}>
+        <button className={`chip ${tab === 'overview' ? 'active' : ''}`} onClick={() => setTab('overview')}>Overview</button>
+        <button className={`chip ${tab === 'sales' ? 'active' : ''}`} onClick={() => setTab('sales')}>Sales Book</button>
+        <button className={`chip ${tab === 'collections' ? 'active' : ''}`} onClick={() => setTab('collections')}>Collections</button>
+        <button className={`chip ${tab === 'ar' ? 'active' : ''}`} onClick={() => setTab('ar')}>A/R</button>
+      </div>
+
+      {tab === 'overview' && (
+        <>
+          {/* Summary Row */}
       <div className="stats-grid">
         <div className="stat-card accent">
           <p className="stat-label">Total Invoiced</p>
@@ -154,6 +185,116 @@ export default function Analytics() {
           <p>No data yet — create parties and invoices to see analytics</p>
         </div>
       )}
+        </>
+      )}
+
+      {tab === 'sales' && (
+        <div style={{ padding: '0 20px', paddingBottom: 24 }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Sales Register</h3>
+              <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)' }}>
+                Total: {formatCurrency(invoices.reduce((sum: number, i: any) => sum + Number(i.total), 0))}
+              </p>
+            </div>
+            {invoices.length === 0 ? (
+              <div className="empty-state"><p>No sales recorded yet</p></div>
+            ) : (
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Date</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Invoice #</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Party</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.sort((a: any, b: any) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime()).map((inv: any) => (
+                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px', color: 'var(--text)' }}>{formatDate(inv.invoice_date)}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 500 }}>{inv.invoice_number}</td>
+                      <td style={{ padding: '12px 16px' }}>{getPartyName(inv.party_id)}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(inv.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'collections' && (
+        <div style={{ padding: '0 20px', paddingBottom: 24 }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Collection Register</h3>
+              <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>
+                Total: {formatCurrency(payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0))}
+              </p>
+            </div>
+            {payments.length === 0 ? (
+              <div className="empty-state"><p>No payments recorded yet</p></div>
+            ) : (
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Date</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Receipt #</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Party</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.sort((a: any, b: any) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()).map((p: any) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px', color: 'var(--text)' }}>{formatDate(p.payment_date)}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 500 }}>PMT-{String(p.id).padStart(4, '0')}</td>
+                      <td style={{ padding: '12px 16px' }}>{getPartyName(p.party_id)}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>{formatCurrency(p.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'ar' && (
+        <div style={{ padding: '0 20px', paddingBottom: 24 }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Accounts Receivable</h3>
+              <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--warning)' }}>
+                Total AR: {formatCurrency(partyList.filter((p: any) => p.outstanding > 0).reduce((sum: number, p: any) => sum + Number(p.outstanding), 0))}
+              </p>
+            </div>
+            {partyList.filter((p: any) => p.outstanding > 0).length === 0 ? (
+              <div className="empty-state"><p>No outstanding balances</p></div>
+            ) : (
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Party Name</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Outstanding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {partyList.filter((p: any) => p.outstanding > 0).sort((a: any, b: any) => Number(b.outstanding) - Number(a.outstanding)).map((p: any) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 500 }}>{p.name}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--warning)' }}>{formatCurrency(p.outstanding)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

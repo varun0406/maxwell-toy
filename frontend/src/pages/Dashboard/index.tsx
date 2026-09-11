@@ -27,9 +27,14 @@ export default function Dashboard() {
   return (
     <div className="page-content">
       {/* Greeting */}
-      <div style={{ padding: '20px 20px 0' }}>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{greeting()},</p>
-        <h1 className="page-title">{user?.username || 'User'} 👋</h1>
+      <div style={{ padding: '20px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{greeting()},</p>
+          <h1 className="page-title">{user?.username || 'User'} 👋</h1>
+        </div>
+        <div style={{ width: 44, height: 44, borderRadius: 12, overflow: 'hidden', border: '2px solid var(--border)', background: 'var(--bg-elevated)' }}>
+          <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </div>
       </div>
 
       {/* Outstanding Hero */}

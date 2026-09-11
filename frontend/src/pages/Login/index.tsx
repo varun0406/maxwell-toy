@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 import { authApi } from '../../api/endpoints';
-import { Lock, User, Eye, EyeOff, Shield } from 'lucide-react';
+import { Lock, User, Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
   username: z.string().min(3, 'Username required'),
