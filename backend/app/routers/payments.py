@@ -20,7 +20,7 @@ def list_payments(
     query = (
         db.query(models.Payment)
         .options(joinedload(models.Payment.allocations).joinedload(models.PaymentAllocation.invoice))
-        .filter(models.Payment.created_by == current_user.id, models.Payment.is_deleted == False)
+        .filter(models.Payment.is_deleted == False)
     )
     if party_id:
         query = query.filter(models.Payment.party_id == party_id)
@@ -33,10 +33,10 @@ def create_payment(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Verify party ownership
+    # Verify party exists
     party = (
         db.query(models.Party)
-        .filter(models.Party.id == payload.party_id, models.Party.created_by == current_user.id)
+        .filter(models.Party.id == payload.party_id)
         .first()
     )
     if not party:
@@ -93,7 +93,7 @@ def get_payment(
     payment = (
         db.query(models.Payment)
         .options(joinedload(models.Payment.allocations).joinedload(models.PaymentAllocation.invoice))
-        .filter(models.Payment.id == payment_id, models.Payment.created_by == current_user.id, models.Payment.is_deleted == False)
+        .filter(models.Payment.id == payment_id, models.Payment.is_deleted == False)
         .first()
     )
     if not payment:
@@ -110,7 +110,7 @@ def allocate_payment(
 ):
     payment = (
         db.query(models.Payment)
-        .filter(models.Payment.id == payment_id, models.Payment.created_by == current_user.id)
+        .filter(models.Payment.id == payment_id)
         .first()
     )
     if not payment:
@@ -153,7 +153,7 @@ def delete_payment(
     from decimal import Decimal
     payment = (
         db.query(models.Payment)
-        .filter(models.Payment.id == payment_id, models.Payment.created_by == current_user.id, models.Payment.is_deleted == False)
+        .filter(models.Payment.id == payment_id, models.Payment.is_deleted == False)
         .first()
     )
     if not payment:

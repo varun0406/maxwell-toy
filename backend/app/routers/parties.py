@@ -11,10 +11,10 @@ from ..database import get_db
 router = APIRouter(prefix="/parties", tags=["parties"])
 
 
-def _get_party_or_404(party_id: int, user_id: int, db: Session) -> models.Party:
+def _get_party_or_404(party_id: int, db: Session) -> models.Party:
     party = (
         db.query(models.Party)
-        .filter(models.Party.id == party_id, models.Party.created_by == user_id)
+        .filter(models.Party.id == party_id)
         .first()
     )
     if not party:
@@ -42,7 +42,6 @@ def list_parties(
     db: Session = Depends(get_db),
 ):
     query = db.query(models.Party).filter(
-        models.Party.created_by == current_user.id,
         models.Party.is_active == True,
     )
     if search:
@@ -75,7 +74,7 @@ def get_party(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    party = _get_party_or_404(party_id, current_user.id, db)
+    party = _get_party_or_404(party_id, db)
     bal = _compute_balance(party)
     return schemas.PartyWithBalance(**schemas.PartyOut.model_validate(party).model_dump(), **bal)
 
@@ -87,7 +86,7 @@ def update_party(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    party = _get_party_or_404(party_id, current_user.id, db)
+    party = _get_party_or_404(party_id, db)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(party, field, value)
     db.commit()
@@ -101,7 +100,7 @@ def delete_party(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    party = _get_party_or_404(party_id, current_user.id, db)
+    party = _get_party_or_404(party_id, db)
     party.is_active = False   # soft delete
     db.commit()
 
@@ -112,7 +111,7 @@ def party_ledger(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    party = _get_party_or_404(party_id, current_user.id, db)
+    party = _get_party_or_404(party_id, db)
 
     entries = []
     for inv in party.invoices:

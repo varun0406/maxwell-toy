@@ -37,7 +37,7 @@ def list_invoices(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.Invoice).filter(models.Invoice.created_by == current_user.id, models.Invoice.is_deleted == False)
+    query = db.query(models.Invoice).filter(models.Invoice.is_deleted == False)
     if party_id:
         query = query.filter(models.Invoice.party_id == party_id)
     if unpaid_only:
@@ -51,10 +51,10 @@ def create_invoice(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Verify party belongs to user
+    # Verify party exists
     party = (
         db.query(models.Party)
-        .filter(models.Party.id == payload.party_id, models.Party.created_by == current_user.id)
+        .filter(models.Party.id == payload.party_id)
         .first()
     )
     if not party:
@@ -62,12 +62,11 @@ def create_invoice(
 
     invoice_number = payload.invoice_number or _next_invoice_number(current_user.id, db)
 
-    # Check duplicate invoice number for this user
+    # Check duplicate invoice number globally
     existing = (
         db.query(models.Invoice)
         .filter(
             models.Invoice.invoice_number == invoice_number,
-            models.Invoice.created_by == current_user.id,
         )
         .first()
     )
@@ -115,7 +114,7 @@ def get_invoice(
 ):
     inv = (
         db.query(models.Invoice)
-        .filter(models.Invoice.id == invoice_id, models.Invoice.created_by == current_user.id, models.Invoice.is_deleted == False)
+        .filter(models.Invoice.id == invoice_id, models.Invoice.is_deleted == False)
         .first()
     )
     if not inv:
@@ -133,7 +132,7 @@ def update_invoice(
     from decimal import Decimal
     inv = (
         db.query(models.Invoice)
-        .filter(models.Invoice.id == invoice_id, models.Invoice.created_by == current_user.id, models.Invoice.is_deleted == False)
+        .filter(models.Invoice.id == invoice_id, models.Invoice.is_deleted == False)
         .first()
     )
     if not inv:
@@ -218,7 +217,7 @@ def delete_invoice(
     from decimal import Decimal
     inv = (
         db.query(models.Invoice)
-        .filter(models.Invoice.id == invoice_id, models.Invoice.created_by == current_user.id, models.Invoice.is_deleted == False)
+        .filter(models.Invoice.id == invoice_id, models.Invoice.is_deleted == False)
         .first()
     )
     if not inv:
