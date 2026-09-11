@@ -6,8 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { partiesApi, paymentsApi, invoicesApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Plus, Search, Phone, MapPin, X, FileText, CreditCard, NotebookPen } from 'lucide-react';
+import { Share as ShareIcon, Plus, Phone, MapPin, Search, Edit2, NotebookPen, FileText, CreditCard, ChevronRight, X, User, Trash2 } from 'lucide-react';
 import { generateAndSharePartyStatement, openWhatsApp } from '../../utils/pdfGenerator';
+import { SecureActionModal } from '../../components/SecureActionModal';
 
 const schema = z.object({
   name: z.string().min(1, 'Name required'),
@@ -101,6 +102,7 @@ export function PartyDetail() {
   const [tab, setTab] = useState<'ledger' | 'invoices' | 'payments'>('ledger');
   const [showAllocateModal, setShowAllocateModal] = useState(false);
   const [showJournalModal, setShowJournalModal] = useState(false);
+  const [secureAction, setSecureAction] = useState<{ type: 'payment' | 'journal', id: number } | null>(null);
   const qc = useQueryClient();
 
   const { data: party } = useQuery({
@@ -232,10 +234,27 @@ export function PartyDetail() {
                   <p style={{ fontSize: 14, fontWeight: 600 }}>{entry.reference}</p>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(entry.date)}</p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: Number(entry.amount) < 0 ? 'var(--success)' : 'var(--text-primary)' }}>
-                    {Number(entry.amount) < 0 ? '-' : '+'}{formatCurrency(Math.abs(Number(entry.amount)))}
-                  </p>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: Number(entry.amount) < 0 ? 'var(--success)' : 'var(--text-primary)' }}>
+                      {Number(entry.amount) < 0 ? '-' : '+'}{formatCurrency(Math.abs(Number(entry.amount)))}
+                    </p>
+                    {(entry.type === 'payment' || entry.type === 'journal') && (
+                      <button 
+                        className="btn-icon" 
+                        style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}
+                        onClick={() => {
+                          const idParts = entry.reference.split('-');
+                          const id = Number(idParts[1]);
+                          if (!isNaN(id)) {
+                            setSecureAction({ type: entry.type as 'payment' | 'journal', id });
+                          }
+                        }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Bal: {formatCurrency(entry.running_balance)}</p>
                 </div>
               </div>
@@ -259,6 +278,24 @@ export function PartyDetail() {
           onSuccess={() => { setShowJournalModal(false); qc.invalidateQueries({ queryKey: ['ledger', id] }); qc.invalidateQueries({ queryKey: ['party', id] }); }}
         />
       )}
+
+      <SecureActionModal
+        isOpen={secureAction !== null}
+        onClose={() => setSecureAction(null)}
+        title={`Delete ${secureAction?.type === 'payment' ? 'Payment' : 'Journal Entry'}`}
+        message={`Enter Master PIN to delete this ${secureAction?.type}. Balances will be recalibrated.`}
+        onConfirm={async () => {
+          if (secureAction?.type === 'payment') {
+            await paymentsApi.delete(secureAction.id);
+          } else if (secureAction?.type === 'journal') {
+            await partiesApi.deleteJournalEntry(secureAction.id);
+          }
+          qc.invalidateQueries({ queryKey: ['party', String(id)] });
+          qc.invalidateQueries({ queryKey: ['ledger', String(id)] });
+          qc.invalidateQueries({ queryKey: ['payments', String(id)] });
+          setSecureAction(null);
+        }}
+      />
     </div>
   );
 }
