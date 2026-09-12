@@ -67,6 +67,7 @@ def create_invoice(
         db.query(models.Invoice)
         .filter(
             models.Invoice.invoice_number == invoice_number,
+            models.Invoice.is_deleted == False,
         )
         .first()
     )

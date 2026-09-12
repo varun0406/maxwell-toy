@@ -414,9 +414,10 @@ export function NewInvoice() {
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <input
                 type="file"
-                accept="image/*,.pdf"
-                className="form-input"
-                style={{ flex: 1, padding: '8px' }}
+                accept="image/*"
+                capture="environment"
+                id="challan-camera"
+                style={{ display: 'none' }}
                 onChange={async (e) => {
                   if (e.target.files && e.target.files.length > 0) {
                     setUploadingChallan(true);
@@ -432,9 +433,46 @@ export function NewInvoice() {
                   }
                 }}
               />
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                id="challan-file"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setUploadingChallan(true);
+                    try {
+                      const res = await invoicesApi.upload(e.target.files[0]);
+                      setValue('delivery_challan_url', res.data.url);
+                    } catch (error) {
+                      console.error("Upload failed", error);
+                      alert("Failed to upload Delivery Challan");
+                    } finally {
+                      setUploadingChallan(false);
+                    }
+                  }
+                }}
+              />
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                style={{ flex: 1 }}
+                onClick={() => document.getElementById('challan-camera')?.click()}
+              >
+                Take Photo
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                style={{ flex: 1 }}
+                onClick={() => document.getElementById('challan-file')?.click()}
+              >
+                Upload File
+              </button>
+              
               {watch('delivery_challan_url') && (
                 <a href={watch('delivery_challan_url')} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
-                  View Uploaded
+                  View
                 </a>
               )}
               {uploadingChallan && <div className="spinner" style={{ width: 20, height: 20 }} />}
