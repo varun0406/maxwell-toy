@@ -23,8 +23,8 @@ def _get_party_or_404(party_id: int, db: Session) -> models.Party:
 
 
 def _compute_balance(party: models.Party) -> dict:
-    total_invoiced = sum(i.amount for i in party.invoices) or Decimal("0")
-    total_paid = sum(p.amount for p in party.payments) or Decimal("0")
+    total_invoiced = sum(i.amount for i in party.invoices if not i.is_deleted) or Decimal("0")
+    total_paid = sum(p.amount for p in party.payments if not p.is_deleted) or Decimal("0")
     outstanding = total_invoiced - total_paid
     return {
         "total_invoiced": total_invoiced,

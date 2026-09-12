@@ -23,17 +23,18 @@ def dashboard_summary(
         models.Party.is_active == True,
     ).all()
 
-    invoices = db.query(models.Invoice).all()
+    invoices = db.query(models.Invoice).filter(models.Invoice.is_deleted == False).all()
 
     payments = (
         db.query(models.Payment)
+        .filter(models.Payment.is_deleted == False)
         .order_by(models.Payment.payment_date.desc())
         .limit(5)
         .all()
     )
 
     total_invoiced = sum(i.amount for i in invoices) or Decimal("0")
-    total_collected = sum(p.amount for p in db.query(models.Payment).all()) or Decimal("0")
+    total_collected = sum(p.amount for p in db.query(models.Payment).filter(models.Payment.is_deleted == False).all()) or Decimal("0")
     total_outstanding = total_invoiced - total_collected
 
     overdue = sum(
@@ -63,8 +64,10 @@ def party_summaries(
 
     result = []
     for p in parties:
-        total_invoiced = sum(i.amount for i in p.invoices) or Decimal("0")
-        total_paid = sum(pay.amount for pay in p.payments) or Decimal("0")
+        total_invoiced = sum(i.amount for i in p.invoices if not i.is_deleted) or Decimal("0")
+        total_paid = sum(pay.amount for pay in p.payments if not pay.is_deleted) or Decimal("0")
+        active_invoices = [i for i in p.invoices if not i.is_deleted]
+        active_payments = [pay for pay in p.payments if not pay.is_deleted]
         result.append(
             schemas.PartySummary(
                 party_id=p.id,
@@ -72,8 +75,8 @@ def party_summaries(
                 total_invoiced=total_invoiced,
                 total_paid=total_paid,
                 outstanding=total_invoiced - total_paid,
-                invoice_count=len(p.invoices),
-                payment_count=len(p.payments),
+                invoice_count=len(active_invoices),
+                payment_count=len(active_payments),
             )
         )
     # Sort by outstanding desc (top debtors first)
@@ -96,16 +99,18 @@ def party_analytics(
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Party not found")
 
-    total_invoiced = sum(i.amount for i in p.invoices) or Decimal("0")
-    total_paid = sum(pay.amount for pay in p.payments) or Decimal("0")
+    total_invoiced = sum(i.amount for i in p.invoices if not i.is_deleted) or Decimal("0")
+    total_paid = sum(pay.amount for pay in p.payments if not pay.is_deleted) or Decimal("0")
+    active_invoices = [i for i in p.invoices if not i.is_deleted]
+    active_payments = [pay for pay in p.payments if not pay.is_deleted]
     return schemas.PartySummary(
         party_id=p.id,
         party_name=p.name,
         total_invoiced=total_invoiced,
         total_paid=total_paid,
         outstanding=total_invoiced - total_paid,
-        invoice_count=len(p.invoices),
-        payment_count=len(p.payments),
+        invoice_count=len(active_invoices),
+        payment_count=len(active_payments),
     )
 
 
@@ -124,7 +129,7 @@ def aging_report(
         buckets = {"current": Decimal("0"), "days_31_60": Decimal("0"),
                    "days_61_90": Decimal("0"), "over_90": Decimal("0")}
         for inv in p.invoices:
-            if inv.is_paid:
+            if inv.is_paid or inv.is_deleted:
                 continue
             ref_date = (inv.due_date or inv.invoice_date).replace(tzinfo=timezone.utc)
             age_days = (now - ref_date).days

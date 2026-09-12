@@ -161,8 +161,8 @@ export function InvoicesList() {
       <SecureActionModal
         isOpen={secureAction !== null}
         onClose={() => setSecureAction(null)}
-        title={secureAction?.type === 'edit' ? 'Edit Invoice' : 'Delete Invoice'}
-        message={secureAction?.type === 'edit' ? 'Enter Master PIN to edit this invoice.' : 'Enter Master PIN to delete this invoice. Balances will be recalibrated.'}
+        title={secureAction?.type === 'edit' ? 'Edit Invoice' : 'Hide Invoice'}
+        message={secureAction?.type === 'edit' ? 'Enter Master PIN to edit this invoice.' : 'Enter Master PIN to hide this invoice. Balances will be recalibrated.'}
         onConfirm={async () => {
           if (secureAction?.type === 'edit') {
             navigate(`/invoices/new?edit=${secureAction.id}`);

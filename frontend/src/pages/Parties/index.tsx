@@ -111,8 +111,8 @@ export function PartiesList() {
       <SecureActionModal
         isOpen={secureActionId !== null}
         onClose={() => setSecureActionId(null)}
-        title="Delete Party"
-        message="Enter Master PIN to archive this party. It will be hidden from the list."
+        title="Hide Party"
+        message="Enter Master PIN to hide this party. All related data will also be hidden."
         onConfirm={async () => {
           if (secureActionId) {
             await partiesApi.delete(secureActionId);
@@ -313,8 +313,8 @@ export function PartyDetail() {
       <SecureActionModal
         isOpen={secureAction !== null}
         onClose={() => setSecureAction(null)}
-        title={`Delete ${secureAction?.type === 'payment' ? 'Payment' : 'Journal Entry'}`}
-        message={`Enter Master PIN to delete this ${secureAction?.type}. Balances will be recalibrated.`}
+        title={`Hide ${secureAction?.type === 'payment' ? 'Payment' : 'Journal Entry'}`}
+        message={`Enter Master PIN to hide this ${secureAction?.type}. Balances will be recalibrated.`}
         onConfirm={async () => {
           if (secureAction?.type === 'payment') {
             await paymentsApi.delete(secureAction.id);
