@@ -6,7 +6,7 @@ import { create } from 'zustand';
 
 interface AuthState {
   accessToken: string | null;
-  user: { id: number; username: string; email?: string } | null;
+  user: { id: number; username: string; email?: string; is_superuser?: boolean } | null;
   setTokens: (access: string, _refresh: string) => void;
   setUser: (user: AuthState['user']) => void;
   logout: () => void;

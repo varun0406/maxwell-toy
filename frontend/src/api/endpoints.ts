@@ -10,6 +10,12 @@ export const authApi = {
   logout: () => api.post('/auth/logout'),
 };
 
+// ── Users ───────────────────────────────────────────────────────────────────
+export const usersApi = {
+  list: () => api.get('/users/'),
+  updateStatus: (id: number, is_active: boolean) => api.put(`/users/${id}?is_active=${is_active}`),
+};
+
 // ── Parties ─────────────────────────────────────────────────────────────────
 export const partiesApi = {
   list: (search?: string) =>

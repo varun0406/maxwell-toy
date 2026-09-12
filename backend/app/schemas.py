@@ -26,6 +26,7 @@ class UserOut(BaseModel):
     username: str
     email: Optional[str]
     is_active: bool
+    is_superuser: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -63,8 +64,10 @@ class PartyCreate(BaseModel):
     shipping_address_line2: Optional[str] = None
     shipping_address_line3: Optional[str] = None
     shipping_city: Optional[str] = None
+    area: Optional[str] = None
     gstin: Optional[str] = Field(default=None, max_length=20)
     notes: Optional[str] = None
+    reminder_date: Optional[datetime] = None
 
 
 class PartyUpdate(BaseModel):
@@ -80,8 +83,10 @@ class PartyUpdate(BaseModel):
     shipping_address_line2: Optional[str] = None
     shipping_address_line3: Optional[str] = None
     shipping_city: Optional[str] = None
+    area: Optional[str] = None
     gstin: Optional[str] = Field(default=None, max_length=20)
     notes: Optional[str] = None
+    reminder_date: Optional[datetime] = None
     is_active: Optional[bool] = None
 
 
@@ -99,8 +104,10 @@ class PartyOut(BaseModel):
     shipping_address_line2: Optional[str]
     shipping_address_line3: Optional[str]
     shipping_city: Optional[str]
+    area: Optional[str]
     gstin: Optional[str]
     notes: Optional[str]
+    reminder_date: Optional[datetime]
     is_active: bool
     created_at: datetime
 

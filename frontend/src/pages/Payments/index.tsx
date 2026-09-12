@@ -135,6 +135,7 @@ export function NewPayment() {
   const totalAllocated = Object.values(allocations).reduce((sum, val) => sum + (val || 0), 0);
 
   const onSubmit = async (data: PaymentForm) => {
+    if (loading) return;
     setLoading(true); setErr('');
     
     if (paymentType === 'bill_adjustment' && totalAllocated > Number(data.amount)) {

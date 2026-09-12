@@ -20,5 +20,7 @@
         <!-- Replace with your actual server IP or domain: -->
         <domain includeSubdomains="true">192.168.1.0</domain>
         <domain includeSubdomains="true">YOUR_SERVER_IP</domain>
+        <domain includeSubdomains="true">calculator.rovark.in</domain>
+        <domain includeSubdomains="true">rovark.in</domain>
     </domain-config>
 </network-security-config>

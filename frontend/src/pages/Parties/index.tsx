@@ -25,6 +25,8 @@ const schema = z.object({
   shipping_city: z.string().optional(),
   gstin: z.string().optional(),
   notes: z.string().optional(),
+  area: z.string().optional(),
+  reminder_date: z.string().optional(),
 });
 type PartyForm = z.infer<typeof schema>;
 
@@ -133,9 +135,10 @@ export function PartyDetail() {
   const [showAllocateModal, setShowAllocateModal] = useState(false);
   const [showJournalModal, setShowJournalModal] = useState(false);
   const [secureAction, setSecureAction] = useState<{ type: 'payment' | 'journal', id: number } | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const qc = useQueryClient();
 
-  const { data: party } = useQuery({
+  const { data: party, refetch: refetchParty } = useQuery({
     queryKey: ['party', id],
     queryFn: () => partiesApi.get(Number(id)).then((r) => r.data),
   });
@@ -179,6 +182,12 @@ export function PartyDetail() {
           {party.phone && <span><Phone size={12} style={{ display: 'inline', marginRight: 4 }} />{party.phone}</span>}
           {party.billing_city && <span><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} />{party.billing_city}</span>}
           {party.agent_name && <span>Agent: {party.agent_name}</span>}
+          {party.area && <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: 4 }}>Area: {party.area}</span>}
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none' }} onClick={() => setShowEditModal(true)}>
+            Edit Party Details
+          </button>
         </div>
       </div>
 
@@ -324,6 +333,14 @@ export function PartyDetail() {
           setSecureAction(null);
         }}
       />
+
+      {showEditModal && (
+        <EditPartyModal 
+          party={party} 
+          onClose={() => setShowEditModal(false)} 
+          onSuccess={() => { setShowEditModal(false); refetchParty(); qc.invalidateQueries({ queryKey: ['parties'] }); }} 
+        />
+      )}
     </div>
   );
 }
@@ -356,6 +373,7 @@ function AllocateOnAccountModal({ partyId, payments, onClose }: { partyId: numbe
     };
     
     const onSubmit = async () => {
+        if (loading) return;
         if (!selectedPaymentId) return;
         if (remainingToAllocate < 0) {
             setErr("Allocations exceed available balance.");
@@ -491,6 +509,7 @@ function AddPartyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
   const [err, setErr] = useState('');
 
   const onSubmit = async (data: PartyForm) => {
+    if (loading) return;
     setLoading(true);
     try {
       await partiesApi.create(data);
@@ -531,6 +550,18 @@ function AddPartyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
             <div className="form-group">
               <label className="form-label">GSTIN</label>
               <input className="form-input" placeholder="22AAAAA0000A1Z5" {...register('gstin')} />
+            </div>
+
+            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Categorization & Reminders</h4>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Area</label>
+                <input className="form-input" placeholder="e.g. North Zone" {...register('area')} />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Reminder Date</label>
+                <input className="form-input" type="date" {...register('reminder_date')} />
+              </div>
             </div>
 
             <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Billing Address</h4>
@@ -578,6 +609,127 @@ function AddPartyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
   );
 }
 
+// ── Edit Party Modal ────────────────────────────────────────────────────────
+function EditPartyModal({ party, onClose, onSuccess }: { party: any; onClose: () => void; onSuccess: () => void }) {
+  const { register, handleSubmit, formState: { errors } } = useForm<PartyForm>({ 
+    resolver: zodResolver(schema),
+    defaultValues: {
+      ...party,
+      reminder_date: party.reminder_date ? party.reminder_date.split('T')[0] : '',
+    }
+  });
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  const onSubmit = async (data: PartyForm) => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      // If reminder date is set, convert it to iso string or keep it as YYYY-MM-DD
+      const payload = { ...data };
+      if (payload.reminder_date) {
+        payload.reminder_date = new Date(payload.reminder_date).toISOString();
+      } else {
+        payload.reminder_date = undefined;
+      }
+      
+      await partiesApi.update(party.id, payload);
+      onSuccess();
+    } catch (e: any) {
+      setErr(e.response?.data?.detail || 'Failed to update party');
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-handle" />
+        <h2 className="modal-title">Edit Party</h2>
+        {err && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{err}</div>}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: 8, paddingBottom: 16 }}>
+            <h4 style={{ margin: '8px 0', fontSize: 14, color: 'var(--accent-glow)' }}>General</h4>
+            <div className="form-group">
+              <label className="form-label">Name *</label>
+              <input className="form-input" placeholder="Party / Company name" {...register('name')} />
+              {errors.name && <span className="form-error">{errors.name.message}</span>}
+            </div>
+            <div className="form-group">
+              <label className="form-label">Agent Name</label>
+              <input className="form-input" placeholder="e.g. Rahul Agent" {...register('agent_name')} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Phone</label>
+                <input className="form-input" type="tel" placeholder="+91 9999999999" {...register('phone')} />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Email</label>
+                <input className="form-input" type="email" placeholder="party@email.com" {...register('email')} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">GSTIN</label>
+              <input className="form-input" placeholder="22AAAAA0000A1Z5" {...register('gstin')} />
+            </div>
+
+            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Categorization & Reminders</h4>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Area</label>
+                <input className="form-input" placeholder="e.g. North Zone" {...register('area')} />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Reminder Date</label>
+                <input className="form-input" type="date" {...register('reminder_date')} />
+              </div>
+            </div>
+
+            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Billing Address</h4>
+            <div className="form-group">
+              <input className="form-input" placeholder="Line 1" {...register('billing_address_line1')} />
+            </div>
+            <div className="form-group">
+              <input className="form-input" placeholder="Line 2" {...register('billing_address_line2')} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <input className="form-input" placeholder="Line 3" {...register('billing_address_line3')} />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <input className="form-input" placeholder="City" {...register('billing_city')} />
+              </div>
+            </div>
+
+            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Shipping Address</h4>
+            <div className="form-group">
+              <input className="form-input" placeholder="Line 1" {...register('shipping_address_line1')} />
+            </div>
+            <div className="form-group">
+              <input className="form-input" placeholder="Line 2" {...register('shipping_address_line2')} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <input className="form-input" placeholder="Line 3" {...register('shipping_address_line3')} />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <input className="form-input" placeholder="City" {...register('shipping_city')} />
+              </div>
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={loading}>
+              {loading ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Journal Entry Modal ──────────────────────────────────────────────────────────
 function JournalModal({ partyId, onClose, onSuccess }: { partyId: number; onClose: () => void; onSuccess: () => void }) {
   const [form, setForm] = useState({
@@ -593,6 +745,7 @@ function JournalModal({ partyId, onClose, onSuccess }: { partyId: number; onClos
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   const onSubmit = async () => {
+    if (loading) return;
     if (!form.amount || Number(form.amount) <= 0) { setErr('Amount must be > 0'); return; }
     setLoading(true); setErr('');
     try {

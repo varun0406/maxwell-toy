@@ -127,6 +127,7 @@ export function AddressFormModal({ initial, onClose, onSuccess }: { initial: Add
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const onSubmit = async () => {
+    if (loading) return;
     if (!form.name.trim()) { setErr('Name is required'); return; }
     setLoading(true); setErr('');
     try {

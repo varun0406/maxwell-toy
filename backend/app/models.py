@@ -24,6 +24,7 @@ class User(Base):
     email = Column(String(120), unique=True, nullable=True, index=True)
     hashed_password = Column(String(200), nullable=False)
     is_active = Column(Boolean, default=True)
+    is_superuser = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     # Relationships
@@ -67,8 +68,10 @@ class Party(Base):
     shipping_address_line2 = Column(String(255), nullable=True)
     shipping_address_line3 = Column(String(255), nullable=True)
     shipping_city = Column(String(120), nullable=True)
+    area = Column(String(120), nullable=True)
     gstin = Column(String(20), nullable=True)
     notes = Column(Text, nullable=True)
+    reminder_date = Column(DateTime(timezone=True), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

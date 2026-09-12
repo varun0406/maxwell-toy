@@ -12,19 +12,9 @@ const loginSchema = z.object({
   password: z.string().min(8, 'Password must be 8+ chars'),
 });
 
-const registerSchema = loginSchema.extend({
-  email: z.string().email().optional().or(z.literal('')),
-  confirmPassword: z.string(),
-}).refine((d) => d.password === d.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
-});
-
 type LoginForm = z.infer<typeof loginSchema>;
-type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function Login() {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -32,7 +22,6 @@ export default function Login() {
   const { setTokens, setUser } = useAuthStore();
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
-  const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
 
   const handleLogin = async (data: LoginForm) => {
     setError(''); setLoading(true);
@@ -44,20 +33,6 @@ export default function Login() {
       navigate('/home');
     } catch (e: any) {
       setError(e.response?.data?.detail || 'Login failed');
-    } finally { setLoading(false); }
-  };
-
-  const handleRegister = async (data: RegisterForm) => {
-    setError(''); setLoading(true);
-    try {
-      await authApi.register({ username: data.username, email: data.email || undefined, password: data.password });
-      const { data: tokens } = await authApi.login({ username: data.username, password: data.password });
-      setTokens(tokens.access_token, tokens.refresh_token);
-      const { data: user } = await authApi.me();
-      setUser(user);
-      navigate('/home');
-    } catch (e: any) {
-      setError(e.response?.data?.detail || 'Registration failed');
     } finally { setLoading(false); }
   };
 
@@ -96,42 +71,8 @@ export default function Login() {
             Welcome Back
           </h1>
           <p style={{ color: 'var(--text-muted)', marginTop: 6, fontSize: 14, fontWeight: 500 }}>
-            {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}
+            Sign in to your account
           </p>
-        </div>
-
-        {/* Mode toggle */}
-        <div style={{
-          display: 'flex',
-          background: 'var(--bg-elevated)',
-          borderRadius: 14,
-          padding: 4,
-          marginBottom: 28,
-          border: '1px solid var(--border)',
-        }}>
-          {(['login', 'register'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => { setMode(m); setError(''); }}
-              style={{
-                flex: 1,
-                padding: '11px 0',
-                borderRadius: 11,
-                border: 'none',
-                background: mode === m ? 'linear-gradient(140deg, var(--accent), var(--accent-dark))' : 'none',
-                color: mode === m ? '#fff' : 'var(--text-muted)',
-                fontFamily: 'inherit',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: 'pointer',
-                transition: 'all 0.25s',
-                boxShadow: mode === m ? 'var(--shadow-accent)' : 'none',
-                letterSpacing: -0.1,
-              }}
-            >
-              {m === 'login' ? 'Sign In' : 'Register'}
-            </button>
-          ))}
         </div>
 
         {/* Error */}
@@ -154,8 +95,7 @@ export default function Login() {
         )}
 
         {/* Login Form */}
-        {mode === 'login' ? (
-          <form onSubmit={loginForm.handleSubmit(handleLogin)}>
+        <form onSubmit={loginForm.handleSubmit(handleLogin)}>
             <div className="form-group">
               <label className="form-label">Username</label>
               <div style={{ position: 'relative' }}>
@@ -210,32 +150,6 @@ export default function Login() {
               ) : 'Sign In'}
             </button>
           </form>
-        ) : (
-          <form onSubmit={registerForm.handleSubmit(handleRegister)}>
-            <div className="form-group">
-              <label className="form-label">Username</label>
-              <input className="form-input" placeholder="your_username" {...registerForm.register('username')} />
-              {registerForm.formState.errors.username && <span className="form-error">{registerForm.formState.errors.username.message}</span>}
-            </div>
-            <div className="form-group">
-              <label className="form-label">Email (optional)</label>
-              <input className="form-input" type="email" placeholder="you@email.com" {...registerForm.register('email')} />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <input className="form-input" type="password" placeholder="Min. 8 characters" {...registerForm.register('password')} />
-              {registerForm.formState.errors.password && <span className="form-error">{registerForm.formState.errors.password.message}</span>}
-            </div>
-            <div className="form-group">
-              <label className="form-label">Confirm Password</label>
-              <input className="form-input" type="password" placeholder="••••••••" {...registerForm.register('confirmPassword')} />
-              {registerForm.formState.errors.confirmPassword && <span className="form-error">{registerForm.formState.errors.confirmPassword.message}</span>}
-            </div>
-            <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 8, height: 52, fontSize: 16 }}>
-              {loading ? 'Creating…' : 'Create Account'}
-            </button>
-          </form>
-        )}
       </div>
 
       <div style={{ padding: '16px 24px 32px', textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>

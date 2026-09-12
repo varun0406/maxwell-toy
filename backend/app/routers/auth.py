@@ -17,16 +17,43 @@ limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/register", response_model=schemas.UserOut, status_code=201)
-def register(payload: schemas.UserCreate, db: Session = Depends(get_db)):
+def register(
+    payload: schemas.UserCreate, 
+    request: Request, 
+    db: Session = Depends(get_db)
+):
+    user_count = db.query(models.User).count()
+    if user_count > 0:
+        # Require superadmin if users already exist
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+        token = auth_header.split(" ")[1]
+        try:
+            from ..config import settings
+            import jwt
+            decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            user_id = decoded.get("sub")
+            if not user_id:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+            current_user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+            if not current_user or not current_user.is_superuser:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only superadmins can register users")
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
     if db.query(models.User).filter(models.User.username == payload.username).first():
         raise HTTPException(status_code=400, detail="Username already taken")
     if payload.email and db.query(models.User).filter(models.User.email == payload.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    is_first_user = (user_count == 0)
     user = models.User(
         username=payload.username,
         email=payload.email,
         hashed_password=hash_password(payload.password),
+        is_superuser=is_first_user,  # First user is superuser
     )
     db.add(user)
     db.commit()

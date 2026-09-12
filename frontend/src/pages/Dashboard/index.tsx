@@ -4,7 +4,7 @@ import { analyticsApi } from '../../api/endpoints';
 import { useAuthStore } from '../../store/auth';
 import { formatCurrency, formatDate } from '../../utils/format';
 import {
-  Users, ChevronRight, Plus, CreditCard, BarChart2
+  Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -70,7 +70,7 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <p className="section-label">Quick Actions</p>
-      <div className="quick-actions">
+      <div className="quick-actions" style={{ marginBottom: 12 }}>
         <button className="quick-action-btn accent" onClick={() => navigate('/invoices/new')}>
           <Plus size={20} />
           New Invoice
@@ -79,10 +79,20 @@ export default function Dashboard() {
           <CreditCard size={20} />
           Record Payment
         </button>
+        <button className="quick-action-btn danger" onClick={() => navigate('/pending-dues')}>
+          <CalendarClock size={20} />
+          Pending Dues
+        </button>
         <button className="quick-action-btn warning" onClick={() => navigate('/analytics')}>
           <BarChart2 size={20} />
           Analytics
         </button>
+        {user?.is_superuser && (
+          <button className="quick-action-btn" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }} onClick={() => navigate('/users')}>
+            <ShieldAlert size={20} />
+            Manage Users
+          </button>
+        )}
       </div>
 
       {/* Recent Payments */}
