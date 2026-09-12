@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi, partiesApi, addressBookApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2 } from 'lucide-react';
+import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
 import { generateAndShareInvoice } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import { SearchCombobox } from '../../components/SearchCombobox';
@@ -144,6 +144,18 @@ export function InvoicesList() {
                   >
                     <ShareIcon size={14} />
                   </button>
+                  {inv.delivery_challan_url && (
+                    <button
+                      className="btn-icon"
+                      style={{ padding: 4, background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(inv.delivery_challan_url, '_blank');
+                      }}
+                    >
+                      <ImageIcon size={14} />
+                    </button>
+                  )}
                   <span className={`badge ${inv.is_paid ? 'badge-success' : 'badge-warning'}`}>
                     {inv.is_paid ? 'Paid' : 'Unpaid'}
                   </span>
@@ -270,6 +282,7 @@ export function NewInvoice() {
   };
 
   const onSubmit = async (data: InvoiceForm) => {
+    if (loading) return;
     setLoading(true); setErr('');
     try {
       let computedDueDate = undefined;
