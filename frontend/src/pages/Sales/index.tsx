@@ -168,8 +168,7 @@ export function InvoicesList() {
             navigate(`/invoices/new?edit=${secureAction.id}`);
           } else if (secureAction?.type === 'delete') {
             await invoicesApi.delete(secureAction.id);
-            qc.invalidateQueries({ queryKey: ['invoices'] });
-            qc.invalidateQueries({ queryKey: ['dashboard'] });
+            qc.invalidateQueries();
           }
           setSecureAction(null);
         }}
@@ -293,8 +292,7 @@ export function NewInvoice() {
           due_date: computedDueDate,
         });
       }
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      qc.invalidateQueries();
       navigate(-1);
     } catch (e: any) {
       setErr(e.response?.data?.detail || 'Failed to create invoice');
@@ -509,7 +507,7 @@ export function NewInvoice() {
           onClose={() => setShowNewAddressForm(false)}
           onSuccess={() => {
             setShowNewAddressForm(false);
-            qc.invalidateQueries({ queryKey: ['address-book'] });
+            qc.invalidateQueries();
             // Optionally could auto-select, but for now just refresh list
           }}
         />

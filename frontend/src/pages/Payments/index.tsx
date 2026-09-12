@@ -174,10 +174,7 @@ export function NewPayment() {
       }
 
       await paymentsApi.create(payload);
-      qc.invalidateQueries({ queryKey: ['payments'] });
-      qc.invalidateQueries({ queryKey: ['invoices'] });
-      qc.invalidateQueries({ queryKey: ['dashboard'] });
-      qc.invalidateQueries({ queryKey: ['parties'] });
+      qc.invalidateQueries();
       navigate(-1);
     } catch (e: any) {
       setErr(e.response?.data?.detail || 'Failed to record payment');

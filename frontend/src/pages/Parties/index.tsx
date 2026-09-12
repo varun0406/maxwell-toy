@@ -116,8 +116,7 @@ export function PartiesList() {
         onConfirm={async () => {
           if (secureActionId) {
             await partiesApi.delete(secureActionId);
-            qc.invalidateQueries({ queryKey: ['parties'] });
-            qc.invalidateQueries({ queryKey: ['dashboard'] });
+            qc.invalidateQueries();
           }
           setSecureActionId(null);
         }}
@@ -306,7 +305,7 @@ export function PartyDetail() {
         <JournalModal
           partyId={Number(id)}
           onClose={() => setShowJournalModal(false)}
-          onSuccess={() => { setShowJournalModal(false); qc.invalidateQueries({ queryKey: ['ledger', id] }); qc.invalidateQueries({ queryKey: ['party', id] }); }}
+          onSuccess={() => { setShowJournalModal(false); qc.invalidateQueries(); }}
         />
       )}
 
@@ -321,9 +320,7 @@ export function PartyDetail() {
           } else if (secureAction?.type === 'journal') {
             await partiesApi.deleteJournalEntry(secureAction.id);
           }
-          qc.invalidateQueries({ queryKey: ['party', String(id)] });
-          qc.invalidateQueries({ queryKey: ['ledger', String(id)] });
-          qc.invalidateQueries({ queryKey: ['payments', String(id)] });
+          qc.invalidateQueries();
           setSecureAction(null);
         }}
       />
@@ -390,9 +387,7 @@ function AllocateOnAccountModal({ partyId, payments, onClose }: { partyId: numbe
               }));
               
             await paymentsApi.allocate(selectedPaymentId, payload);
-            qc.invalidateQueries({ queryKey: ['party', String(partyId)] });
-            qc.invalidateQueries({ queryKey: ['ledger', String(partyId)] });
-            qc.invalidateQueries({ queryKey: ['payments', String(partyId)] });
+            qc.invalidateQueries();
             onClose();
         } catch (e: any) {
             setErr(e.response?.data?.detail || 'Failed to allocate balance');

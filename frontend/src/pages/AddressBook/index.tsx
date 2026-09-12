@@ -26,7 +26,7 @@ export default function AddressBook() {
 
   const handleDelete = async (id: number) => {
     await addressBookApi.delete(id);
-    qc.invalidateQueries({ queryKey: ['address-book'] });
+    qc.invalidateQueries();
   };
 
   return (
@@ -105,7 +105,7 @@ export default function AddressBook() {
         <AddressFormModal
           initial={editing}
           onClose={() => setShowForm(false)}
-          onSuccess={() => { setShowForm(false); qc.invalidateQueries({ queryKey: ['address-book'] }); }}
+          onSuccess={() => { setShowForm(false); qc.invalidateQueries(); }}
         />
       )}
     </div>
