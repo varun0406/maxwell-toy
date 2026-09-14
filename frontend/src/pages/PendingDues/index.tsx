@@ -5,6 +5,8 @@ import { partiesApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { Filter, CalendarClock, PhoneCall, User } from 'lucide-react';
 
+import CalculationEvidence from '../../components/CalculationEvidence';
+
 export default function PendingDues() {
   const navigate = useNavigate();
   const [areaFilter, setAreaFilter] = useState<string>('');
@@ -122,9 +124,19 @@ export default function PendingDues() {
                   </div>
                 </div>
                 <div className="list-item-right" style={{ textAlign: 'right' }}>
-                  <p style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 16 }}>
-                    {formatCurrency(p.outstanding)}
-                  </p>
+                  <CalculationEvidence
+                    title={`${p.name} Outstanding`}
+                    items={[
+                      { label: 'Total Invoiced', value: p.total_invoiced || 0, operator: '+' },
+                      { label: 'Journal Adjustments', value: p.total_journal || 0, operator: p.total_journal >= 0 ? '+' : '-' },
+                      { label: 'Total Paid', value: p.total_paid || 0, operator: '-' },
+                      { label: 'Outstanding Due', value: p.outstanding || 0, operator: '=' }
+                    ]}
+                  >
+                    <p style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 16 }}>
+                      {formatCurrency(p.outstanding)}
+                    </p>
+                  </CalculationEvidence>
                   {p.phone && (
                     <a href={`tel:${p.phone}`} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, marginTop: 4, textDecoration: 'none', fontWeight: 500 }}>
                       <PhoneCall size={12} /> Call

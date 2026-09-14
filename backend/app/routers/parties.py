@@ -22,15 +22,20 @@ def _get_party_or_404(party_id: int, db: Session) -> models.Party:
     return party
 
 
-def _compute_balance(party: models.Party) -> dict:
-    total_invoiced = sum(i.amount for i in party.invoices if not i.is_deleted) or Decimal("0")
-    total_paid = sum(p.amount for p in party.payments if not p.is_deleted) or Decimal("0")
-    outstanding = total_invoiced - total_paid
-    return {
-        "total_invoiced": total_invoiced,
-        "total_paid": total_paid,
-        "outstanding": outstanding,
-    }
+def _get_party_balance_subqueries(db: Session):
+    inv_sub = db.query(func.coalesce(func.sum(models.Invoice.amount), Decimal("0")))\
+        .filter(models.Invoice.party_id == models.Party.id, models.Invoice.is_deleted == False)\
+        .scalar_subquery()
+        
+    pmt_sub = db.query(func.coalesce(func.sum(models.Payment.amount), Decimal("0")))\
+        .filter(models.Payment.party_id == models.Party.id, models.Payment.is_deleted == False)\
+        .scalar_subquery()
+        
+    jnl_sub = db.query(func.coalesce(func.sum(models.JournalEntry.amount), Decimal("0")))\
+        .filter(models.JournalEntry.party_id == models.Party.id, models.JournalEntry.is_deleted == False)\
+        .scalar_subquery()
+        
+    return inv_sub, pmt_sub, jnl_sub
 
 
 @router.get("/", response_model=List[schemas.PartyWithBalance])
@@ -41,17 +46,32 @@ def list_parties(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.Party).filter(
+    inv_sub, pmt_sub, jnl_sub = _get_party_balance_subqueries(db)
+    
+    query = db.query(
+        models.Party,
+        inv_sub.label("total_invoiced"),
+        pmt_sub.label("total_paid"),
+        jnl_sub.label("total_journal"),
+    ).filter(
         models.Party.is_active == True,
     )
+    
     if search:
         query = query.filter(models.Party.name.ilike(f"%{search}%"))
-    parties = query.order_by(models.Party.name).offset(skip).limit(limit).all()
+        
+    rows = query.order_by(models.Party.name).offset(skip).limit(limit).all()
 
     result = []
-    for p in parties:
-        bal = _compute_balance(p)
-        result.append(schemas.PartyWithBalance(**schemas.PartyOut.model_validate(p).model_dump(), **bal))
+    for party, inv, pmt, jnl in rows:
+        outstanding = inv + jnl - pmt
+        result.append(schemas.PartyWithBalance(
+            **schemas.PartyOut.model_validate(party).model_dump(),
+            total_invoiced=inv,
+            total_paid=pmt,
+            total_journal=jnl,
+            outstanding=outstanding,
+        ))
     return result
 
 
@@ -74,9 +94,27 @@ def get_party(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    party = _get_party_or_404(party_id, db)
-    bal = _compute_balance(party)
-    return schemas.PartyWithBalance(**schemas.PartyOut.model_validate(party).model_dump(), **bal)
+    inv_sub, pmt_sub, jnl_sub = _get_party_balance_subqueries(db)
+    
+    row = db.query(
+        models.Party,
+        inv_sub.label("total_invoiced"),
+        pmt_sub.label("total_paid"),
+        jnl_sub.label("total_journal"),
+    ).filter(models.Party.id == party_id).first()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail="Party not found")
+        
+    party, inv, pmt, jnl = row
+    outstanding = inv + jnl - pmt
+    return schemas.PartyWithBalance(
+        **schemas.PartyOut.model_validate(party).model_dump(),
+        total_invoiced=inv,
+        total_paid=pmt,
+        total_journal=jnl,
+        outstanding=outstanding,
+    )
 
 
 @router.put("/{party_id}", response_model=schemas.PartyOut)

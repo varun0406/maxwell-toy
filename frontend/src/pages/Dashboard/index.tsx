@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { analyticsApi } from '../../api/endpoints';
 import { useAuthStore } from '../../store/auth';
 import { formatCurrency, formatDate } from '../../utils/format';
+import CalculationEvidence from '../../components/CalculationEvidence';
 import {
   Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert
 } from 'lucide-react';
@@ -40,9 +41,22 @@ export default function Dashboard() {
       {/* Outstanding Hero */}
       <div className="hero-card">
         <p className="hero-label">Total Outstanding</p>
-        <p className="hero-amount">
-          {isLoading ? '...' : formatCurrency(summary?.total_outstanding || 0)}
-        </p>
+        <div className="hero-amount">
+          {isLoading ? '...' : (
+            <CalculationEvidence
+              title="Total Outstanding"
+              valueClass="hero-amount"
+              items={[
+                { label: 'Total Invoiced', value: summary?.total_invoiced || 0, operator: '+' },
+                { label: 'Journal Adjustments', value: summary?.total_journal || 0, operator: summary?.total_journal >= 0 ? '+' : '-' },
+                { label: 'Total Collected', value: summary?.total_collected || 0, operator: '-' },
+                { label: 'Total Outstanding', value: summary?.total_outstanding || 0, operator: '=' }
+              ]}
+            >
+              {formatCurrency(summary?.total_outstanding || 0)}
+            </CalculationEvidence>
+          )}
+        </div>
         <p className="hero-sub">
           {summary?.overdue_count || 0} overdue · {summary?.invoices_count || 0} total invoices
         </p>
@@ -52,11 +66,35 @@ export default function Dashboard() {
       <div className="stats-grid">
         <div className="stat-card accent">
           <p className="stat-label">Invoiced</p>
-          <p className="stat-value mono">{isLoading ? '…' : formatCurrency(summary?.total_invoiced || 0)}</p>
+          <div className="stat-value mono">
+            {isLoading ? '…' : (
+              <CalculationEvidence
+                title="Total Invoiced"
+                valueClass="stat-value mono"
+                items={[
+                  { label: 'Sum of all unpaid and paid invoices', value: summary?.total_invoiced || 0, operator: '=' }
+                ]}
+              >
+                {formatCurrency(summary?.total_invoiced || 0)}
+              </CalculationEvidence>
+            )}
+          </div>
         </div>
         <div className="stat-card success">
           <p className="stat-label">Collected</p>
-          <p className="stat-value mono">{isLoading ? '…' : formatCurrency(summary?.total_collected || 0)}</p>
+          <div className="stat-value mono">
+            {isLoading ? '…' : (
+              <CalculationEvidence
+                title="Total Collected"
+                valueClass="stat-value mono"
+                items={[
+                  { label: 'Sum of all received payments', value: summary?.total_collected || 0, operator: '=' }
+                ]}
+              >
+                {formatCurrency(summary?.total_collected || 0)}
+              </CalculationEvidence>
+            )}
+          </div>
         </div>
         <div className="stat-card warning">
           <p className="stat-label">Parties</p>
@@ -64,7 +102,19 @@ export default function Dashboard() {
         </div>
         <div className="stat-card danger">
           <p className="stat-label">Overdue</p>
-          <p className="stat-value">{summary?.overdue_count || 0}</p>
+          <div className="stat-value">
+            {isLoading ? '…' : (
+              <CalculationEvidence
+                title="Overdue Invoices"
+                valueClass="stat-value"
+                items={[
+                  { label: 'Invoices past due date', value: summary?.overdue_count || 0, operator: '=' }
+                ]}
+              >
+                {summary?.overdue_count || 0}
+              </CalculationEvidence>
+            )}
+          </div>
         </div>
       </div>
 

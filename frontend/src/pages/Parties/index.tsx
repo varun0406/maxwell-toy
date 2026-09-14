@@ -9,6 +9,7 @@ import { formatCurrency, formatDate } from '../../utils/format';
 import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2 } from 'lucide-react';
 import { generateAndSharePartyStatement, openWhatsApp } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
+import CalculationEvidence from '../../components/CalculationEvidence';
 
 const schema = z.object({
   name: z.string().min(1, 'Name required'),
@@ -80,9 +81,19 @@ export function PartiesList() {
                 <p className="list-item-sub">{p.phone || p.email || 'No contact info'}</p>
               </div>
               <div className="list-item-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                <p style={{ fontWeight: 700, fontSize: 14, color: p.outstanding > 0 ? 'var(--warning)' : 'var(--success)' }}>
-                  {formatCurrency(p.outstanding)}
-                </p>
+                <CalculationEvidence
+                  title={`${p.name} Outstanding`}
+                  items={[
+                    { label: 'Total Invoiced', value: p.total_invoiced || 0, operator: '+' },
+                    { label: 'Journal Adjustments', value: p.total_journal || 0, operator: p.total_journal >= 0 ? '+' : '-' },
+                    { label: 'Total Paid', value: p.total_paid || 0, operator: '-' },
+                    { label: 'Outstanding Due', value: p.outstanding || 0, operator: '=' }
+                  ]}
+                >
+                  <span style={{ fontWeight: 700, fontSize: 14, color: p.outstanding > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                    {formatCurrency(p.outstanding)}
+                  </span>
+                </CalculationEvidence>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>due</p>
                   <button 
@@ -166,7 +177,20 @@ export function PartyDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <p className="hero-label">Outstanding Balance</p>
-            <p className="hero-amount">{formatCurrency(party.outstanding)}</p>
+            <div className="hero-amount">
+              <CalculationEvidence
+                title={`${party.name} Outstanding`}
+                valueClass="hero-amount"
+                items={[
+                  { label: 'Total Invoiced', value: party.total_invoiced || 0, operator: '+' },
+                  { label: 'Journal Adjustments', value: party.total_journal || 0, operator: party.total_journal >= 0 ? '+' : '-' },
+                  { label: 'Total Paid', value: party.total_paid || 0, operator: '-' },
+                  { label: 'Outstanding Due', value: party.outstanding || 0, operator: '=' }
+                ]}
+              >
+                {formatCurrency(party.outstanding)}
+              </CalculationEvidence>
+            </div>
           </div>
           <div style={{
             width: 56, height: 56, borderRadius: 14,
@@ -195,15 +219,41 @@ export function PartyDetail() {
       <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
         <div className="stat-card accent">
           <p className="stat-label">Invoiced</p>
-          <p className="stat-value mono" style={{ fontSize: 15 }}>{formatCurrency(party.total_invoiced)}</p>
+          <div className="stat-value mono" style={{ fontSize: 15 }}>
+            <CalculationEvidence
+              title="Total Invoiced"
+              items={[{ label: 'Total Invoiced Amount', value: party.total_invoiced, operator: '=' }]}
+            >
+              {formatCurrency(party.total_invoiced)}
+            </CalculationEvidence>
+          </div>
         </div>
         <div className="stat-card success">
           <p className="stat-label">Paid</p>
-          <p className="stat-value mono" style={{ fontSize: 15 }}>{formatCurrency(party.total_paid)}</p>
+          <div className="stat-value mono" style={{ fontSize: 15 }}>
+            <CalculationEvidence
+              title="Total Paid"
+              items={[{ label: 'Total Paid Amount', value: party.total_paid, operator: '=' }]}
+            >
+              {formatCurrency(party.total_paid)}
+            </CalculationEvidence>
+          </div>
         </div>
         <div className="stat-card warning">
           <p className="stat-label">Due</p>
-          <p className="stat-value mono" style={{ fontSize: 15 }}>{formatCurrency(party.outstanding)}</p>
+          <div className="stat-value mono" style={{ fontSize: 15 }}>
+            <CalculationEvidence
+              title="Total Due"
+              items={[
+                { label: 'Total Invoiced', value: party.total_invoiced || 0, operator: '+' },
+                { label: 'Journal Adjustments', value: party.total_journal || 0, operator: party.total_journal >= 0 ? '+' : '-' },
+                { label: 'Total Paid', value: party.total_paid || 0, operator: '-' },
+                { label: 'Total Due', value: party.outstanding || 0, operator: '=' }
+              ]}
+            >
+              {formatCurrency(party.outstanding)}
+            </CalculationEvidence>
+          </div>
         </div>
       </div>
       

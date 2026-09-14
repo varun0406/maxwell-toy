@@ -117,6 +117,7 @@ class PartyOut(BaseModel):
 class PartyWithBalance(PartyOut):
     total_invoiced: Decimal
     total_paid: Decimal
+    total_journal: Decimal = Field(default=Decimal("0"))
     outstanding: Decimal
 
 
@@ -265,6 +266,7 @@ class PartySummary(BaseModel):
     party_name: str
     total_invoiced: Decimal
     total_paid: Decimal
+    total_journal: Decimal = Field(default=Decimal("0"))
     outstanding: Decimal
     invoice_count: int
     payment_count: int
@@ -307,6 +309,7 @@ class DashboardSummary(BaseModel):
     total_parties: int
     total_invoiced: Decimal
     total_collected: Decimal
+    total_journal: Decimal = Field(default=Decimal("0"))
     total_outstanding: Decimal
     invoices_count: int
     overdue_count: int
