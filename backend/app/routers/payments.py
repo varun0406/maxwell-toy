@@ -1,7 +1,8 @@
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 
 from .. import models, schemas
 from ..auth import get_current_user
@@ -9,9 +10,10 @@ from ..database import get_db
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
-@router.get("/", response_model=List[schemas.PaymentOut])
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.PaymentOut])
 def list_payments(
     party_id: int | None = None,
+    search: str = "",
     skip: int = 0,
     limit: int = 100,
     current_user: models.User = Depends(get_current_user),
@@ -19,12 +21,37 @@ def list_payments(
 ):
     query = (
         db.query(models.Payment)
-        .options(joinedload(models.Payment.allocations).joinedload(models.PaymentAllocation.invoice))
+        .options(joinedload(models.Payment.party), joinedload(models.Payment.allocations).joinedload(models.PaymentAllocation.invoice))
         .filter(models.Payment.is_deleted == False)
     )
     if party_id:
         query = query.filter(models.Payment.party_id == party_id)
-    return query.order_by(models.Payment.payment_date.desc()).offset(skip).limit(limit).all()
+        
+    if search:
+        query = query.join(models.Party).filter(
+            models.Party.name.ilike(f"%{search}%")
+        )
+
+    total = query.count()
+    
+    sum_query = db.query(func.sum(models.Payment.amount)).filter(models.Payment.is_deleted == False)
+    if party_id:
+        sum_query = sum_query.filter(models.Payment.party_id == party_id)
+    if search:
+        sum_query = sum_query.join(models.Party).filter(
+            models.Party.name.ilike(f"%{search}%")
+        )
+    summary_total = sum_query.scalar() or Decimal("0")
+
+    items = query.order_by(models.Payment.payment_date.desc()).offset(skip).limit(limit).all()
+    
+    return schemas.PaginatedResponse(
+        items=items,
+        total=total,
+        skip=skip,
+        limit=limit,
+        summary_total=summary_total
+    )
 
 
 @router.post("/", response_model=schemas.PaymentOut, status_code=201)

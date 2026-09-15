@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { analyticsApi, invoicesApi, paymentsApi, partiesApi } from '../../api/endpoints';
+import { useState, useEffect } from 'react';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useInView } from 'react-intersection-observer';
+import { analyticsApi, invoicesApi, paymentsApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -11,6 +12,7 @@ const COLORS = ['#6c63ff', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'
 
 export default function Analytics() {
   const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar'>('overview');
+  const { ref, inView } = useInView();
   const { data: summary } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => analyticsApi.summary().then((r) => r.data),
@@ -25,24 +27,46 @@ export default function Analytics() {
     enabled: tab === 'overview',
   });
 
-  const { data: invoices = [] } = useQuery({
+  const { data: invData, fetchNextPage: fetchInvNext, hasNextPage: hasInvNext } = useInfiniteQuery({
     queryKey: ['reports-invoices'],
-    queryFn: () => invoicesApi.list().then(r => r.data),
+    queryFn: ({ pageParam = 0 }) => invoicesApi.list(undefined, undefined, undefined, pageParam, 20).then(r => r.data),
+    getNextPageParam: (lastPage) => (lastPage.skip + lastPage.limit < lastPage.total) ? lastPage.skip + lastPage.limit : undefined,
+    initialPageParam: 0,
     enabled: tab === 'sales',
   });
 
-  const { data: payments = [] } = useQuery({
+  const { data: pmtData, fetchNextPage: fetchPmtNext, hasNextPage: hasPmtNext } = useInfiniteQuery({
     queryKey: ['reports-payments'],
-    queryFn: () => paymentsApi.list().then(r => r.data),
+    queryFn: ({ pageParam = 0 }) => paymentsApi.list(undefined, undefined, pageParam, 20).then(r => r.data),
+    getNextPageParam: (lastPage) => (lastPage.skip + lastPage.limit < lastPage.total) ? lastPage.skip + lastPage.limit : undefined,
+    initialPageParam: 0,
     enabled: tab === 'collections',
   });
 
-  const { data: partyList = [] } = useQuery({
-    queryKey: ['reports-parties'],
-    queryFn: () => partiesApi.list('', 0, 1000).then(r => r.data.items),
+  const { data: arData, fetchNextPage: fetchArNext, hasNextPage: hasArNext } = useInfiniteQuery({
+    queryKey: ['reports-ar'],
+    queryFn: ({ pageParam = 0 }) => analyticsApi.parties(undefined, pageParam, 20).then(r => r.data),
+    getNextPageParam: (lastPage) => (lastPage.skip + lastPage.limit < lastPage.total) ? lastPage.skip + lastPage.limit : undefined,
+    initialPageParam: 0,
+    enabled: tab === 'ar',
   });
 
-  const getPartyName = (id: number) => partyList.find((p: any) => p.id === id)?.name || `Party #${id}`;
+  useEffect(() => {
+    if (inView) {
+      if (tab === 'sales' && hasInvNext) fetchInvNext();
+      if (tab === 'collections' && hasPmtNext) fetchPmtNext();
+      if (tab === 'ar' && hasArNext) fetchArNext();
+    }
+  }, [inView, tab, hasInvNext, hasPmtNext, hasArNext, fetchInvNext, fetchPmtNext, fetchArNext]);
+
+  const invoices = invData ? invData.pages.flatMap((p) => p.items) : [];
+  const totalSales = invData ? invData.pages[0]?.summary_total || 0 : 0;
+
+  const payments = pmtData ? pmtData.pages.flatMap((p) => p.items) : [];
+  const totalCollections = pmtData ? pmtData.pages[0]?.summary_total || 0 : 0;
+
+  const arParties = arData ? arData.pages.flatMap((p) => p.items).filter((p: any) => p.outstanding > 0) : [];
+  const totalAR = summary?.total_outstanding || 0;
 
   const top5 = parties.slice(0, 5);
 
@@ -194,10 +218,10 @@ export default function Analytics() {
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 700 }}>Sales Register</h3>
               <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)' }}>
-                Total: {formatCurrency(invoices.reduce((sum: number, i: any) => sum + Number(i.total), 0))}
+                Total: {formatCurrency(totalSales)}
               </p>
             </div>
-            {invoices.length === 0 ? (
+            {invoices.length === 0 && !hasInvNext ? (
               <div className="empty-state"><p>No sales recorded yet</p></div>
             ) : (
               <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -210,16 +234,21 @@ export default function Analytics() {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoices.sort((a: any, b: any) => new Date(b.invoice_date).getTime() - new Date(a.invoice_date).getTime()).map((inv: any) => (
+                  {invoices.map((inv: any) => (
                     <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 16px', color: 'var(--text)' }}>{formatDate(inv.invoice_date)}</td>
                       <td style={{ padding: '12px 16px', fontWeight: 500 }}>{inv.invoice_number}</td>
-                      <td style={{ padding: '12px 16px' }}>{getPartyName(inv.party_id)}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(inv.total)}</td>
+                      <td style={{ padding: '12px 16px' }}>{inv.party_name}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(inv.total || inv.amount)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            )}
+            {hasInvNext && (
+              <div ref={ref} style={{ padding: '20px', textAlign: 'center' }}>
+                <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+              </div>
             )}
           </div>
         </div>
@@ -231,10 +260,10 @@ export default function Analytics() {
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 700 }}>Collection Register</h3>
               <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>
-                Total: {formatCurrency(payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0))}
+                Total: {formatCurrency(totalCollections)}
               </p>
             </div>
-            {payments.length === 0 ? (
+            {payments.length === 0 && !hasPmtNext ? (
               <div className="empty-state"><p>No payments recorded yet</p></div>
             ) : (
               <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -247,16 +276,21 @@ export default function Analytics() {
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.sort((a: any, b: any) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()).map((p: any) => (
+                  {payments.map((p: any) => (
                     <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 16px', color: 'var(--text)' }}>{formatDate(p.payment_date)}</td>
                       <td style={{ padding: '12px 16px', fontWeight: 500 }}>PMT-{String(p.id).padStart(4, '0')}</td>
-                      <td style={{ padding: '12px 16px' }}>{getPartyName(p.party_id)}</td>
+                      <td style={{ padding: '12px 16px' }}>{p.party_name}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>{formatCurrency(p.amount)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            )}
+            {hasPmtNext && (
+              <div ref={ref} style={{ padding: '20px', textAlign: 'center' }}>
+                <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+              </div>
             )}
           </div>
         </div>
@@ -268,10 +302,10 @@ export default function Analytics() {
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 700 }}>Accounts Receivable</h3>
               <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--warning)' }}>
-                Total AR: {formatCurrency(partyList.filter((p: any) => p.outstanding > 0).reduce((sum: number, p: any) => sum + Number(p.outstanding), 0))}
+                Total AR: {formatCurrency(totalAR)}
               </p>
             </div>
-            {partyList.filter((p: any) => p.outstanding > 0).length === 0 ? (
+            {arParties.length === 0 && !hasArNext ? (
               <div className="empty-state"><p>No outstanding balances</p></div>
             ) : (
               <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -282,14 +316,19 @@ export default function Analytics() {
                   </tr>
                 </thead>
                 <tbody>
-                  {partyList.filter((p: any) => p.outstanding > 0).sort((a: any, b: any) => Number(b.outstanding) - Number(a.outstanding)).map((p: any) => (
-                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 500 }}>{p.name}</td>
+                  {arParties.map((p: any) => (
+                    <tr key={p.party_id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 500 }}>{p.party_name}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--warning)' }}>{formatCurrency(p.outstanding)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            )}
+            {hasArNext && (
+              <div ref={ref} style={{ padding: '20px', textAlign: 'center' }}>
+                <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+              </div>
             )}
           </div>
         </div>

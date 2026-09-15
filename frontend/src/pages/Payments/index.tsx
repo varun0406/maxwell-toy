@@ -6,9 +6,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentsApi, partiesApi, invoicesApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Plus, ChevronLeft } from 'lucide-react';
 import { SearchCombobox } from '../../components/SearchCombobox';
 import type { ComboboxOption } from '../../components/SearchCombobox';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInView } from 'react-intersection-observer';
+import { Search, X, Plus, ChevronLeft } from 'lucide-react';
 
 const schema = z.object({
   party_id: z.coerce.number().min(1, 'Select a party'),
@@ -22,17 +24,56 @@ type PaymentForm = z.infer<typeof schema>;
 // ── Payments List ─────────────────────────────────────────────────────────────
 export function PaymentsList() {
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+  const { ref, inView } = useInView();
 
-  const { data: payments = [], isLoading } = useQuery({
-    queryKey: ['payments'],
-    queryFn: () => paymentsApi.list().then((r) => r.data),
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['payments', search],
+    queryFn: ({ pageParam = 0 }) => paymentsApi.list(undefined, search, pageParam, 20).then((r) => r.data),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.skip + lastPage.limit < lastPage.total) {
+        return lastPage.skip + lastPage.limit;
+      }
+      return undefined;
+    },
+    initialPageParam: 0,
   });
+
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage]);
+
+  const payments = data ? data.pages.flatMap((page) => page.items) : [];
+  const totalCount = data ? data.pages[0]?.total || 0 : 0;
+  const summaryTotal = data ? data.pages[0]?.summary_total || 0 : 0;
 
   return (
     <div className="page-content">
-      <div className="page-header">
-        <h1 className="page-title">Payments</h1>
-        <p className="page-subtitle">{payments.length} received</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+            <h1 className="page-title">Payments</h1>
+            <p className="page-subtitle">{totalCount} received</p>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>Total: {formatCurrency(summaryTotal)}</p>
+        </div>
+      </div>
+
+      <div className="search-bar" style={{ marginBottom: 16 }}>
+        <Search size={16} />
+        <input
+          placeholder="Search party name…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={14} /></button>}
       </div>
 
       {isLoading ? (
@@ -49,8 +90,8 @@ export function PaymentsList() {
             <div key={p.id} className="list-item" onClick={() => navigate(`/payments/${p.id}`)}>
               <div className="list-item-icon" style={{ background: 'var(--success-bg)' }}>💰</div>
               <div className="list-item-body">
-                <p className="list-item-title">PMT-{String(p.id).padStart(4, '0')}</p>
-                <p className="list-item-sub">{formatDate(p.payment_date)} · {p.mode}</p>
+                <p className="list-item-title">{p.party_name}</p>
+                <p className="list-item-sub">PMT-{String(p.id).padStart(4, '0')} · {formatDate(p.payment_date)}</p>
               </div>
               <div className="list-item-right">
                 <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--success)' }}>{formatCurrency(p.amount)}</p>
@@ -62,6 +103,11 @@ export function PaymentsList() {
               </div>
             </div>
           ))}
+          {hasNextPage && (
+            <div ref={ref} style={{ padding: '20px 0', textAlign: 'center' }}>
+              <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+            </div>
+          )}
         </div>
       )}
 

@@ -32,8 +32,8 @@ export const partiesApi = {
 
 // ── Invoices ─────────────────────────────────────────────────────────────────
 export const invoicesApi = {
-  list: (partyId?: number, unpaidOnly?: boolean) =>
-    api.get('/invoices/', { params: { ...(partyId && { party_id: partyId }), ...(unpaidOnly && { unpaid_only: true }) } }),
+  list: (partyId?: number, unpaidOnly?: boolean, search?: string, skip: number = 0, limit: number = 20) =>
+    api.get('/invoices/', { params: { ...(partyId && { party_id: partyId }), ...(unpaidOnly && { unpaid_only: true }), ...(search ? { search } : {}), skip, limit } }),
   create: (data: unknown) => api.post('/invoices/', data),
   get: (id: number) => api.get(`/invoices/${id}`),
   update: (id: number, data: unknown) => api.put(`/invoices/${id}`, data),
@@ -49,8 +49,8 @@ export const invoicesApi = {
 
 // ── Payments ─────────────────────────────────────────────────────────────────
 export const paymentsApi = {
-  list: (partyId?: number) =>
-    api.get('/payments/', { params: partyId ? { party_id: partyId } : {} }),
+  list: (partyId?: number, search?: string, skip: number = 0, limit: number = 20) =>
+    api.get('/payments/', { params: { ...(partyId && { party_id: partyId }), ...(search ? { search } : {}), skip, limit } }),
   create: (data: unknown) => api.post('/payments/', data),
   get: (id: number) => api.get(`/payments/${id}`),
   allocate: (id: number, data: unknown) => api.post(`/payments/${id}/allocate`, data),

@@ -10,6 +10,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     total: int
     skip: int
     limit: int
+    summary_total: Optional[Decimal] = None
 
 
 # ---------------------------------------------------------------------------
@@ -174,6 +175,7 @@ class InvoiceOut(BaseModel):
     id: int
     invoice_number: str
     party_id: int
+    party_name: Optional[str] = None
     amount: Decimal
     balance_due: Decimal
     billing_address: Optional[str]
@@ -219,6 +221,7 @@ class AllocationOut(BaseModel):
 class PaymentOut(BaseModel):
     id: int
     party_id: int
+    party_name: Optional[str] = None
     amount: Decimal
     unallocated: Decimal
     payment_date: datetime

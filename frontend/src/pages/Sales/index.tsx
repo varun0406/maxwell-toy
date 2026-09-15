@@ -3,7 +3,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi, partiesApi, addressBookApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon } from 'lucide-react';
@@ -13,6 +13,7 @@ import { SearchCombobox } from '../../components/SearchCombobox';
 import type { ComboboxOption } from '../../components/SearchCombobox';
 import { ItemAutocomplete } from '../../components/ItemAutocomplete';
 import { AddressFormModal } from '../AddressBook';
+import { useInView } from 'react-intersection-observer';
 
 const itemSchema = z.object({
   item_name: z.string().min(1, 'Required'),
@@ -38,35 +39,42 @@ export function InvoicesList() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | 'unpaid'>('all');
   const [search, setSearch] = useState('');
+  const { ref, inView } = useInView();
 
-  const { data: invoices = [], isLoading } = useQuery({
-    queryKey: ['invoices', filter],
-    queryFn: () => invoicesApi.list(undefined, filter === 'unpaid').then((r) => r.data),
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['invoices', filter, search],
+    queryFn: ({ pageParam = 0 }) => invoicesApi.list(undefined, filter === 'unpaid', search, pageParam, 20).then(r => r.data),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.skip + lastPage.limit < lastPage.total) {
+        return lastPage.skip + lastPage.limit;
+      }
+      return undefined;
+    },
+    initialPageParam: 0,
   });
+
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage]);
+
+  const invoices = data ? data.pages.flatMap((page) => page.items) : [];
+  const totalCount = data ? data.pages[0]?.total || 0 : 0;
   
   const qc = useQueryClient();
   const [secureAction, setSecureAction] = useState<{ type: 'edit' | 'delete', id: number } | null>(null);
-  
-  const [partySearch, setPartySearch] = useState('');
-  const { data: parties = [] } = useQuery({
-    queryKey: ['parties', partySearch],
-    queryFn: () => partiesApi.list(partySearch, 0, 100).then(r => r.data.items)
-  });
-
-  const getPartyName = (id: number) => parties.find((p: any) => p.id === id)?.name || `Party #${id}`;
-
-  const filtered = search
-    ? invoices.filter((i: any) => 
-        i.invoice_number?.toLowerCase().includes(search.toLowerCase()) ||
-        getPartyName(i.party_id).toLowerCase().includes(search.toLowerCase())
-      )
-    : invoices;
 
   return (
     <div className="page-content">
       <div className="page-header">
         <h1 className="page-title">Invoices</h1>
-        <p className="page-subtitle">{filtered.length} records</p>
+        <p className="page-subtitle">{totalCount} records</p>
       </div>
 
       <div className="search-bar">
@@ -86,7 +94,7 @@ export function InvoicesList() {
 
       {isLoading ? (
         <div className="loading-screen"><div className="spinner" /></div>
-      ) : filtered.length === 0 ? (
+      ) : invoices.length === 0 ? (
         <div className="empty-state">
           <Plus size={48} />
           <h3>{search ? 'No matches' : 'No invoices yet'}</h3>
@@ -94,13 +102,13 @@ export function InvoicesList() {
         </div>
       ) : (
         <div className="list-container">
-          {filtered.map((inv: any) => (
+          {invoices.map((inv: any) => (
             <div key={inv.id} className="list-item">
               <div className="list-item-icon" style={{ background: inv.is_paid ? 'var(--success-bg)' : 'var(--warning-bg)' }}>
                 {inv.is_paid ? '✅' : '📄'}
               </div>
               <div className="list-item-body">
-                <p className="list-item-title">{getPartyName(inv.party_id)}</p>
+                <p className="list-item-title">{inv.party_name}</p>
                 <p className="list-item-sub">{formatDate(inv.invoice_date)}{inv.due_date ? ` · Due ${formatDate(inv.due_date)}` : ''}</p>
                 {inv.delivery_challan_url && (
                   <a href={inv.delivery_challan_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, display: 'inline-block', marginTop: 4 }}>
@@ -164,6 +172,11 @@ export function InvoicesList() {
               </div>
             </div>
           ))}
+          {hasNextPage && (
+            <div ref={ref} style={{ padding: '20px 0', textAlign: 'center' }}>
+              <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+            </div>
+          )}
         </div>
       )}
 

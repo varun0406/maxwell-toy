@@ -117,6 +117,10 @@ class Invoice(Base):
 
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
 
+    @property
+    def party_name(self):
+        return self.party.name if self.party else None
+
     __table_args__ = (
         UniqueConstraint("invoice_number", "created_by", name="uq_invoice_no_per_user"),
     )
@@ -157,6 +161,10 @@ class Payment(Base):
     party = relationship("Party", back_populates="payments")
     created_by_user = relationship("User", back_populates="payments")
     allocations = relationship("PaymentAllocation", back_populates="payment", cascade="all, delete-orphan")
+
+    @property
+    def party_name(self):
+        return self.party.name if self.party else None
 
 
 # ---------------------------------------------------------------------------

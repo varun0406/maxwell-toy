@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
+from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 
 from .. import models, schemas
 from ..auth import get_current_user
@@ -28,21 +30,53 @@ def upload_challan(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/", response_model=List[schemas.InvoiceOut])
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.InvoiceOut])
 def list_invoices(
     party_id: int | None = None,
     unpaid_only: bool = False,
+    search: str = "",
     skip: int = 0,
     limit: int = 100,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.Invoice).filter(models.Invoice.is_deleted == False)
+    query = db.query(models.Invoice).options(joinedload(models.Invoice.party)).filter(models.Invoice.is_deleted == False)
     if party_id:
         query = query.filter(models.Invoice.party_id == party_id)
     if unpaid_only:
         query = query.filter(models.Invoice.is_paid == False)
-    return query.order_by(models.Invoice.invoice_date.desc()).offset(skip).limit(limit).all()
+    if search:
+        # Search by invoice number or party name
+        query = query.join(models.Party).filter(
+            (models.Invoice.invoice_number.ilike(f"%{search}%")) |
+            (models.Party.name.ilike(f"%{search}%"))
+        )
+        
+    total = query.count()
+    
+    # Calculate summary total for the current filtered query
+    # Need a separate query for func.sum to avoid counting issues with joinedload
+    sum_query = db.query(func.sum(models.Invoice.amount)).filter(models.Invoice.is_deleted == False)
+    if party_id:
+        sum_query = sum_query.filter(models.Invoice.party_id == party_id)
+    if unpaid_only:
+        sum_query = sum_query.filter(models.Invoice.is_paid == False)
+    if search:
+        sum_query = sum_query.join(models.Party).filter(
+            (models.Invoice.invoice_number.ilike(f"%{search}%")) |
+            (models.Party.name.ilike(f"%{search}%"))
+        )
+    summary_total = sum_query.scalar() or Decimal("0")
+
+    items = query.order_by(models.Invoice.invoice_date.desc()).offset(skip).limit(limit).all()
+    
+    return schemas.PaginatedResponse(
+        items=items,
+        total=total,
+        skip=skip,
+        limit=limit,
+        summary_total=summary_total
+    )
 
 
 @router.post("/", response_model=schemas.InvoiceOut, status_code=201)
