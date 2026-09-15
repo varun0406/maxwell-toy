@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.database import SessionLocal
 from app.models import User, Party, Invoice, Payment, JournalEntry
-from app.auth import get_password_hash
+from app.auth import hash_password
 
 def run():
     db = SessionLocal()
@@ -21,8 +21,8 @@ def run():
             user = User(
                 username="admin", 
                 email="admin@test.com", 
-                hashed_password=get_password_hash("admin"),
-                is_superadmin=True
+                hashed_password=hash_password("admin"),
+                is_superuser=True
             )
             db.add(user)
             db.commit()
