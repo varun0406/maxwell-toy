@@ -99,9 +99,10 @@ export function NewPayment() {
   const selectedParty = watch('party_id');
   const enteredAmount = watch('amount') || 0;
 
+  const [partySearch, setPartySearch] = useState('');
   const { data: parties = [] } = useQuery({
-    queryKey: ['parties'],
-    queryFn: () => partiesApi.list().then((r) => r.data),
+    queryKey: ['parties', partySearch],
+    queryFn: () => partiesApi.list(partySearch, 0, 100).then((r) => r.data.items),
   });
 
   const partyOptions: ComboboxOption[] = parties.map((p: any) => ({
@@ -201,6 +202,7 @@ export function NewPayment() {
               placeholder="Select party…"
               options={partyOptions}
               onChange={opt => setValue('party_id', Number(opt.value))}
+              onSearch={setPartySearch}
             />
             {errors.party_id && <span className="form-error">{errors.party_id.message}</span>}
           </div>

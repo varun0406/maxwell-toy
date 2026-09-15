@@ -39,7 +39,7 @@ export default function Analytics() {
 
   const { data: partyList = [] } = useQuery({
     queryKey: ['reports-parties'],
-    queryFn: () => partiesApi.list().then(r => r.data),
+    queryFn: () => partiesApi.list('', 0, 1000).then(r => r.data.items),
   });
 
   const getPartyName = (id: number) => partyList.find((p: any) => p.id === id)?.name || `Party #${id}`;

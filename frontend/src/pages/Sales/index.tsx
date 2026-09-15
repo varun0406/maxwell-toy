@@ -47,9 +47,10 @@ export function InvoicesList() {
   const qc = useQueryClient();
   const [secureAction, setSecureAction] = useState<{ type: 'edit' | 'delete', id: number } | null>(null);
   
+  const [partySearch, setPartySearch] = useState('');
   const { data: parties = [] } = useQuery({
-    queryKey: ['parties'],
-    queryFn: () => partiesApi.list().then(r => r.data)
+    queryKey: ['parties', partySearch],
+    queryFn: () => partiesApi.list(partySearch, 0, 100).then(r => r.data.items)
   });
 
   const getPartyName = (id: number) => parties.find((p: any) => p.id === id)?.name || `Party #${id}`;
@@ -209,9 +210,10 @@ export function NewInvoice() {
     enabled: !!editId,
   });
 
+  const [partySearch, setPartySearch] = useState('');
   const { data: parties = [] } = useQuery({
-    queryKey: ['parties'],
-    queryFn: () => partiesApi.list().then((r) => r.data),
+    queryKey: ['parties', partySearch],
+    queryFn: () => partiesApi.list(partySearch, 0, 100).then((r) => r.data.items),
   });
 
   const { data: addressEntries = [] } = useQuery({
@@ -332,6 +334,7 @@ export function NewInvoice() {
               placeholder="Select party…"
               options={partyOptions}
               onChange={handlePartySelect}
+              onSearch={setPartySearch}
             />
             {errors.party_id && <span className="form-error">{errors.party_id.message}</span>}
           </div>
