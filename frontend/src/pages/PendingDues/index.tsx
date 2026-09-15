@@ -1,34 +1,46 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInView } from 'react-intersection-observer';
 import { useNavigate } from 'react-router-dom';
 import { partiesApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Filter, CalendarClock, PhoneCall, User } from 'lucide-react';
+import { Search, CalendarClock, PhoneCall, User, X } from 'lucide-react';
 
 import CalculationEvidence from '../../components/CalculationEvidence';
 
 export default function PendingDues() {
   const navigate = useNavigate();
-  const [areaFilter, setAreaFilter] = useState<string>('');
+  const [search, setSearch] = useState('');
+  
+  const { ref, inView } = useInView();
 
-  const { data: parties = [], isLoading } = useQuery({
-    queryKey: ['parties'],
-    queryFn: () => partiesApi.list().then((res) => res.data),
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['pending_dues', search],
+    queryFn: ({ pageParam = 0 }) => partiesApi.list(search, pageParam, 20, true).then(r => r.data),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.skip + lastPage.limit < lastPage.total) {
+        return lastPage.skip + lastPage.limit;
+      }
+      return undefined;
+    },
+    initialPageParam: 0,
   });
 
-  // Get all parties with outstanding > 0
-  const pendingParties = parties.filter((p: any) => p.outstanding > 0);
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage]);
 
-  // Get unique areas
-  const areas = Array.from(new Set(pendingParties.map((p: any) => p.area).filter(Boolean))) as string[];
-
-  // Apply filters
-  const filteredParties = pendingParties.filter((p: any) => 
-    areaFilter ? p.area === areaFilter : true
-  );
+  const pendingParties = data ? data.pages.flatMap((page) => page.items) : [];
 
   // Sort by reminder date (earliest first), then by outstanding amount (highest first)
-  const sortedParties = [...filteredParties].sort((a: any, b: any) => {
+  const sortedParties = [...pendingParties].sort((a: any, b: any) => {
     if (a.reminder_date && b.reminder_date) {
       return new Date(a.reminder_date).getTime() - new Date(b.reminder_date).getTime();
     }
@@ -49,43 +61,15 @@ export default function PendingDues() {
         <p className="page-subtitle">Outstanding balances to collect</p>
       </div>
 
-      {areas.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, overflowX: 'auto', paddingBottom: 4 }}>
-          <Filter size={18} style={{ color: 'var(--text-muted)' }} />
-          <button 
-            className="btn" 
-            style={{ 
-              borderRadius: 20, 
-              padding: '6px 16px', 
-              fontSize: 13, 
-              background: areaFilter === '' ? 'var(--accent)' : 'var(--bg-elevated)',
-              color: areaFilter === '' ? '#fff' : 'var(--text-primary)',
-              border: areaFilter === '' ? 'none' : '1px solid var(--border)',
-            }}
-            onClick={() => setAreaFilter('')}
-          >
-            All Areas
-          </button>
-          {areas.map(area => (
-            <button 
-              key={area}
-              className="btn" 
-              style={{ 
-                borderRadius: 20, 
-                padding: '6px 16px', 
-                fontSize: 13, 
-                background: areaFilter === area ? 'var(--accent)' : 'var(--bg-elevated)',
-                color: areaFilter === area ? '#fff' : 'var(--text-primary)',
-                border: areaFilter === area ? 'none' : '1px solid var(--border)',
-                whiteSpace: 'nowrap'
-              }}
-              onClick={() => setAreaFilter(area)}
-            >
-              {area}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="search-bar" style={{ marginBottom: 24 }}>
+        <Search size={16} />
+        <input
+          placeholder="Search by name…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={14} /></button>}
+      </div>
 
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>Loading...</div>
@@ -146,6 +130,11 @@ export default function PendingDues() {
               </div>
             );
           })}
+          {hasNextPage && (
+            <div ref={ref} style={{ padding: '20px 0', textAlign: 'center' }}>
+              <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+            </div>
+          )}
         </div>
       )}
     </div>

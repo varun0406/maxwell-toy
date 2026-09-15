@@ -54,8 +54,11 @@ def dashboard_summary(
     )
 
 
-@router.get("/parties", response_model=List[schemas.PartySummary])
+@router.get("/parties", response_model=schemas.PaginatedResponse[schemas.PartySummary])
 def party_summaries(
+    skip: int = 0,
+    limit: int = 100,
+    search: str = "",
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -71,14 +74,27 @@ def party_summaries(
     pmt_count_sub = db.query(func.count(models.Payment.id))\
         .filter(models.Payment.party_id == models.Party.id, models.Payment.is_deleted == False).scalar_subquery()
 
-    rows = db.query(
+    base_query = db.query(models.Party).filter(models.Party.is_active == True)
+    if search:
+        base_query = base_query.filter(models.Party.name.ilike(f"%{search}%"))
+        
+    total = base_query.count()
+
+    query = db.query(
         models.Party,
         inv_sub.label("inv"),
         pmt_sub.label("pmt"),
         jnl_sub.label("jnl"),
         inv_count_sub.label("inv_c"),
         pmt_count_sub.label("pmt_c")
-    ).filter(models.Party.is_active == True).all()
+    ).filter(models.Party.is_active == True)
+    
+    if search:
+        query = query.filter(models.Party.name.ilike(f"%{search}%"))
+        
+    # Sort by outstanding desc directly in DB
+    outstanding_expr = (inv_sub + jnl_sub - pmt_sub)
+    rows = query.order_by(outstanding_expr.desc()).offset(skip).limit(limit).all()
 
     result = []
     for party, inv, pmt, jnl, inv_c, pmt_c in rows:
@@ -95,9 +111,13 @@ def party_summaries(
                 payment_count=pmt_c,
             )
         )
-    # Sort by outstanding desc (top debtors first)
-    result.sort(key=lambda x: x.outstanding, reverse=True)
-    return result
+
+    return schemas.PaginatedResponse(
+        items=result,
+        total=total,
+        skip=skip,
+        limit=limit
+    )
 
 
 @router.get("/party/{party_id}", response_model=schemas.PartySummary)
@@ -145,51 +165,80 @@ def party_analytics(
     )
 
 
-@router.get("/aging", response_model=List[schemas.AgingBucket])
+@router.get("/aging", response_model=schemas.PaginatedResponse[schemas.AgingBucket])
 def aging_report(
+    skip: int = 0,
+    limit: int = 100,
+    search: str = "",
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    from sqlalchemy import case
     now = datetime.now(timezone.utc)
+    date_30 = now - timedelta(days=30)
+    date_60 = now - timedelta(days=60)
+    date_90 = now - timedelta(days=90)
     
-    invoices = db.query(models.Invoice, models.Party).join(
-        models.Party, models.Invoice.party_id == models.Party.id
+    ref_date = func.coalesce(models.Invoice.due_date, models.Invoice.invoice_date)
+    
+    current_expr = func.coalesce(func.sum(case((ref_date >= date_30, models.Invoice.balance_due), else_=Decimal("0"))), Decimal("0"))
+    days_31_60_expr = func.coalesce(func.sum(case(((ref_date < date_30) & (ref_date >= date_60), models.Invoice.balance_due), else_=Decimal("0"))), Decimal("0"))
+    days_61_90_expr = func.coalesce(func.sum(case(((ref_date < date_60) & (ref_date >= date_90), models.Invoice.balance_due), else_=Decimal("0"))), Decimal("0"))
+    over_90_expr = func.coalesce(func.sum(case((ref_date < date_90, models.Invoice.balance_due), else_=Decimal("0"))), Decimal("0"))
+    
+    total_expr = current_expr + days_31_60_expr + days_61_90_expr + over_90_expr
+
+    base_query = db.query(models.Party).join(
+        models.Invoice, models.Invoice.party_id == models.Party.id
     ).filter(
         models.Party.is_active == True,
         models.Invoice.is_deleted == False,
         models.Invoice.is_paid == False,
         models.Invoice.balance_due > 0
-    ).all()
-
-    party_buckets = {}
-    for inv, party in invoices:
-        if party.id not in party_buckets:
-            party_buckets[party.id] = {
-                "party_id": party.id,
-                "party_name": party.name,
-                "current": Decimal("0"),
-                "days_31_60": Decimal("0"),
-                "days_61_90": Decimal("0"),
-                "over_90": Decimal("0")
-            }
-            
-        ref_date = (inv.due_date or inv.invoice_date).replace(tzinfo=timezone.utc)
-        age_days = (now - ref_date).days
+    )
+    
+    if search:
+        base_query = base_query.filter(models.Party.name.ilike(f"%{search}%"))
         
-        if age_days <= 30:
-            party_buckets[party.id]["current"] += inv.balance_due
-        elif age_days <= 60:
-            party_buckets[party.id]["days_31_60"] += inv.balance_due
-        elif age_days <= 90:
-            party_buckets[party.id]["days_61_90"] += inv.balance_due
-        else:
-            party_buckets[party.id]["over_90"] += inv.balance_due
+    total = base_query.distinct(models.Party.id).count()
+
+    query = db.query(
+        models.Party.id,
+        models.Party.name,
+        current_expr.label("current"),
+        days_31_60_expr.label("days_31_60"),
+        days_61_90_expr.label("days_61_90"),
+        over_90_expr.label("over_90"),
+        total_expr.label("total_amount")
+    ).join(
+        models.Invoice, models.Invoice.party_id == models.Party.id
+    ).filter(
+        models.Party.is_active == True,
+        models.Invoice.is_deleted == False,
+        models.Invoice.is_paid == False,
+        models.Invoice.balance_due > 0
+    )
+    
+    if search:
+        query = query.filter(models.Party.name.ilike(f"%{search}%"))
+        
+    rows = query.group_by(models.Party.id, models.Party.name).order_by(total_expr.desc()).offset(skip).limit(limit).all()
 
     result = []
-    for buckets in party_buckets.values():
-        total = buckets["current"] + buckets["days_31_60"] + buckets["days_61_90"] + buckets["over_90"]
-        if total > 0:
-            result.append(schemas.AgingBucket(total=total, **buckets))
+    for pid, pname, curr, d31, d61, o90, tot in rows:
+        result.append(schemas.AgingBucket(
+            party_id=pid,
+            party_name=pname,
+            current=curr,
+            days_31_60=d31,
+            days_61_90=d61,
+            over_90=o90,
+            total=tot
+        ))
 
-    result.sort(key=lambda x: x.total, reverse=True)
-    return result
+    return schemas.PaginatedResponse(
+        items=result,
+        total=total,
+        skip=skip,
+        limit=limit
+    )

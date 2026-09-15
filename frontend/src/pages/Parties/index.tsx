@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useInView } from 'react-intersection-observer';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,10 +40,33 @@ export function PartiesList() {
   const [showAdd, setShowAdd] = useState(false);
   const [secureActionId, setSecureActionId] = useState<number | null>(null);
 
-  const { data: parties = [], isLoading, refetch } = useQuery({
+  const { ref, inView } = useInView();
+
+  const {
+    data,
+    isLoading,
+    fetchNextPage,
+    hasNextPage,
+    refetch,
+  } = useInfiniteQuery({
     queryKey: ['parties', search],
-    queryFn: () => partiesApi.list(search).then((r) => r.data),
+    queryFn: ({ pageParam = 0 }) => partiesApi.list(search, pageParam, 20).then(r => r.data),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.skip + lastPage.limit < lastPage.total) {
+        return lastPage.skip + lastPage.limit;
+      }
+      return undefined;
+    },
+    initialPageParam: 0,
   });
+
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage]);
+
+  const parties = data ? data.pages.flatMap((page) => page.items) : [];
 
   return (
     <div className="page-content">
@@ -110,6 +134,11 @@ export function PartiesList() {
               </div>
             </div>
           ))}
+          {hasNextPage && (
+            <div ref={ref} style={{ padding: '20px 0', textAlign: 'center' }}>
+              <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+            </div>
+          )}
         </div>
       )}
 

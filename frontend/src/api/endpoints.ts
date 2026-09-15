@@ -18,8 +18,8 @@ export const usersApi = {
 
 // ── Parties ─────────────────────────────────────────────────────────────────
 export const partiesApi = {
-  list: (search?: string) =>
-    api.get('/parties/', { params: search ? { search } : {} }),
+  list: (search?: string, skip: number = 0, limit: number = 20, unpaidOnly: boolean = false) =>
+    api.get('/parties/', { params: { ...(search ? { search } : {}), skip, limit, ...(unpaidOnly ? { unpaid_only: true } : {}) } }),
   create: (data: unknown) => api.post('/parties/', data),
   get: (id: number) => api.get(`/parties/${id}`),
   update: (id: number, data: unknown) => api.put(`/parties/${id}`, data),
@@ -60,9 +60,11 @@ export const paymentsApi = {
 // ── Analytics ─────────────────────────────────────────────────────────────────
 export const analyticsApi = {
   summary: () => api.get('/analytics/summary'),
-  parties: () => api.get('/analytics/parties'),
+  parties: (search?: string, skip: number = 0, limit: number = 20) => 
+    api.get('/analytics/parties', { params: { ...(search ? { search } : {}), skip, limit } }),
   party: (id: number) => api.get(`/analytics/party/${id}`),
-  aging: () => api.get('/analytics/aging'),
+  aging: (search?: string, skip: number = 0, limit: number = 20) => 
+    api.get('/analytics/aging', { params: { ...(search ? { search } : {}), skip, limit } }),
 };
 
 // ── Address Book ─────────────────────────────────────────────────────────────

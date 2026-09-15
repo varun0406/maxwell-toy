@@ -38,24 +38,41 @@ def _get_party_balance_subqueries(db: Session):
     return inv_sub, pmt_sub, jnl_sub
 
 
-@router.get("/", response_model=List[schemas.PartyWithBalance])
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.PartyWithBalance])
 def list_parties(
     skip: int = 0,
     limit: int = 100,
     search: str = "",
+    unpaid_only: bool = False,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     inv_sub, pmt_sub, jnl_sub = _get_party_balance_subqueries(db)
+    
+    base_query = db.query(models.Party).filter(models.Party.is_active == True)
+    if search:
+        base_query = base_query.filter(models.Party.name.ilike(f"%{search}%"))
+        
+    outstanding_expr = (
+        func.coalesce(inv_sub, Decimal("0")) + 
+        func.coalesce(jnl_sub, Decimal("0")) - 
+        func.coalesce(pmt_sub, Decimal("0"))
+    )
+    if unpaid_only:
+        base_query = base_query.filter(outstanding_expr > 0)
+        
+    total = base_query.count()
     
     query = db.query(
         models.Party,
         inv_sub.label("total_invoiced"),
         pmt_sub.label("total_paid"),
         jnl_sub.label("total_journal"),
-    ).filter(
-        models.Party.is_active == True,
-    )
+        
+    if unpaid_only:
+        query = query.filter(outstanding_expr > 0)
+        
+    rows = query.order_by(models.Party.name).offset(skip).limit(limit).all()
     
     if search:
         query = query.filter(models.Party.name.ilike(f"%{search}%"))
@@ -72,7 +89,12 @@ def list_parties(
             total_journal=jnl,
             outstanding=outstanding,
         ))
-    return result
+    return schemas.PaginatedResponse(
+        items=result,
+        total=total,
+        skip=skip,
+        limit=limit
+    )
 
 
 @router.post("/", response_model=schemas.PartyOut, status_code=201)

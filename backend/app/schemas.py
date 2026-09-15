@@ -1,7 +1,15 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List
+from typing import List, Optional, Generic, TypeVar
 from pydantic import BaseModel, EmailStr, Field, field_validator
+
+T = TypeVar('T')
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T]
+    total: int
+    skip: int
+    limit: int
 
 
 # ---------------------------------------------------------------------------
