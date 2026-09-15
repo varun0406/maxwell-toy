@@ -56,7 +56,7 @@ def run():
             pid = random.choice(party_ids)
             amt = Decimal(str(random.randint(100, 10000)))
             invoices_data.append({
-                "invoice_number": f"INV-DUMMY-{random.randint(1000000, 9999999)}",
+                "invoice_number": f"INV-DUMMY-{i}-{random.randint(1000, 9999)}",
                 "party_id": pid,
                 "created_by": user.id,
                 "amount": amt,
