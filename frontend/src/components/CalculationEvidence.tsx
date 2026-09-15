@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Info, X } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
 
@@ -36,13 +37,17 @@ export default function CalculationEvidence({ title, items, children, valueClass
         <Info size={14} style={{ color: 'var(--accent-light)' }} />
       </div>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div className="modal-overlay" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}>
           <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
             <div className="modal-handle" />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 className="modal-title" style={{ marginBottom: 0 }}>Calculation Evidence</h2>
-              <button className="btn-icon" onClick={() => setIsOpen(false)} style={{ width: 32, height: 32 }}>
+              <button 
+                className="btn-icon" 
+                onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} 
+                style={{ width: 32, height: 32 }}
+              >
                 <X size={16} />
               </button>
             </div>
@@ -79,11 +84,16 @@ export default function CalculationEvidence({ title, items, children, valueClass
               })}
             </div>
             
-            <button className="btn btn-secondary btn-full" style={{ marginTop: 20 }} onClick={() => setIsOpen(false)}>
+            <button 
+              className="btn btn-secondary btn-full" 
+              style={{ marginTop: 20 }} 
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+            >
               Close
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
