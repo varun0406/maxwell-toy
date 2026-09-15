@@ -68,6 +68,12 @@ def list_parties(
         inv_sub.label("total_invoiced"),
         pmt_sub.label("total_paid"),
         jnl_sub.label("total_journal"),
+    ).filter(
+        models.Party.is_active == True,
+    )
+    
+    if search:
+        query = query.filter(models.Party.name.ilike(f"%{search}%"))
         
     if unpaid_only:
         query = query.filter(outstanding_expr > 0)
