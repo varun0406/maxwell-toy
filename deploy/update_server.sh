@@ -25,7 +25,7 @@ echo "==> Pulling latest changes from git..."
 git pull
 
 echo "==> Updating Python backend dependencies..."
-venv/bin/pip install -r backend/requirements.txt
+backend/venv/bin/pip install -r backend/requirements.txt
 
 echo "==> Rebuilding frontend..."
 cd "$APP_DIR/frontend"

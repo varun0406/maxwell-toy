@@ -4,11 +4,11 @@ After=network.target postgresql.service
 
 [Service]
 Type=exec
-User=www-data
-WorkingDirectory=/var/www/maxwell/backend
-EnvironmentFile=/var/www/maxwell/backend/.env
-Environment="PATH=/var/www/maxwell/venv/bin"
-ExecStart=/var/www/maxwell/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 9833 --workers 2
+User=root
+WorkingDirectory=/root/maxwell-toy/backend
+EnvironmentFile=/root/maxwell-toy/backend/.env
+Environment="PATH=/root/maxwell-toy/venv/bin"
+ExecStart=/root/maxwell-toy/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 9833 --workers 2
 Restart=always
 RestartSec=5
 

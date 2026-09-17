@@ -16,7 +16,7 @@ echo "==> Pulling latest code..."
 git pull origin main
 
 echo "==> Installing/updating backend Python dependencies..."
-venv/bin/pip install -r backend/requirements.txt
+backend/venv/bin/pip install -r backend/requirements.txt
 
 echo "==> Restarting backend service (port 9833)..."
 cp "$APP_DIR/deploy/maxwell-backend.service" /etc/systemd/system/
