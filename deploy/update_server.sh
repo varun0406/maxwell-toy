@@ -3,8 +3,8 @@
 # deploy/update_server.sh
 # Update script for Maxwell Accounting
 #
-# Run this on the server as root (or use sudo):
-#   cd /var/www/maxwell && sudo bash deploy/update_server.sh
+# Run this on the server as root:
+#   cd /root/maxwell-toy && bash deploy/update_server.sh
 # ──────────────────────────────────────────────────────────────────────────────
 
 set -e
@@ -25,8 +25,7 @@ echo "==> Pulling latest changes from git..."
 git pull
 
 echo "==> Updating Python backend dependencies..."
-source venv/bin/activate
-pip install -r backend/requirements.txt
+venv/bin/pip install -r backend/requirements.txt
 
 echo "==> Rebuilding frontend..."
 cd "$APP_DIR/frontend"
@@ -36,9 +35,12 @@ cd "$APP_DIR"
 
 echo "==> Updating Nginx config (if changed)..."
 cp "$APP_DIR/deploy/calculator.rovark.in" /etc/nginx/sites-available/
+ln -sf /etc/nginx/sites-available/calculator.rovark.in /etc/nginx/sites-enabled/
 nginx -t
 
 echo "==> Restarting services..."
+cp "$APP_DIR/deploy/maxwell-backend.service" /etc/systemd/system/
+systemctl daemon-reload
 systemctl restart maxwell-backend
 systemctl reload nginx
 

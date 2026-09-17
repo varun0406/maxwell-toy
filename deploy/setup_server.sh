@@ -9,9 +9,9 @@
 
 set -e
 
-APP_DIR="/var/www/maxwell"
+APP_DIR="/root/maxwell-toy"
 FRONTEND_DIR="$APP_DIR/frontend"
-SERVICE_USER="www-data"
+SERVICE_USER="root"
 
 echo "==> Updating packages..."
 apt-get update && apt-get install -y \
@@ -26,6 +26,7 @@ cd "$APP_DIR"
 
 echo "==> Cloning repo..."
 git clone https://github.com/varun0406/maxwell-toy.git .
+# NOTE: If already cloned (e.g. at /root/maxwell-toy), skip this step.
 
 echo "==> Setting up Python venv..."
 python3 -m venv venv
@@ -77,7 +78,7 @@ echo ""
 echo "============================================================"
 echo " Server setup complete!"
 echo " Next steps:"
-echo "   1. Edit /var/www/maxwell/backend/.env — set a real DB password"
+echo "   1. Edit /root/maxwell-toy/backend/.env — set a real DB password"
 echo "   2. Run: certbot --nginx -d calculator.rovark.in"
 echo "   3. Ensure DNS A record: calculator.rovark.in -> this server's IP"
 echo "============================================================"

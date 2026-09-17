@@ -3,7 +3,7 @@ Description=Maxwell Accounting FastAPI Backend
 After=network.target postgresql.service
 
 [Service]
-Type=simple
+Type=exec
 User=www-data
 WorkingDirectory=/var/www/maxwell/backend
 EnvironmentFile=/var/www/maxwell/backend/.env

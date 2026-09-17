@@ -2,25 +2,26 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # deploy/deploy.sh  — Run this on the server after each git pull
 #
-# Assumes the repo is cloned to /var/www/maxwell
+# Repo is at /root/maxwell-toy
 # Usage:
-#   cd /var/www/maxwell && bash deploy/deploy.sh
+#   cd /root/maxwell-toy && bash deploy/deploy.sh
 # ──────────────────────────────────────────────────────────────────────────────
 
 set -e
 
-APP_DIR="/var/www/maxwell"
+APP_DIR="/root/maxwell-toy"
 cd "$APP_DIR"
 
 echo "==> Pulling latest code..."
 git pull origin main
 
 echo "==> Installing/updating backend Python dependencies..."
-source venv/bin/activate
-pip install -r backend/requirements.txt
+venv/bin/pip install -r backend/requirements.txt
 
 echo "==> Restarting backend service (port 9833)..."
-systemctl restart maxwell-accounting
+cp "$APP_DIR/deploy/maxwell-backend.service" /etc/systemd/system/
+systemctl daemon-reload
+systemctl restart maxwell-backend
 
 echo "==> Building frontend..."
 cd "$APP_DIR/frontend"
