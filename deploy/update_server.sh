@@ -9,11 +9,12 @@
 
 set -e
 
-APP_DIR="/var/www/maxwell"
+# Get the directory where the app is located (parent of deploy directory)
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-if [ ! -d "$APP_DIR" ]; then
-    echo "Error: Directory $APP_DIR does not exist."
-    echo "Are you running this on the server where the app is deployed?"
+if [ ! -d "$APP_DIR/.git" ]; then
+    echo "Error: Directory $APP_DIR is not a git repository."
+    echo "Please run this script from inside the git repository."
     exit 1
 fi
 
