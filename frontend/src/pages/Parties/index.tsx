@@ -95,10 +95,10 @@ export function PartiesList() {
         </div>
       ) : (
         <div className="list-container">
-          {parties.map((p: any) => (
+          {parties.filter((p: any) => p && p.name).map((p: any) => (
             <div key={p.id} className="list-item" onClick={() => navigate(`/parties/${p.id}`)}>
               <div className="list-item-icon" style={{ background: 'linear-gradient(135deg, var(--accent-glow), rgba(108,99,255,0.05))', color: 'var(--accent-light)', fontWeight: 700, fontSize: 16 }}>
-                {p.name[0].toUpperCase()}
+                {p.name.charAt(0).toUpperCase()}
               </div>
               <div className="list-item-body">
                 <p className="list-item-title">{p.name}</p>
@@ -109,13 +109,13 @@ export function PartiesList() {
                   title={`${p.name} Outstanding`}
                   items={[
                     { label: 'Total Invoiced', value: p.total_invoiced || 0, operator: '+' },
-                    { label: 'Journal Adjustments', value: p.total_journal || 0, operator: p.total_journal >= 0 ? '+' : '-' },
+                    { label: 'Journal Adjustments', value: p.total_journal || 0, operator: (p.total_journal || 0) >= 0 ? '+' : '-' },
                     { label: 'Total Paid', value: p.total_paid || 0, operator: '-' },
                     { label: 'Outstanding Due', value: p.outstanding || 0, operator: '=' }
                   ]}
                 >
-                  <span style={{ fontWeight: 700, fontSize: 14, color: p.outstanding > 0 ? 'var(--warning)' : 'var(--success)' }}>
-                    {formatCurrency(p.outstanding)}
+                  <span style={{ fontWeight: 700, fontSize: 14, color: (p.outstanding || 0) > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                    {formatCurrency(p.outstanding || 0)}
                   </span>
                 </CalculationEvidence>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
@@ -208,16 +208,16 @@ export function PartyDetail() {
             <p className="hero-label">Outstanding Balance</p>
             <div className="hero-amount">
               <CalculationEvidence
-                title={`${party.name} Outstanding`}
+                title={`${party?.name || 'Party'} Outstanding`}
                 valueClass="hero-amount"
                 items={[
-                  { label: 'Total Invoiced', value: party.total_invoiced || 0, operator: '+' },
-                  { label: 'Journal Adjustments', value: party.total_journal || 0, operator: party.total_journal >= 0 ? '+' : '-' },
-                  { label: 'Total Paid', value: party.total_paid || 0, operator: '-' },
-                  { label: 'Outstanding Due', value: party.outstanding || 0, operator: '=' }
+                  { label: 'Total Invoiced', value: party?.total_invoiced || 0, operator: '+' },
+                  { label: 'Journal Adjustments', value: party?.total_journal || 0, operator: (party?.total_journal || 0) >= 0 ? '+' : '-' },
+                  { label: 'Total Paid', value: party?.total_paid || 0, operator: '-' },
+                  { label: 'Outstanding Due', value: party?.outstanding || 0, operator: '=' }
                 ]}
               >
-                {formatCurrency(party.outstanding)}
+                {formatCurrency(party?.outstanding || 0)}
               </CalculationEvidence>
             </div>
           </div>
@@ -227,7 +227,7 @@ export function PartyDetail() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 24, fontWeight: 800,
           }}>
-            {party.name[0].toUpperCase()}
+            {party?.name?.charAt(0)?.toUpperCase() || "?"}
           </div>
         </div>
         <p className="hero-sub" style={{ marginTop: 12, fontSize: 18, fontWeight: 700, color: '#fff' }}>{party.name}</p>
