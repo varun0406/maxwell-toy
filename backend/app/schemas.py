@@ -20,7 +20,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
 class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: Optional[EmailStr] = None
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=4)
 
     @field_validator("username")
     @classmethod
@@ -325,3 +325,6 @@ class DashboardSummary(BaseModel):
     invoices_count: int
     overdue_count: int
     recent_payments: List[PaymentOut]
+
+class PinReset(BaseModel):
+    new_pin: str = Field(min_length=4)
