@@ -10,6 +10,7 @@ from ..database import get_db
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
+
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.PaymentOut])
 def list_payments(
     party_id: int | None = None,
@@ -19,38 +20,50 @@ def list_payments(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = (
-        db.query(models.Payment)
-        .options(joinedload(models.Payment.party), joinedload(models.Payment.allocations).joinedload(models.PaymentAllocation.invoice))
+    # Single aggregate query for count + sum, then separate paginated rows query.
+    # Removed joinedload(allocations) from the list endpoint — loading the full
+    # allocation graph for every payment in a list is extremely wasteful.
+    # Allocations are only eagerly loaded on the detail (GET /{payment_id}) endpoint.
+    agg_query = (
+        db.query(
+            func.count(models.Payment.id).label("total"),
+            func.coalesce(func.sum(models.Payment.amount), Decimal("0")).label("summary_total"),
+        )
         .filter(models.Payment.is_deleted == False)
     )
+
     if party_id:
-        query = query.filter(models.Payment.party_id == party_id)
-        
+        agg_query = agg_query.filter(models.Payment.party_id == party_id)
     if search:
-        query = query.join(models.Party).filter(
+        agg_query = agg_query.join(models.Party).filter(
             models.Party.name.ilike(f"%{search}%")
         )
 
-    total = query.count()
-    
-    sum_query = db.query(func.sum(models.Payment.amount)).filter(models.Payment.is_deleted == False)
+    agg = agg_query.one()
+    total = agg.total
+    summary_total = agg.summary_total
+
+    items_query = (
+        db.query(models.Payment)
+        .options(joinedload(models.Payment.party))
+        .filter(models.Payment.is_deleted == False)
+    )
+
     if party_id:
-        sum_query = sum_query.filter(models.Payment.party_id == party_id)
+        items_query = items_query.filter(models.Payment.party_id == party_id)
     if search:
-        sum_query = sum_query.join(models.Party).filter(
+        items_query = items_query.join(models.Party).filter(
             models.Party.name.ilike(f"%{search}%")
         )
-    summary_total = sum_query.scalar() or Decimal("0")
 
-    items = query.order_by(models.Payment.payment_date.desc()).offset(skip).limit(limit).all()
-    
+    items = items_query.order_by(models.Payment.payment_date.desc()).offset(skip).limit(limit).all()
+
     return schemas.PaginatedResponse(
         items=items,
         total=total,
         skip=skip,
         limit=limit,
-        summary_total=summary_total
+        summary_total=summary_total,
     )
 
 
@@ -82,25 +95,39 @@ def create_payment(
     db.flush()
 
     if payload.allocations:
+        # Bulk-fetch all invoices to allocate to in one query
+        invoice_ids = [a.invoice_id for a in payload.allocations]
+        invoices_map = {
+            inv.id: inv
+            for inv in db.query(models.Invoice)
+                         .filter(
+                             models.Invoice.id.in_(invoice_ids),
+                             models.Invoice.party_id == payload.party_id,
+                         )
+                         .all()
+        }
+
         for alloc in payload.allocations:
             if payment.unallocated < alloc.allocated_amount:
                 raise HTTPException(status_code=400, detail="Allocations exceed payment amount")
-            
-            invoice = db.query(models.Invoice).filter(models.Invoice.id == alloc.invoice_id, models.Invoice.party_id == payload.party_id).first()
+
+            invoice = invoices_map.get(alloc.invoice_id)
             if not invoice:
                 raise HTTPException(status_code=404, detail=f"Invoice {alloc.invoice_id} not found")
             if invoice.balance_due < alloc.allocated_amount:
-                raise HTTPException(status_code=400, detail=f"Allocation exceeds balance due for invoice {alloc.invoice_id}")
-            
-            # create allocation record
-            payment_alloc = models.PaymentAllocation(
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Allocation exceeds balance due for invoice {alloc.invoice_id}",
+                )
+
+            # Create allocation record
+            db.add(models.PaymentAllocation(
                 payment_id=payment.id,
                 invoice_id=invoice.id,
-                allocated_amount=alloc.allocated_amount
-            )
-            db.add(payment_alloc)
-            
-            # adjust balances
+                allocated_amount=alloc.allocated_amount,
+            ))
+
+            # Adjust balances
             payment.unallocated = Decimal(str(payment.unallocated)) - alloc.allocated_amount
             invoice.balance_due = Decimal(str(invoice.balance_due)) - alloc.allocated_amount
             if invoice.balance_due <= 0:
@@ -119,7 +146,10 @@ def get_payment(
 ):
     payment = (
         db.query(models.Payment)
-        .options(joinedload(models.Payment.allocations).joinedload(models.PaymentAllocation.invoice))
+        .options(
+            joinedload(models.Payment.party),
+            joinedload(models.Payment.allocations).joinedload(models.PaymentAllocation.invoice),
+        )
         .filter(models.Payment.id == payment_id, models.Payment.is_deleted == False)
         .first()
     )
@@ -143,25 +173,37 @@ def allocate_payment(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
 
+    # Bulk-fetch all invoices at once
+    invoice_ids = [a.invoice_id for a in allocations]
+    invoices_map = {
+        inv.id: inv
+        for inv in db.query(models.Invoice)
+                     .filter(
+                         models.Invoice.id.in_(invoice_ids),
+                         models.Invoice.party_id == payment.party_id,
+                     )
+                     .all()
+    }
+
     for alloc in allocations:
         if payment.unallocated < alloc.allocated_amount:
             raise HTTPException(status_code=400, detail="Allocations exceed remaining unallocated amount")
-        
-        invoice = db.query(models.Invoice).filter(models.Invoice.id == alloc.invoice_id, models.Invoice.party_id == payment.party_id).first()
+
+        invoice = invoices_map.get(alloc.invoice_id)
         if not invoice:
             raise HTTPException(status_code=404, detail=f"Invoice {alloc.invoice_id} not found")
         if invoice.balance_due < alloc.allocated_amount:
-            raise HTTPException(status_code=400, detail=f"Allocation exceeds balance due for invoice {alloc.invoice_id}")
-        
-        # create allocation record
-        payment_alloc = models.PaymentAllocation(
+            raise HTTPException(
+                status_code=400,
+                detail=f"Allocation exceeds balance due for invoice {alloc.invoice_id}",
+            )
+
+        db.add(models.PaymentAllocation(
             payment_id=payment.id,
             invoice_id=invoice.id,
-            allocated_amount=alloc.allocated_amount
-        )
-        db.add(payment_alloc)
-        
-        # adjust balances
+            allocated_amount=alloc.allocated_amount,
+        ))
+
         payment.unallocated = Decimal(str(payment.unallocated)) - alloc.allocated_amount
         invoice.balance_due = Decimal(str(invoice.balance_due)) - alloc.allocated_amount
         if invoice.balance_due <= 0:
@@ -171,13 +213,13 @@ def allocate_payment(
     db.refresh(payment)
     return payment
 
+
 @router.delete("/{payment_id}", status_code=204)
 def delete_payment(
     payment_id: int,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    from decimal import Decimal
     payment = (
         db.query(models.Payment)
         .filter(models.Payment.id == payment_id, models.Payment.is_deleted == False)
@@ -185,18 +227,31 @@ def delete_payment(
     )
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
-        
+
     payment.is_deleted = True
-    
-    # Recalibrate: Unallocate from all invoices
-    allocations = db.query(models.PaymentAllocation).filter(models.PaymentAllocation.payment_id == payment.id).all()
-    for alloc in allocations:
-        invoice = db.query(models.Invoice).filter(models.Invoice.id == alloc.invoice_id).first()
-        if invoice:
-            invoice.balance_due = Decimal(str(invoice.balance_due)) + Decimal(str(alloc.allocated_amount))
-            invoice.is_paid = (invoice.balance_due <= 0)
-        db.delete(alloc)
-        
+
+    # Recalibrate: fetch all allocations, then bulk-fetch all affected invoices in ONE IN query
+    allocations = (
+        db.query(models.PaymentAllocation)
+        .filter(models.PaymentAllocation.payment_id == payment.id)
+        .all()
+    )
+
+    if allocations:
+        invoice_ids = [a.invoice_id for a in allocations]
+        invoices_map = {
+            inv.id: inv
+            for inv in db.query(models.Invoice)
+                         .filter(models.Invoice.id.in_(invoice_ids))
+                         .all()
+        }
+
+        for alloc in allocations:
+            invoice = invoices_map.get(alloc.invoice_id)
+            if invoice:
+                invoice.balance_due = Decimal(str(invoice.balance_due)) + Decimal(str(alloc.allocated_amount))
+                invoice.is_paid = (invoice.balance_due <= 0)
+            db.delete(alloc)
+
     db.commit()
     return None
-

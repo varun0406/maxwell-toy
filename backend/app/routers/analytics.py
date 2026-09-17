@@ -2,7 +2,7 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import List
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -19,21 +19,39 @@ def dashboard_summary(
 ):
     now = datetime.now(timezone.utc)
 
-    total_parties = db.query(models.Party).filter(models.Party.is_active == True).count()
-    invoices_count = db.query(models.Invoice).filter(models.Invoice.is_deleted == False).count()
-    
-    total_invoiced = db.query(func.sum(models.Invoice.amount)).filter(models.Invoice.is_deleted == False).scalar() or Decimal("0")
-    total_collected = db.query(func.sum(models.Payment.amount)).filter(models.Payment.is_deleted == False).scalar() or Decimal("0")
-    total_journal = db.query(func.sum(models.JournalEntry.amount)).filter(models.JournalEntry.is_deleted == False).scalar() or Decimal("0")
-    
-    total_outstanding = total_invoiced + total_journal - total_collected
+    # Single query for all 6 aggregates — eliminates 5 sequential full-table scans
+    row = db.execute(text("""
+        SELECT
+            (SELECT COUNT(*)
+             FROM parties
+             WHERE is_active = true)                                         AS total_parties,
 
-    overdue_count = db.query(models.Invoice).filter(
-        models.Invoice.is_deleted == False,
-        models.Invoice.is_paid == False,
-        models.Invoice.due_date < now
-    ).count()
+            (SELECT COUNT(*)
+             FROM invoices
+             WHERE is_deleted = false)                                       AS invoices_count,
 
+            COALESCE(
+              (SELECT SUM(amount) FROM invoices WHERE is_deleted = false),
+            0)                                                               AS total_invoiced,
+
+            COALESCE(
+              (SELECT SUM(amount) FROM payments WHERE is_deleted = false),
+            0)                                                               AS total_collected,
+
+            COALESCE(
+              (SELECT SUM(amount) FROM journal_entries WHERE is_deleted = false),
+            0)                                                               AS total_journal,
+
+            (SELECT COUNT(*)
+             FROM invoices
+             WHERE is_deleted = false
+               AND is_paid = false
+               AND due_date < :now)                                          AS overdue_count
+    """), {"now": now}).fetchone()
+
+    total_outstanding = row.total_invoiced + row.total_journal - row.total_collected
+
+    # Recent payments — lightweight query, only last 5
     payments = (
         db.query(models.Payment)
         .filter(models.Payment.is_deleted == False)
@@ -43,13 +61,13 @@ def dashboard_summary(
     )
 
     return schemas.DashboardSummary(
-        total_parties=total_parties,
-        total_invoiced=total_invoiced,
-        total_collected=total_collected,
-        total_journal=total_journal,
+        total_parties=row.total_parties,
+        total_invoiced=row.total_invoiced,
+        total_collected=row.total_collected,
+        total_journal=row.total_journal,
         total_outstanding=total_outstanding,
-        invoices_count=invoices_count,
-        overdue_count=overdue_count,
+        invoices_count=row.invoices_count,
+        overdue_count=row.overdue_count,
         recent_payments=payments,
     )
 
@@ -62,61 +80,60 @@ def party_summaries(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    inv_sub = db.query(func.coalesce(func.sum(models.Invoice.amount), Decimal("0")))\
-        .filter(models.Invoice.party_id == models.Party.id, models.Invoice.is_deleted == False).scalar_subquery()
-    pmt_sub = db.query(func.coalesce(func.sum(models.Payment.amount), Decimal("0")))\
-        .filter(models.Payment.party_id == models.Party.id, models.Payment.is_deleted == False).scalar_subquery()
-    jnl_sub = db.query(func.coalesce(func.sum(models.JournalEntry.amount), Decimal("0")))\
-        .filter(models.JournalEntry.party_id == models.Party.id, models.JournalEntry.is_deleted == False).scalar_subquery()
-    
-    inv_count_sub = db.query(func.count(models.Invoice.id))\
-        .filter(models.Invoice.party_id == models.Party.id, models.Invoice.is_deleted == False).scalar_subquery()
-    pmt_count_sub = db.query(func.count(models.Payment.id))\
-        .filter(models.Payment.party_id == models.Party.id, models.Payment.is_deleted == False).scalar_subquery()
+    # Single JOIN + GROUP BY replaces O(N×5) correlated subqueries.
+    # PostgreSQL FILTER clause aggregates multiple sums in one pass over joined rows.
+    search_filter = f"%{search}%" if search else None
 
-    base_query = db.query(models.Party).filter(models.Party.is_active == True)
-    if search:
-        base_query = base_query.filter(models.Party.name.ilike(f"%{search}%"))
-        
-    total = base_query.count()
-
-    query = db.query(
-        models.Party,
-        inv_sub.label("inv"),
-        pmt_sub.label("pmt"),
-        jnl_sub.label("jnl"),
-        inv_count_sub.label("inv_c"),
-        pmt_count_sub.label("pmt_c")
-    ).filter(models.Party.is_active == True)
-    
-    if search:
-        query = query.filter(models.Party.name.ilike(f"%{search}%"))
-        
-    # Sort by outstanding desc directly in DB
-    outstanding_expr = (inv_sub + jnl_sub - pmt_sub)
-    rows = query.order_by(outstanding_expr.desc()).offset(skip).limit(limit).all()
-
-    result = []
-    for party, inv, pmt, jnl, inv_c, pmt_c in rows:
-        outstanding = inv + jnl - pmt
-        result.append(
-            schemas.PartySummary(
-                party_id=party.id,
-                party_name=party.name,
-                total_invoiced=inv,
-                total_paid=pmt,
-                total_journal=jnl,
-                outstanding=outstanding,
-                invoice_count=inv_c,
-                payment_count=pmt_c,
-            )
+    result = db.execute(text("""
+        WITH agg AS (
+            SELECT
+                p.id                                                                AS party_id,
+                p.name                                                              AS party_name,
+                COALESCE(SUM(i.amount)   FILTER (WHERE i.is_deleted = false), 0)   AS total_invoiced,
+                COALESCE(SUM(pay.amount) FILTER (WHERE pay.is_deleted = false), 0) AS total_paid,
+                COALESCE(SUM(j.amount)   FILTER (WHERE j.is_deleted = false), 0)   AS total_journal,
+                COUNT(i.id)              FILTER (WHERE i.is_deleted = false)        AS invoice_count,
+                COUNT(pay.id)            FILTER (WHERE pay.is_deleted = false)      AS payment_count
+            FROM parties p
+            LEFT JOIN invoices       i   ON i.party_id   = p.id
+            LEFT JOIN payments       pay ON pay.party_id = p.id
+            LEFT JOIN journal_entries j  ON j.party_id   = p.id
+            WHERE p.is_active = true
+              AND (:search IS NULL OR p.name ILIKE :search)
+            GROUP BY p.id, p.name
+        ),
+        counted AS (
+            SELECT *, COUNT(*) OVER() AS total_count,
+                   (total_invoiced + total_journal - total_paid) AS outstanding
+            FROM agg
         )
+        SELECT *
+        FROM counted
+        ORDER BY outstanding DESC
+        OFFSET :skip LIMIT :limit
+    """), {"search": search_filter, "skip": skip, "limit": limit}).fetchall()
+
+    total = result[0].total_count if result else 0
+
+    items = [
+        schemas.PartySummary(
+            party_id=row.party_id,
+            party_name=row.party_name,
+            total_invoiced=row.total_invoiced,
+            total_paid=row.total_paid,
+            total_journal=row.total_journal,
+            outstanding=row.outstanding,
+            invoice_count=row.invoice_count,
+            payment_count=row.payment_count,
+        )
+        for row in result
+    ]
 
     return schemas.PaginatedResponse(
-        items=result,
+        items=items,
         total=total,
         skip=skip,
-        limit=limit
+        limit=limit,
     )
 
 
@@ -126,42 +143,37 @@ def party_analytics(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    inv_sub = db.query(func.coalesce(func.sum(models.Invoice.amount), Decimal("0")))\
-        .filter(models.Invoice.party_id == models.Party.id, models.Invoice.is_deleted == False).scalar_subquery()
-    pmt_sub = db.query(func.coalesce(func.sum(models.Payment.amount), Decimal("0")))\
-        .filter(models.Payment.party_id == models.Party.id, models.Payment.is_deleted == False).scalar_subquery()
-    jnl_sub = db.query(func.coalesce(func.sum(models.JournalEntry.amount), Decimal("0")))\
-        .filter(models.JournalEntry.party_id == models.Party.id, models.JournalEntry.is_deleted == False).scalar_subquery()
-    
-    inv_count_sub = db.query(func.count(models.Invoice.id))\
-        .filter(models.Invoice.party_id == models.Party.id, models.Invoice.is_deleted == False).scalar_subquery()
-    pmt_count_sub = db.query(func.count(models.Payment.id))\
-        .filter(models.Payment.party_id == models.Party.id, models.Payment.is_deleted == False).scalar_subquery()
-
-    row = db.query(
-        models.Party,
-        inv_sub.label("inv"),
-        pmt_sub.label("pmt"),
-        jnl_sub.label("jnl"),
-        inv_count_sub.label("inv_c"),
-        pmt_count_sub.label("pmt_c")
-    ).filter(models.Party.id == party_id).first()
+    row = db.execute(text("""
+        SELECT
+            p.id                                                                AS party_id,
+            p.name                                                              AS party_name,
+            COALESCE(SUM(i.amount)   FILTER (WHERE i.is_deleted = false), 0)   AS total_invoiced,
+            COALESCE(SUM(pay.amount) FILTER (WHERE pay.is_deleted = false), 0) AS total_paid,
+            COALESCE(SUM(j.amount)   FILTER (WHERE j.is_deleted = false), 0)   AS total_journal,
+            COUNT(i.id)              FILTER (WHERE i.is_deleted = false)        AS invoice_count,
+            COUNT(pay.id)            FILTER (WHERE pay.is_deleted = false)      AS payment_count
+        FROM parties p
+        LEFT JOIN invoices        i   ON i.party_id   = p.id
+        LEFT JOIN payments        pay ON pay.party_id = p.id
+        LEFT JOIN journal_entries j   ON j.party_id   = p.id
+        WHERE p.id = :party_id
+        GROUP BY p.id, p.name
+    """), {"party_id": party_id}).fetchone()
 
     if not row:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Party not found")
 
-    party, inv, pmt, jnl, inv_c, pmt_c = row
-    outstanding = inv + jnl - pmt
+    outstanding = row.total_invoiced + row.total_journal - row.total_paid
     return schemas.PartySummary(
-        party_id=party.id,
-        party_name=party.name,
-        total_invoiced=inv,
-        total_paid=pmt,
-        total_journal=jnl,
+        party_id=row.party_id,
+        party_name=row.party_name,
+        total_invoiced=row.total_invoiced,
+        total_paid=row.total_paid,
+        total_journal=row.total_journal,
         outstanding=outstanding,
-        invoice_count=inv_c,
-        payment_count=pmt_c,
+        invoice_count=row.invoice_count,
+        payment_count=row.payment_count,
     )
 
 
@@ -173,72 +185,74 @@ def aging_report(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    from sqlalchemy import case
     now = datetime.now(timezone.utc)
     date_30 = now - timedelta(days=30)
     date_60 = now - timedelta(days=60)
     date_90 = now - timedelta(days=90)
-    
-    ref_date = func.coalesce(models.Invoice.due_date, models.Invoice.invoice_date)
-    
-    current_expr = func.coalesce(func.sum(case((ref_date >= date_30, models.Invoice.balance_due), else_=Decimal("0"))), Decimal("0"))
-    days_31_60_expr = func.coalesce(func.sum(case(((ref_date < date_30) & (ref_date >= date_60), models.Invoice.balance_due), else_=Decimal("0"))), Decimal("0"))
-    days_61_90_expr = func.coalesce(func.sum(case(((ref_date < date_60) & (ref_date >= date_90), models.Invoice.balance_due), else_=Decimal("0"))), Decimal("0"))
-    over_90_expr = func.coalesce(func.sum(case((ref_date < date_90, models.Invoice.balance_due), else_=Decimal("0"))), Decimal("0"))
-    
-    total_expr = current_expr + days_31_60_expr + days_61_90_expr + over_90_expr
+    search_filter = f"%{search}%" if search else None
 
-    base_query = db.query(models.Party).join(
-        models.Invoice, models.Invoice.party_id == models.Party.id
-    ).filter(
-        models.Party.is_active == True,
-        models.Invoice.is_deleted == False,
-        models.Invoice.is_paid == False,
-        models.Invoice.balance_due > 0
-    )
-    
-    if search:
-        base_query = base_query.filter(models.Party.name.ilike(f"%{search}%"))
-        
-    total = base_query.distinct(models.Party.id).count()
+    # Single CTE: compute aging buckets, get total count via window function,
+    # and paginate — all in one round trip to the database.
+    result = db.execute(text("""
+        WITH aging_raw AS (
+            SELECT
+                p.id                                                                AS party_id,
+                p.name                                                              AS party_name,
+                COALESCE(SUM(i.balance_due) FILTER (
+                    WHERE COALESCE(i.due_date, i.invoice_date) >= :date_30
+                ), 0)                                                               AS current_bucket,
+                COALESCE(SUM(i.balance_due) FILTER (
+                    WHERE COALESCE(i.due_date, i.invoice_date) < :date_30
+                      AND COALESCE(i.due_date, i.invoice_date) >= :date_60
+                ), 0)                                                               AS days_31_60,
+                COALESCE(SUM(i.balance_due) FILTER (
+                    WHERE COALESCE(i.due_date, i.invoice_date) < :date_60
+                      AND COALESCE(i.due_date, i.invoice_date) >= :date_90
+                ), 0)                                                               AS days_61_90,
+                COALESCE(SUM(i.balance_due) FILTER (
+                    WHERE COALESCE(i.due_date, i.invoice_date) < :date_90
+                ), 0)                                                               AS over_90
+            FROM parties p
+            JOIN invoices i ON i.party_id = p.id
+            WHERE p.is_active = true
+              AND i.is_deleted = false
+              AND i.is_paid = false
+              AND i.balance_due > 0
+              AND (:search IS NULL OR p.name ILIKE :search)
+            GROUP BY p.id, p.name
+        ),
+        final AS (
+            SELECT *,
+                   (current_bucket + days_31_60 + days_61_90 + over_90) AS total_amount,
+                   COUNT(*) OVER()                                        AS total_count
+            FROM aging_raw
+        )
+        SELECT * FROM final
+        ORDER BY total_amount DESC
+        OFFSET :skip LIMIT :limit
+    """), {
+        "now": now, "date_30": date_30, "date_60": date_60, "date_90": date_90,
+        "search": search_filter, "skip": skip, "limit": limit,
+    }).fetchall()
 
-    query = db.query(
-        models.Party.id,
-        models.Party.name,
-        current_expr.label("current"),
-        days_31_60_expr.label("days_31_60"),
-        days_61_90_expr.label("days_61_90"),
-        over_90_expr.label("over_90"),
-        total_expr.label("total_amount")
-    ).join(
-        models.Invoice, models.Invoice.party_id == models.Party.id
-    ).filter(
-        models.Party.is_active == True,
-        models.Invoice.is_deleted == False,
-        models.Invoice.is_paid == False,
-        models.Invoice.balance_due > 0
-    )
-    
-    if search:
-        query = query.filter(models.Party.name.ilike(f"%{search}%"))
-        
-    rows = query.group_by(models.Party.id, models.Party.name).order_by(total_expr.desc()).offset(skip).limit(limit).all()
+    total = result[0].total_count if result else 0
 
-    result = []
-    for pid, pname, curr, d31, d61, o90, tot in rows:
-        result.append(schemas.AgingBucket(
-            party_id=pid,
-            party_name=pname,
-            current=curr,
-            days_31_60=d31,
-            days_61_90=d61,
-            over_90=o90,
-            total=tot
-        ))
+    items = [
+        schemas.AgingBucket(
+            party_id=row.party_id,
+            party_name=row.party_name,
+            current=row.current_bucket,
+            days_31_60=row.days_31_60,
+            days_61_90=row.days_61_90,
+            over_90=row.over_90,
+            total=row.total_amount,
+        )
+        for row in result
+    ]
 
     return schemas.PaginatedResponse(
-        items=result,
+        items=items,
         total=total,
         skip=skip,
-        limit=limit
+        limit=limit,
     )

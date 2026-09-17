@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy import (
     Column, Integer, String, Text, Numeric, DateTime,
-    ForeignKey, Boolean, UniqueConstraint
+    ForeignKey, Boolean, UniqueConstraint, Index
 )
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -82,6 +82,13 @@ class Party(Base):
     payments = relationship("Payment", back_populates="party", cascade="all, delete-orphan")
     journal_entries = relationship("JournalEntry", back_populates="party", cascade="all, delete-orphan")
 
+    __table_args__ = (
+        # Speeds up name search (ilike '%x%' still needs seq scan but prefix searches benefit)
+        Index("ix_parties_name", "name"),
+        # Composite for filtered list queries
+        Index("ix_parties_is_active_name", "is_active", "name"),
+    )
+
 
 # ---------------------------------------------------------------------------
 # Invoices (Sales)
@@ -114,7 +121,6 @@ class Invoice(Base):
     party = relationship("Party", back_populates="invoices")
     created_by_user = relationship("User", back_populates="invoices")
     allocations = relationship("PaymentAllocation", back_populates="invoice")
-
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
 
     @property
@@ -123,7 +129,18 @@ class Invoice(Base):
 
     __table_args__ = (
         UniqueConstraint("invoice_number", "created_by", name="uq_invoice_no_per_user"),
+        # Critical for analytics aggregations per party
+        Index("ix_invoices_party_deleted", "party_id", "is_deleted"),
+        # For listing + filtering unpaid invoices
+        Index("ix_invoices_deleted_paid", "is_deleted", "is_paid"),
+        # For date-range queries and ordering
+        Index("ix_invoices_invoice_date", "invoice_date"),
+        # For overdue count in dashboard
+        Index("ix_invoices_due_date", "due_date"),
+        # For aging report: unpaid invoices with balance
+        Index("ix_invoices_party_unpaid_balance", "party_id", "is_deleted", "is_paid", "balance_due"),
     )
+
 
 class InvoiceItem(Base):
     __tablename__ = "invoice_items"
@@ -136,6 +153,10 @@ class InvoiceItem(Base):
     total = Column(Numeric(12, 2), nullable=False)
 
     invoice = relationship("Invoice", back_populates="items")
+
+    __table_args__ = (
+        Index("ix_invoice_items_invoice_id", "invoice_id"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -166,6 +187,13 @@ class Payment(Base):
     def party_name(self):
         return self.party.name if self.party else None
 
+    __table_args__ = (
+        # Critical for per-party payment aggregation
+        Index("ix_payments_party_deleted", "party_id", "is_deleted"),
+        # For date ordering in lists
+        Index("ix_payments_payment_date", "payment_date"),
+    )
+
 
 # ---------------------------------------------------------------------------
 # Payment Allocations (Manual Linking)
@@ -183,6 +211,13 @@ class PaymentAllocation(Base):
 
     payment = relationship("Payment", back_populates="allocations")
     invoice = relationship("Invoice", back_populates="allocations")
+
+    __table_args__ = (
+        # Speeds up finding allocations for a payment (delete payment)
+        Index("ix_payment_allocations_payment_id", "payment_id"),
+        # Speeds up finding allocations for an invoice (delete invoice, update invoice)
+        Index("ix_payment_allocations_invoice_id", "invoice_id"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -205,6 +240,12 @@ class JournalEntry(Base):
 
     party = relationship("Party", back_populates="journal_entries")
     created_by_user = relationship("User")
+
+    __table_args__ = (
+        # Critical for per-party journal aggregation
+        Index("ix_journal_entries_party_deleted", "party_id", "is_deleted"),
+    )
+
 
 # ---------------------------------------------------------------------------
 # Address Book

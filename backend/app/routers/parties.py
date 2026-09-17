@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -22,22 +22,6 @@ def _get_party_or_404(party_id: int, db: Session) -> models.Party:
     return party
 
 
-def _get_party_balance_subqueries(db: Session):
-    inv_sub = db.query(func.coalesce(func.sum(models.Invoice.amount), Decimal("0")))\
-        .filter(models.Invoice.party_id == models.Party.id, models.Invoice.is_deleted == False)\
-        .scalar_subquery()
-        
-    pmt_sub = db.query(func.coalesce(func.sum(models.Payment.amount), Decimal("0")))\
-        .filter(models.Payment.party_id == models.Party.id, models.Payment.is_deleted == False)\
-        .scalar_subquery()
-        
-    jnl_sub = db.query(func.coalesce(func.sum(models.JournalEntry.amount), Decimal("0")))\
-        .filter(models.JournalEntry.party_id == models.Party.id, models.JournalEntry.is_deleted == False)\
-        .scalar_subquery()
-        
-    return inv_sub, pmt_sub, jnl_sub
-
-
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.PartyWithBalance])
 def list_parties(
     skip: int = 0,
@@ -47,59 +31,97 @@ def list_parties(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    inv_sub, pmt_sub, jnl_sub = _get_party_balance_subqueries(db)
-    
-    base_query = db.query(models.Party).filter(models.Party.is_active == True)
-    if search:
-        base_query = base_query.filter(models.Party.name.ilike(f"%{search}%"))
-        
-    outstanding_expr = (
-        func.coalesce(inv_sub, Decimal("0")) + 
-        func.coalesce(jnl_sub, Decimal("0")) - 
-        func.coalesce(pmt_sub, Decimal("0"))
-    )
-    if unpaid_only:
-        base_query = base_query.filter(outstanding_expr > 0)
-        
-    total = base_query.count()
-    
-    query = db.query(
-        models.Party,
-        inv_sub.label("total_invoiced"),
-        pmt_sub.label("total_paid"),
-        jnl_sub.label("total_journal"),
-    ).filter(
-        models.Party.is_active == True,
-    )
-    
-    if search:
-        query = query.filter(models.Party.name.ilike(f"%{search}%"))
-        
-    if unpaid_only:
-        query = query.filter(outstanding_expr > 0)
-        
-    rows = query.order_by(models.Party.name).offset(skip).limit(limit).all()
-    
-    if search:
-        query = query.filter(models.Party.name.ilike(f"%{search}%"))
-        
-    rows = query.order_by(models.Party.name).offset(skip).limit(limit).all()
+    # Single JOIN+GROUP BY query replaces correlated subqueries per party.
+    # COUNT(*) OVER() window function gives total without a second query.
+    # Also fixes the duplicate-query bug where .all() was called twice.
+    search_filter = f"%{search}%" if search else None
 
-    result = []
-    for party, inv, pmt, jnl in rows:
-        outstanding = inv + jnl - pmt
-        result.append(schemas.PartyWithBalance(
-            **schemas.PartyOut.model_validate(party).model_dump(),
-            total_invoiced=inv,
-            total_paid=pmt,
-            total_journal=jnl,
-            outstanding=outstanding,
-        ))
+    rows = db.execute(text("""
+        WITH agg AS (
+            SELECT
+                p.id,
+                p.name,
+                p.phone,
+                p.email,
+                p.agent_name,
+                p.billing_address_line1,
+                p.billing_address_line2,
+                p.billing_address_line3,
+                p.billing_city,
+                p.shipping_address_line1,
+                p.shipping_address_line2,
+                p.shipping_address_line3,
+                p.shipping_city,
+                p.area,
+                p.gstin,
+                p.notes,
+                p.reminder_date,
+                p.is_active,
+                p.created_at,
+                COALESCE(SUM(i.amount)   FILTER (WHERE i.is_deleted = false), 0)   AS total_invoiced,
+                COALESCE(SUM(pay.amount) FILTER (WHERE pay.is_deleted = false), 0) AS total_paid,
+                COALESCE(SUM(j.amount)   FILTER (WHERE j.is_deleted = false), 0)   AS total_journal
+            FROM parties p
+            LEFT JOIN invoices        i   ON i.party_id   = p.id
+            LEFT JOIN payments        pay ON pay.party_id = p.id
+            LEFT JOIN journal_entries j   ON j.party_id   = p.id
+            WHERE p.is_active = true
+              AND (:search IS NULL OR p.name ILIKE :search)
+            GROUP BY p.id
+        ),
+        filtered AS (
+            SELECT *,
+                   (total_invoiced + total_journal - total_paid) AS outstanding
+            FROM agg
+            WHERE (:unpaid_only = false OR (total_invoiced + total_journal - total_paid) > 0)
+        )
+        SELECT *, COUNT(*) OVER() AS total_count
+        FROM filtered
+        ORDER BY name
+        OFFSET :skip LIMIT :limit
+    """), {
+        "search": search_filter,
+        "unpaid_only": unpaid_only,
+        "skip": skip,
+        "limit": limit,
+    }).fetchall()
+
+    total = rows[0].total_count if rows else 0
+
+    result = [
+        schemas.PartyWithBalance(
+            id=row.id,
+            name=row.name,
+            phone=row.phone,
+            email=row.email,
+            agent_name=row.agent_name,
+            billing_address_line1=row.billing_address_line1,
+            billing_address_line2=row.billing_address_line2,
+            billing_address_line3=row.billing_address_line3,
+            billing_city=row.billing_city,
+            shipping_address_line1=row.shipping_address_line1,
+            shipping_address_line2=row.shipping_address_line2,
+            shipping_address_line3=row.shipping_address_line3,
+            shipping_city=row.shipping_city,
+            area=row.area,
+            gstin=row.gstin,
+            notes=row.notes,
+            reminder_date=row.reminder_date,
+            is_active=row.is_active,
+            created_at=row.created_at,
+            total_invoiced=row.total_invoiced,
+            total_paid=row.total_paid,
+            total_journal=row.total_journal,
+            outstanding=row.outstanding,
+        )
+        for row in rows
+    ]
+
     return schemas.PaginatedResponse(
         items=result,
         total=total,
         skip=skip,
-        limit=limit
+        limit=limit,
     )
 
 
@@ -122,25 +144,65 @@ def get_party(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    inv_sub, pmt_sub, jnl_sub = _get_party_balance_subqueries(db)
-    
-    row = db.query(
-        models.Party,
-        inv_sub.label("total_invoiced"),
-        pmt_sub.label("total_paid"),
-        jnl_sub.label("total_journal"),
-    ).filter(models.Party.id == party_id).first()
-    
+    row = db.execute(text("""
+        SELECT
+            p.id,
+            p.name,
+            p.phone,
+            p.email,
+            p.agent_name,
+            p.billing_address_line1,
+            p.billing_address_line2,
+            p.billing_address_line3,
+            p.billing_city,
+            p.shipping_address_line1,
+            p.shipping_address_line2,
+            p.shipping_address_line3,
+            p.shipping_city,
+            p.area,
+            p.gstin,
+            p.notes,
+            p.reminder_date,
+            p.is_active,
+            p.created_at,
+            COALESCE(SUM(i.amount)   FILTER (WHERE i.is_deleted = false), 0)   AS total_invoiced,
+            COALESCE(SUM(pay.amount) FILTER (WHERE pay.is_deleted = false), 0) AS total_paid,
+            COALESCE(SUM(j.amount)   FILTER (WHERE j.is_deleted = false), 0)   AS total_journal
+        FROM parties p
+        LEFT JOIN invoices        i   ON i.party_id   = p.id
+        LEFT JOIN payments        pay ON pay.party_id = p.id
+        LEFT JOIN journal_entries j   ON j.party_id   = p.id
+        WHERE p.id = :party_id
+        GROUP BY p.id
+    """), {"party_id": party_id}).fetchone()
+
     if not row:
         raise HTTPException(status_code=404, detail="Party not found")
-        
-    party, inv, pmt, jnl = row
-    outstanding = inv + jnl - pmt
+
+    outstanding = row.total_invoiced + row.total_journal - row.total_paid
     return schemas.PartyWithBalance(
-        **schemas.PartyOut.model_validate(party).model_dump(),
-        total_invoiced=inv,
-        total_paid=pmt,
-        total_journal=jnl,
+        id=row.id,
+        name=row.name,
+        phone=row.phone,
+        email=row.email,
+        agent_name=row.agent_name,
+        billing_address_line1=row.billing_address_line1,
+        billing_address_line2=row.billing_address_line2,
+        billing_address_line3=row.billing_address_line3,
+        billing_city=row.billing_city,
+        shipping_address_line1=row.shipping_address_line1,
+        shipping_address_line2=row.shipping_address_line2,
+        shipping_address_line3=row.shipping_address_line3,
+        shipping_city=row.shipping_city,
+        area=row.area,
+        gstin=row.gstin,
+        notes=row.notes,
+        reminder_date=row.reminder_date,
+        is_active=row.is_active,
+        created_at=row.created_at,
+        total_invoiced=row.total_invoiced,
+        total_paid=row.total_paid,
+        total_journal=row.total_journal,
         outstanding=outstanding,
     )
 
@@ -177,56 +239,67 @@ def party_ledger(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    party = _get_party_or_404(party_id, db)
+    # Verify party exists
+    _get_party_or_404(party_id, db)
 
-    entries = []
-    for inv in party.invoices:
-        if inv.is_deleted: continue
-        entries.append({
-            "type": "invoice",
-            "date": inv.invoice_date,
-            "reference": inv.invoice_number,
-            "amount": inv.amount,
-            "balance_due": inv.balance_due,
-        })
-    for pmt in party.payments:
-        if pmt.is_deleted: continue
-        entries.append({
-            "type": "payment",
-            "date": pmt.payment_date,
-            "reference": f"PMT-{pmt.id}",
-            "amount": -pmt.amount,
-            "balance_due": None,
-        })
-    for jnl in party.journal_entries:
-        if jnl.is_deleted: continue
-        entries.append({
-            "type": "journal",
-            "date": jnl.entry_date,
-            "reference": f"JNL-{jnl.id}",
-            "amount": jnl.amount,
-            "balance_due": None,
-        })
+    # SQL UNION ALL + window SUM() OVER() for running balance.
+    # Replaces loading all ORM objects into Python, sorting in Python,
+    # and computing running balance in Python — all done in a single DB query.
+    rows = db.execute(text("""
+        WITH ledger_raw AS (
+            SELECT
+                'invoice'           AS type,
+                invoice_date        AS date,
+                invoice_number      AS reference,
+                amount              AS amount,
+                balance_due         AS balance_due
+            FROM invoices
+            WHERE party_id = :party_id AND is_deleted = false
 
-    # Sort by date
-    entries.sort(key=lambda e: e["date"])
+            UNION ALL
 
-    # Compute running balance
-    running = Decimal("0")
-    ledger = []
-    for e in entries:
-        running += e["amount"]
-        ledger.append(
-            schemas.LedgerEntry(
-                type=e["type"],
-                date=e["date"],
-                reference=e["reference"],
-                amount=e["amount"],
-                balance_due=e.get("balance_due"),
-                running_balance=running,
-            )
+            SELECT
+                'payment'               AS type,
+                payment_date            AS date,
+                'PMT-' || id::text      AS reference,
+                -amount                 AS amount,
+                NULL                    AS balance_due
+            FROM payments
+            WHERE party_id = :party_id AND is_deleted = false
+
+            UNION ALL
+
+            SELECT
+                'journal'               AS type,
+                entry_date              AS date,
+                'JNL-' || id::text      AS reference,
+                amount                  AS amount,
+                NULL                    AS balance_due
+            FROM journal_entries
+            WHERE party_id = :party_id AND is_deleted = false
         )
-    return ledger
+        SELECT
+            type,
+            date,
+            reference,
+            amount,
+            balance_due,
+            SUM(amount) OVER (ORDER BY date, reference ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_balance
+        FROM ledger_raw
+        ORDER BY date, reference
+    """), {"party_id": party_id}).fetchall()
+
+    return [
+        schemas.LedgerEntry(
+            type=row.type,
+            date=row.date,
+            reference=row.reference,
+            amount=row.amount,
+            balance_due=row.balance_due,
+            running_balance=row.running_balance,
+        )
+        for row in rows
+    ]
 
 
 @router.post("/{party_id}/journal", response_model=schemas.JournalEntryOut, status_code=status.HTTP_201_CREATED)
@@ -236,7 +309,7 @@ def create_journal_entry(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    party = _get_party_or_404(party_id, current_user.id, db)
+    party = _get_party_or_404(party_id, db)
 
     db_entry = models.JournalEntry(
         party_id=party.id,
@@ -250,6 +323,7 @@ def create_journal_entry(
     db.refresh(db_entry)
     return db_entry
 
+
 @router.delete("/journal/{journal_id}", status_code=204)
 def delete_journal(
     journal_id: int,
@@ -258,12 +332,16 @@ def delete_journal(
 ):
     jnl = (
         db.query(models.JournalEntry)
-        .filter(models.JournalEntry.id == journal_id, models.JournalEntry.created_by == current_user.id, models.JournalEntry.is_deleted == False)
+        .filter(
+            models.JournalEntry.id == journal_id,
+            models.JournalEntry.created_by == current_user.id,
+            models.JournalEntry.is_deleted == False,
+        )
         .first()
     )
     if not jnl:
         raise HTTPException(status_code=404, detail="Journal entry not found")
-        
+
     jnl.is_deleted = True
     db.commit()
     return None
