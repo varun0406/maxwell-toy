@@ -63,14 +63,11 @@ def run_migration():
     skipped = 0
     errors = 0
 
-    with engine.connect() as conn:
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         for index_name, table, columns in INDEXES:
             try:
                 sql = f"CREATE INDEX CONCURRENTLY IF NOT EXISTS {index_name} ON {table} ({columns})"
                 conn.execute(text(sql))
-                # CONCURRENTLY cannot run inside a transaction block in older PG;
-                # autocommit is needed. Let's commit between each index.
-                conn.execute(text("COMMIT"))
                 print(f"  ✓  {index_name}  ON  {table}({columns})")
                 created += 1
             except Exception as e:
@@ -81,11 +78,6 @@ def run_migration():
                 else:
                     print(f"  ✗  {index_name}  ERROR: {err_line}")
                     errors += 1
-                # Rollback any aborted transaction before continuing
-                try:
-                    conn.execute(text("ROLLBACK"))
-                except Exception:
-                    pass
 
     print()
     print(f"Done. Created: {created}  |  Skipped: {skipped}  |  Errors: {errors}")
