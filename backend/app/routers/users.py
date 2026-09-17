@@ -20,7 +20,7 @@ def check_superuser(current_user: models.User):
 @router.get("/", response_model=List[schemas.UserOut])
 def list_users(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000000,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

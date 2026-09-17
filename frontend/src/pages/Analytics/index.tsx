@@ -68,7 +68,7 @@ export default function Analytics() {
   const arParties = arData ? arData.pages.flatMap((p) => p.items).filter((p: any) => p.outstanding > 0) : [];
   const totalAR = summary?.total_outstanding || 0;
 
-  const top5 = parties.slice(0, 5);
+  const top5 = parties;
 
   const barData = top5.map((p: any) => ({
     name: p.party_name.length > 10 ? p.party_name.slice(0, 10) + '…' : p.party_name,

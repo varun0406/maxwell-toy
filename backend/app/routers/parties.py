@@ -25,7 +25,7 @@ def _get_party_or_404(party_id: int, db: Session) -> models.Party:
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.PartyWithBalance])
 def list_parties(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000000,
     search: str = "",
     unpaid_only: bool = False,
     current_user: models.User = Depends(get_current_user),

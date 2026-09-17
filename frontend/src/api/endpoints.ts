@@ -18,7 +18,7 @@ export const usersApi = {
 
 // ── Parties ─────────────────────────────────────────────────────────────────
 export const partiesApi = {
-  list: (search?: string, skip: number = 0, limit: number = 20, unpaidOnly: boolean = false) =>
+  list: (search?: string, skip: number = 0, limit: number = 1000000, unpaidOnly: boolean = false) =>
     api.get('/parties/', { params: { ...(search ? { search } : {}), skip, limit, ...(unpaidOnly ? { unpaid_only: true } : {}) } }),
   create: (data: unknown) => api.post('/parties/', data),
   get: (id: number) => api.get(`/parties/${id}`),
@@ -32,7 +32,7 @@ export const partiesApi = {
 
 // ── Invoices ─────────────────────────────────────────────────────────────────
 export const invoicesApi = {
-  list: (partyId?: number, unpaidOnly?: boolean, search?: string, skip: number = 0, limit: number = 20) =>
+  list: (partyId?: number, unpaidOnly?: boolean, search?: string, skip: number = 0, limit: number = 1000000) =>
     api.get('/invoices/', { params: { ...(partyId && { party_id: partyId }), ...(unpaidOnly && { unpaid_only: true }), ...(search ? { search } : {}), skip, limit } }),
   create: (data: unknown) => api.post('/invoices/', data),
   get: (id: number) => api.get(`/invoices/${id}`),
@@ -49,7 +49,7 @@ export const invoicesApi = {
 
 // ── Payments ─────────────────────────────────────────────────────────────────
 export const paymentsApi = {
-  list: (partyId?: number, search?: string, skip: number = 0, limit: number = 20) =>
+  list: (partyId?: number, search?: string, skip: number = 0, limit: number = 1000000) =>
     api.get('/payments/', { params: { ...(partyId && { party_id: partyId }), ...(search ? { search } : {}), skip, limit } }),
   create: (data: unknown) => api.post('/payments/', data),
   get: (id: number) => api.get(`/payments/${id}`),
@@ -60,10 +60,10 @@ export const paymentsApi = {
 // ── Analytics ─────────────────────────────────────────────────────────────────
 export const analyticsApi = {
   summary: () => api.get('/analytics/summary'),
-  parties: (search?: string, skip: number = 0, limit: number = 20) => 
+  parties: (search?: string, skip: number = 0, limit: number = 1000000) => 
     api.get('/analytics/parties', { params: { ...(search ? { search } : {}), skip, limit } }),
   party: (id: number) => api.get(`/analytics/party/${id}`),
-  aging: (search?: string, skip: number = 0, limit: number = 20) => 
+  aging: (search?: string, skip: number = 0, limit: number = 1000000) => 
     api.get('/analytics/aging', { params: { ...(search ? { search } : {}), skip, limit } }),
 };
 

@@ -51,12 +51,11 @@ def dashboard_summary(
 
     total_outstanding = row.total_invoiced + row.total_journal - row.total_collected
 
-    # Recent payments — lightweight query, only last 5
+    # Recent payments
     payments = (
         db.query(models.Payment)
         .filter(models.Payment.is_deleted == False)
-        .order_by(models.Payment.payment_date.desc())
-        .limit(5)
+        .order_by(models.Payment.payment_date.desc(), models.Payment.id.desc())
         .all()
     )
 
@@ -75,7 +74,7 @@ def dashboard_summary(
 @router.get("/parties", response_model=schemas.PaginatedResponse[schemas.PartySummary])
 def party_summaries(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000000,
     search: str = "",
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -180,7 +179,7 @@ def party_analytics(
 @router.get("/aging", response_model=schemas.PaginatedResponse[schemas.AgingBucket])
 def aging_report(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000000,
     search: str = "",
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),

@@ -160,8 +160,8 @@ export function NewPayment() {
   // Fetch unpaid invoices when party changes and bill_adjustment is selected
   useEffect(() => {
     if (selectedParty && paymentType === 'bill_adjustment') {
-      invoicesApi.list(Number(selectedParty), true).then((r) => {
-        setUnpaidInvoices(r.data.sort((a: any, b: any) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime()));
+      invoicesApi.list(Number(selectedParty), true, undefined, 0, 1000).then((r) => {
+        setUnpaidInvoices(r.data.items.sort((a: any, b: any) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime()));
         setAllocations({}); // Reset allocations when party changes
         setDraftAllocations({});
       });

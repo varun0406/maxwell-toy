@@ -191,7 +191,7 @@ export function PartyDetail() {
 
   const { data: payments = [] } = useQuery({
     queryKey: ['payments', id],
-    queryFn: () => paymentsApi.list(Number(id)).then(r => r.data)
+    queryFn: () => paymentsApi.list(Number(id), undefined, 0, 1000).then(r => r.data.items)
   });
   
   const hasUnallocated = payments.some((p: any) => p.unallocated > 0);
@@ -312,7 +312,7 @@ export function PartyDetail() {
         <button
           className="quick-action-btn warning"
           onClick={async () => {
-            const unpaid = (await invoicesApi.list(Number(id), true)).data;
+            const unpaid = (await invoicesApi.list(Number(id), true, undefined, 0, 1000)).data.items;
             if (unpaid.length === 0) { alert('No pending invoices for this party.'); return; }
             generateAndSharePartyStatement(party, unpaid, totalUnallocated);
           }}
@@ -436,7 +436,7 @@ function AllocateOnAccountModal({ partyId, payments, onClose }: { partyId: numbe
     
     const { data: unpaidInvoices = [] } = useQuery({
       queryKey: ['unpaid_invoices', partyId],
-      queryFn: () => invoicesApi.list(partyId, true).then(r => r.data.sort((a: any, b: any) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime())),
+      queryFn: () => invoicesApi.list(partyId, true, undefined, 0, 1000).then(r => r.data.items.sort((a: any, b: any) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime())),
     });
     
     const selectedPayment = payments.find(p => p.id === selectedPaymentId);

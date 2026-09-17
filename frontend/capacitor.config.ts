@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
-    cleartext: false,
+    cleartext: true,
   },
   android: {
     minSdkVersion: 24,

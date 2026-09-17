@@ -33,6 +33,14 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
+    
+    // Network Error or Server Down -> Retry up to 3 times
+    if (!error.response && original && (!original._retry_network || original._retry_network < 3)) {
+      original._retry_network = (original._retry_network || 0) + 1;
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      return api(original);
+    }
+
     if (error.response?.status === 401 && !original._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
