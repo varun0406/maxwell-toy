@@ -9,9 +9,14 @@ import { z } from 'zod';
 const registerSchema = z.object({
   username: z.string().min(3, 'Username required'),
   email: z.string().email().optional().or(z.literal('')),
-  password: z.string().min(8, 'Password must be 8+ chars'),
+  password: z.string().min(4, 'PIN must be at least 4 digits'),
 });
 type RegisterForm = z.infer<typeof registerSchema>;
+
+const resetPinSchema = z.object({
+  new_pin: z.string().min(4, 'PIN must be at least 4 digits'),
+});
+type ResetPinForm = z.infer<typeof resetPinSchema>;
 
 export default function Users() {
   const { user } = useAuthStore();
@@ -19,8 +24,10 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [showResetPin, setShowResetPin] = useState<number | null>(null);
 
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
+  const resetPinForm = useForm<ResetPinForm>({ resolver: zodResolver(resetPinSchema) });
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -60,6 +67,18 @@ export default function Users() {
       fetchUsers();
     } catch (e: any) {
       alert(e.response?.data?.detail || 'Failed to update user status');
+    }
+  };
+
+  const handleResetPin = async (data: ResetPinForm) => {
+    if (!showResetPin) return;
+    try {
+      await usersApi.resetPin(showResetPin, data.new_pin);
+      resetPinForm.reset();
+      setShowResetPin(null);
+      alert('PIN reset successfully');
+    } catch (e: any) {
+      alert(e.response?.data?.detail || 'Failed to reset PIN');
     }
   };
 
@@ -125,18 +144,27 @@ export default function Users() {
                     </td>
                     <td>
                       {u.id !== user?.id && !u.is_superuser && (
-                        <button
-                          className="btn"
-                          style={{
-                            padding: '6px 12px', fontSize: 12,
-                            background: u.is_active ? 'var(--danger-bg)' : 'var(--success-bg)',
-                            color: u.is_active ? 'var(--danger)' : 'var(--success)',
-                            border: 'none',
-                          }}
-                          onClick={() => handleToggleStatus(u.id, u.is_active)}
-                        >
-                          {u.is_active ? <span style={{display: 'flex', gap: 4, alignItems: 'center'}}><UserX size={14}/> Deactivate</span> : <span style={{display: 'flex', gap: 4, alignItems: 'center'}}><UserCheck size={14}/> Activate</span>}
-                        </button>
+                        <>
+                          <button
+                            className="btn"
+                            style={{
+                              padding: '6px 12px', fontSize: 12,
+                              background: u.is_active ? 'var(--danger-bg)' : 'var(--success-bg)',
+                              color: u.is_active ? 'var(--danger)' : 'var(--success)',
+                              border: 'none',
+                            }}
+                            onClick={() => handleToggleStatus(u.id, u.is_active)}
+                          >
+                            {u.is_active ? <span style={{display: 'flex', gap: 4, alignItems: 'center'}}><UserX size={14}/> Deactivate</span> : <span style={{display: 'flex', gap: 4, alignItems: 'center'}}><UserCheck size={14}/> Activate</span>}
+                          </button>
+                          <button
+                            className="btn"
+                            style={{ padding: '6px 12px', fontSize: 12, marginLeft: 8 }}
+                            onClick={() => setShowResetPin(u.id)}
+                          >
+                            Reset PIN
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -165,13 +193,35 @@ export default function Users() {
                 <input className="form-input" type="email" {...registerForm.register('email')} />
               </div>
               <div className="form-group">
-                <label className="form-label">Password</label>
-                <input className="form-input" type="password" {...registerForm.register('password')} />
+                <label className="form-label">PIN</label>
+                <input className="form-input" type="password" inputMode="numeric" pattern="[0-9]*" {...registerForm.register('password')} />
                 {registerForm.formState.errors.password && <span className="form-error">{registerForm.formState.errors.password.message}</span>}
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
                 <button type="button" className="btn" style={{ flex: 1 }} onClick={() => setShowCreate(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Create User</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showResetPin && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16
+        }}>
+          <div className="card pop-in" style={{ width: '100%', maxWidth: 400 }}>
+            <h2 style={{ marginBottom: 16, fontSize: 20 }}>Reset User PIN</h2>
+            <form onSubmit={resetPinForm.handleSubmit(handleResetPin)}>
+              <div className="form-group">
+                <label className="form-label">New PIN</label>
+                <input className="form-input" type="password" inputMode="numeric" pattern="[0-9]*" {...resetPinForm.register('new_pin')} />
+                {resetPinForm.formState.errors.new_pin && <span className="form-error">{resetPinForm.formState.errors.new_pin.message}</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+                <button type="button" className="btn" style={{ flex: 1 }} onClick={() => setShowResetPin(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Reset PIN</button>
               </div>
             </form>
           </div>

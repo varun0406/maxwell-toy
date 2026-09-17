@@ -48,3 +48,28 @@ def update_user_status(
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.put("/{user_id}/pin", response_model=schemas.UserOut)
+def reset_user_pin(
+    user_id: int,
+    payload: schemas.PinReset,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    check_superuser(current_user)
+    
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    from ..auth import hash_password
+    user.hashed_password = hash_password(payload.new_pin)
+    db.commit()
+    db.refresh(user)
+    
+    # Also revoke their refresh tokens so they have to log in with new PIN
+    from ..auth import revoke_all_refresh_tokens
+    revoke_all_refresh_tokens(db, user_id)
+    
+    return user

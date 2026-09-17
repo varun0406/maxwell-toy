@@ -14,6 +14,7 @@ export const authApi = {
 export const usersApi = {
   list: () => api.get('/users/'),
   updateStatus: (id: number, is_active: boolean) => api.put(`/users/${id}?is_active=${is_active}`),
+  resetPin: (id: number, new_pin: string) => api.put(`/users/${id}/pin`, { new_pin }),
 };
 
 // ── Parties ─────────────────────────────────────────────────────────────────

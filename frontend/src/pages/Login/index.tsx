@@ -9,7 +9,7 @@ import { Lock, User, Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
   username: z.string().min(3, 'Username required'),
-  password: z.string().min(8, 'Password must be 8+ chars'),
+  password: z.string().min(4, 'PIN must be at least 4 digits'),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -113,7 +113,7 @@ export default function Login() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Password</label>
+              <label className="form-label">PIN</label>
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}>
                   <Lock size={16} />
@@ -121,7 +121,9 @@ export default function Login() {
                 <input
                   className="form-input"
                   type={showPass ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="••••"
                   style={{ paddingLeft: 40, paddingRight: 46 }}
                   {...loginForm.register('password')}
                 />
