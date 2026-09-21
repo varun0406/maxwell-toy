@@ -59,3 +59,7 @@ app.include_router(users.router)
 @app.get("/health")
 def health():
     return {"status": "ok", "app": settings.APP_NAME}
+
+@app.get("/settings/unlock-code")
+def get_unlock_code():
+    return {"code": settings.UNLOCK_CODE}

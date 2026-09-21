@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -37,7 +37,8 @@ export function PartiesList() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
-  const [showAdd, setShowAdd] = useState(false);
+  const location = useLocation();
+  const [showAdd, setShowAdd] = useState(location.state?.showAdd || false);
   const [secureActionId, setSecureActionId] = useState<number | null>(null);
 
   const { ref, inView } = useInView();
@@ -177,6 +178,10 @@ export function PartyDetail() {
   const [secureAction, setSecureAction] = useState<{ type: 'payment' | 'journal', id: number } | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const qc = useQueryClient();
+
+  if (id === 'new') {
+    return <Navigate to="/parties" state={{ showAdd: true }} replace />;
+  }
 
   const { data: party, refetch: refetchParty } = useQuery({
     queryKey: ['party', id],
@@ -591,7 +596,14 @@ function AddPartyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
     if (loading) return;
     setLoading(true);
     try {
-      await partiesApi.create(data);
+      const payload = { ...data };
+      if (payload.reminder_date) {
+        payload.reminder_date = new Date(payload.reminder_date).toISOString();
+      } else {
+        payload.reminder_date = undefined;
+      }
+      
+      await partiesApi.create(payload);
       onSuccess();
     } catch (e: any) {
       setErr(e.response?.data?.detail || 'Failed to create party');

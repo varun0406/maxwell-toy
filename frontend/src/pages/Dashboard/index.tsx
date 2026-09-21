@@ -176,7 +176,7 @@ export default function Dashboard() {
           <Users size={52} style={{ color: 'var(--text-muted)' }} />
           <h3>No parties yet</h3>
           <p>Add your first customer or supplier to get started</p>
-          <button className="btn btn-primary" onClick={() => navigate('/parties/new')} style={{ marginTop: 8 }}>
+          <button className="btn btn-primary" onClick={() => navigate('/parties', { state: { showAdd: true } })} style={{ marginTop: 8 }}>
             <Plus size={16} /> Add Party
           </button>
         </div>

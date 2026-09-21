@@ -7,8 +7,8 @@ Type=exec
 User=root
 WorkingDirectory=/root/maxwell-toy/backend
 EnvironmentFile=/root/maxwell-toy/backend/.env
-Environment="PATH=/root/maxwell-toy/venv/bin"
-ExecStart=/root/maxwell-toy/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 9833 --workers 2
+Environment="PATH=/root/maxwell-toy/backend/venv/bin"
+ExecStart=/root/maxwell-toy/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 9833 --workers 2
 Restart=always
 RestartSec=5
 

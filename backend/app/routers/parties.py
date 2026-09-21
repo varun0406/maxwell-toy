@@ -66,7 +66,7 @@ def list_parties(
             LEFT JOIN payments        pay ON pay.party_id = p.id
             LEFT JOIN journal_entries j   ON j.party_id   = p.id
             WHERE p.is_active = true
-              AND (:search IS NULL OR p.name ILIKE :search)
+              AND (:search IS NULL OR p.name LIKE :search)
             GROUP BY p.id
         ),
         filtered AS (

@@ -22,20 +22,19 @@ def reset_database():
         # but TRUNCATE ... CASCADE is sufficient.
         
         tables_to_truncate = [
-            "parties",
-            "invoices",
-            "invoice_items",
-            "payments",
             "payment_allocations",
+            "payments",
+            "invoice_items",
+            "invoices",
             "journal_entries",
+            "parties",
             "address_book"
         ]
         
         print(f"Truncating tables: {', '.join(tables_to_truncate)}")
-        # In PostgreSQL, TRUNCATE with CASCADE automatically truncates referencing tables
-        # and RESTART IDENTITY resets auto-incrementing sequences.
-        sql = f"TRUNCATE TABLE {', '.join(tables_to_truncate)} RESTART IDENTITY CASCADE"
-        conn.execute(text(sql))
+        for table in tables_to_truncate:
+            conn.execute(text(f"DELETE FROM {table}"))
+        
         
         print("Database successfully reset. Only users are preserved.")
 
