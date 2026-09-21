@@ -27,8 +27,8 @@ server {
     ssl_prefer_server_ciphers on;
 
     # ── Frontend (React/Vite dist) ─────────────────────────────────────────
-    # Change this path to wherever you cloned the repo + built the frontend
-    root /var/www/maxwell/frontend/dist;
+    # The path where you cloned the repo + built the frontend
+    root /root/maxwell-toy/frontend/dist;
     index index.html;
 
     location / {
