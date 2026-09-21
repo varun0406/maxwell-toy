@@ -274,7 +274,7 @@ export function NewInvoice() {
   const watchPartyId = watch('party_id');
   const totalAmount = watchItems?.reduce((sum, item) => sum + ((item.meter || 0) * (item.rate || 0)), 0) || 0;
 
-  const partyOptions: ComboboxOption[] = parties.map((p: any) => ({
+  const partyOptions: ComboboxOption[] = (Array.isArray(parties) ? parties : []).map((p: any) => ({
     value: p.id,
     label: p.name,
     sublabel: p.phone || p.billing_city || '',
@@ -544,7 +544,7 @@ export function NewInvoice() {
                   <p>No addresses found</p>
                 </div>
               ) : (
-                addressEntries.map((entry: any) => (
+                (Array.isArray(addressEntries) ? addressEntries : []).map((entry: any) => (
                   <div
                     key={entry.id}
                     onClick={() => handleAddressSelect(entry, showAddressPicker!)}

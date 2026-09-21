@@ -151,7 +151,7 @@ export function NewPayment() {
     queryFn: () => partiesApi.list(partySearch, 0, 100).then((r) => r.data.items),
   });
 
-  const partyOptions: ComboboxOption[] = parties.map((p: any) => ({
+  const partyOptions: ComboboxOption[] = (Array.isArray(parties) ? parties : []).map((p: any) => ({
     value: p.id,
     label: p.name,
     sublabel: `Due: ${p.outstanding?.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}`,

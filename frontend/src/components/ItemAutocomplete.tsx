@@ -94,7 +94,7 @@ export function ItemAutocomplete({ value, onChange, placeholder = 'e.g. Fabric' 
           overflowY: 'auto',
           boxShadow: 'var(--shadow-md)',
         }}>
-          {suggestions.map((s: any, i: number) => (
+          {(Array.isArray(suggestions) ? suggestions : []).map((s: any, i: number) => (
             <div
               key={s.id}
               onMouseDown={() => selectSuggestion(s)}

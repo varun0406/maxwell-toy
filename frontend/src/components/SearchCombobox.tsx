@@ -117,7 +117,7 @@ export function SearchCombobox({ value, placeholder = 'Select…', options, onSe
                   <p>No results found</p>
                 </div>
               ) : (
-                filtered.map(opt => (
+                (Array.isArray(filtered) ? filtered : []).map(opt => (
                   <div
                     key={opt.value}
                     onClick={() => { onChange(opt); setOpen(false); }}
