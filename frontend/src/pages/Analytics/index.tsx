@@ -19,11 +19,11 @@ export default function Analytics() {
   });
   const { data: parties = [] } = useQuery({
     queryKey: ['analytics-parties'],
-    queryFn: () => analyticsApi.parties().then((r) => r.data),
+    queryFn: () => analyticsApi.parties().then((r) => r.data.items || []),
   });
   const { data: aging = [] } = useQuery({
     queryKey: ['aging'],
-    queryFn: () => analyticsApi.aging().then((r) => r.data),
+    queryFn: () => analyticsApi.aging().then((r) => r.data.items || []),
     enabled: tab === 'overview',
   });
 
@@ -70,14 +70,14 @@ export default function Analytics() {
 
   const top5 = parties;
 
-  const barData = top5.map((p: any) => ({
+  const barData = (Array.isArray(top5) ? top5 : []).map((p: any) => ({
     name: p.party_name.length > 10 ? p.party_name.slice(0, 10) + '…' : p.party_name,
     Invoiced: Number(p.total_invoiced),
     Collected: Number(p.total_paid),
     Outstanding: Number(p.outstanding),
   }));
 
-  const pieData = top5.map((p: any) => ({
+  const pieData = (Array.isArray(top5) ? top5 : []).map((p: any) => ({
     name: p.party_name,
     value: Number(p.outstanding),
   })).filter((d: any) => d.value > 0);
@@ -179,7 +179,7 @@ export default function Analytics() {
         <>
           <p className="section-label">Receivable Aging</p>
           <div style={{ padding: '0 20px', marginBottom: 20 }}>
-            {aging.map((row: any) => (
+            {(Array.isArray(aging) ? aging : []).map((row: any) => (
               <div key={row.party_id} style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', padding: 14, marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <p style={{ fontWeight: 700, fontSize: 14 }}>{row.party_name}</p>

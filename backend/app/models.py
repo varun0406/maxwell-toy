@@ -159,6 +159,15 @@ class InvoiceItem(Base):
     )
 
 
+class ItemMaster(Base):
+    __tablename__ = "items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    item_name = Column(String(200), unique=True, nullable=False, index=True)
+    default_rate = Column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+
+
 # ---------------------------------------------------------------------------
 # Payments
 # ---------------------------------------------------------------------------

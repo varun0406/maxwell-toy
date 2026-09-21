@@ -131,6 +131,23 @@ class PartyWithBalance(PartyOut):
 
 
 # ---------------------------------------------------------------------------
+# Items
+# ---------------------------------------------------------------------------
+
+class ItemCreate(BaseModel):
+    item_name: str = Field(min_length=1, max_length=200)
+    default_rate: Optional[Decimal] = Field(default=Decimal("0"))
+
+class ItemOut(BaseModel):
+    id: int
+    item_name: str
+    default_rate: Decimal
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
 # Invoice
 # ---------------------------------------------------------------------------
 
