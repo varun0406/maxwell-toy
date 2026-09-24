@@ -7,11 +7,7 @@ from sqlalchemy.orm import sessionmaker
 # Add the current directory to sys.path to import app modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.models import Party
-
-# Database setup
-SQLALCHEMY_DATABASE_URL = "sqlite:///./maxwell_acc.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+from app.database import SessionLocal
 
 def import_parties(file_path):
     print(f"Reading {file_path}...")
