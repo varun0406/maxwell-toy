@@ -5,7 +5,7 @@ import { useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { partiesApi, paymentsApi, invoicesApi } from '../../api/endpoints';
+import { partiesApi, paymentsApi, invoicesApi, analyticsApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2 } from 'lucide-react';
 import { generateAndSharePartyStatement, openWhatsApp, generateAndShareLedger } from '../../utils/pdfGenerator';
@@ -43,12 +43,19 @@ export function PartiesList() {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
 
+  const [agent, setAgent] = useState('');
+  
   // reset to first page when search changes
-  useEffect(() => { setPage(0); }, [search]);
+  useEffect(() => { setPage(0); }, [search, agent]);
+
+  const { data: agents = [] } = useQuery({
+    queryKey: ['agents'],
+    queryFn: () => analyticsApi.byAgent().then(r => r.data)
+  });
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['parties', search, page],
-    queryFn: () => partiesApi.list(search, page * PAGE_SIZE, PAGE_SIZE).then(r => r.data),
+    queryKey: ['parties', search, page, agent],
+    queryFn: () => partiesApi.list(search, page * PAGE_SIZE, PAGE_SIZE, false, agent || undefined).then(r => r.data),
   });
 
   const parties = data?.items || [];
@@ -62,14 +69,27 @@ export function PartiesList() {
         <p className="page-subtitle">{total} customers / suppliers</p>
       </div>
 
-      <div className="search-bar">
-        <Search size={16} />
-        <input
-          placeholder="Search by name…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={14} /></button>}
+      <div className="search-bar" style={{ display: 'flex', gap: 8, background: 'none', padding: 0 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: 'var(--surface)', padding: '12px 16px', borderRadius: 16, border: '1px solid var(--border)' }}>
+          <Search size={16} />
+          <input
+            placeholder="Search by name…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ border: 'none', background: 'transparent', flex: 1, outline: 'none', marginLeft: 8 }}
+          />
+          {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={14} /></button>}
+        </div>
+        <select 
+          value={agent} 
+          onChange={e => setAgent(e.target.value)}
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '0 16px', outline: 'none', cursor: 'pointer' }}
+        >
+          <option value="">All Agents</option>
+          {agents.map((a: any) => (
+            <option key={a.group_name} value={a.group_name}>{a.group_name}</option>
+          ))}
+        </select>
       </div>
 
       {isLoading ? (

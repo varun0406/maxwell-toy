@@ -19,8 +19,8 @@ export const usersApi = {
 
 // ── Parties ─────────────────────────────────────────────────────────────────
 export const partiesApi = {
-  list: (search?: string, skip: number = 0, limit: number = 1000000, unpaidOnly: boolean = false) =>
-    api.get('/parties/', { params: { ...(search ? { search } : {}), skip, limit, ...(unpaidOnly ? { unpaid_only: true } : {}) } }),
+  list: (search?: string, skip: number = 0, limit: number = 1000000, unpaidOnly: boolean = false, agent?: string) =>
+    api.get('/parties/', { params: { ...(search ? { search } : {}), skip, limit, ...(unpaidOnly ? { unpaid_only: true } : {}), ...(agent ? { agent } : {}) } }),
   create: (data: unknown) => api.post('/parties/', data),
   get: (id: number) => api.get(`/parties/${id}`),
   update: (id: number, data: unknown) => api.put(`/parties/${id}`, data),
