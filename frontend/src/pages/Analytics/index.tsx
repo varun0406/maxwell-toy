@@ -7,8 +7,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
 
-const COLORS = ['#6c63ff', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#84cc16'];
-const MODE_COLORS: Record<string, string> = { cash: '#10b981', upi: '#6c63ff', bank: '#3b82f6', cheque: '#f59e0b' };
+const COLORS = ['#eab308', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#84cc16'];
+const MODE_COLORS: Record<string, string> = { cash: '#10b981', upi: '#eab308', bank: '#3b82f6', cheque: '#f59e0b' };
 const PAGE_SIZE = 20;
 
 export default function Analytics() {
@@ -178,12 +178,12 @@ export default function Analytics() {
                 <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', padding: '16px 4px 8px' }}>
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={barData} margin={{ left: -16 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
                       <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false}
                         tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="Invoiced" fill="#6c63ff" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Invoiced" fill="#eab308" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="Collected" fill="#10b981" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -325,7 +325,7 @@ export default function Analytics() {
               <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', padding: '16px 4px 8px', marginBottom: 16 }}>
                 <ResponsiveContainer width="100%" height={180}>
                   <BarChart data={modeData.map((m: any) => ({ name: m.mode.toUpperCase(), Amount: Number(m.total), Count: m.count }))} margin={{ left: -16 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
                     <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
                     <Tooltip formatter={(v: any) => formatCurrency(v)} contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8 }} />

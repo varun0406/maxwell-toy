@@ -53,7 +53,7 @@ export async function generateAndShareInvoice(invoice: any, party: any) {
     body: tableData,
     foot: [['', '', 'Grand Total:', `Rs. ${invoice.amount}`]],
     theme: 'grid',
-    headStyles: { fillColor: [108, 99, 255] },
+    headStyles: { fillColor: [234, 179, 8] },
     footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
   });
 
@@ -81,8 +81,9 @@ export async function generateAndShareInvoice(invoice: any, party: any) {
       alert('Error sharing PDF on device');
     }
   } else {
-    // Web fallback
-    doc.save(fileName);
+    // Web fallback: Open preview in new tab
+    const blobUrl = doc.output('bloburl');
+    window.open(blobUrl, '_blank');
   }
 }
 
@@ -143,8 +144,8 @@ export async function generateAndSharePartyStatement(party: any, unpaidInvoices:
     body: rows,
     foot: foot,
     theme: 'striped',
-    headStyles: { fillColor: [108, 99, 255] },
-    footStyles: { fillColor: [230, 230, 255], textColor: [0, 0, 100], fontStyle: 'bold' },
+    headStyles: { fillColor: [234, 179, 8] },
+    footStyles: { fillColor: [250, 250, 250], textColor: [0, 0, 0], fontStyle: 'bold' },
     columnStyles: { 4: { fontStyle: 'bold' } },
   });
 
@@ -171,7 +172,9 @@ export async function generateAndSharePartyStatement(party: any, unpaidInvoices:
       alert('Error sharing PDF on device');
     }
   } else {
-    doc.save(fileName);
+    // Web fallback: Open preview in new tab
+    const blobUrl = doc.output('bloburl');
+    window.open(blobUrl, '_blank');
   }
 }
 
@@ -207,7 +210,7 @@ export async function generateAndSharePaymentReceipt(payment: any, party: any) {
   doc.text(`Mode: ${modeLabel}`, 140, 40);
 
   // Divider
-  doc.setDrawColor(108, 99, 255);
+  doc.setDrawColor(234, 179, 8);
   doc.setLineWidth(0.5);
   doc.line(14, 46, 196, 46);
 
@@ -222,7 +225,7 @@ export async function generateAndSharePaymentReceipt(payment: any, party: any) {
   if (party?.billing_city) doc.text(`City: ${party.billing_city}`, 14, 71);
 
   // Amount box
-  doc.setFillColor(108, 99, 255);
+  doc.setFillColor(234, 179, 8);
   doc.roundedRect(14, 80, 182, 24, 4, 4, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(12);
@@ -252,8 +255,8 @@ export async function generateAndSharePaymentReceipt(payment: any, party: any) {
         ? { foot: [['On Account / Advance', `Rs. ${Number(payment.unallocated).toFixed(2)}`]] }
         : {}),
       theme: 'grid',
-      headStyles: { fillColor: [108, 99, 255] },
-      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+      headStyles: { fillColor: [234, 179, 8] },
+      footStyles: { fillColor: [250, 250, 250], textColor: [0, 0, 0], fontStyle: 'bold' },
     });
   } else if (Number(payment.unallocated) > 0) {
     doc.setFontSize(10);
@@ -287,6 +290,8 @@ export async function generateAndSharePaymentReceipt(payment: any, party: any) {
       alert('Error sharing receipt on device');
     }
   } else {
-    doc.save(fileName);
+    // Web fallback: Open preview in new tab
+    const blobUrl = doc.output('bloburl');
+    window.open(blobUrl, '_blank');
   }
 }
