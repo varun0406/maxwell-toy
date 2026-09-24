@@ -60,10 +60,6 @@ def import_parties(file_path):
             if phone and len(phone) > 20:
                 phone = phone[:20]
                 
-            gstin = address_node.findtext('GSTNo', None)
-            if gstin and len(gstin) > 20:
-                gstin = gstin[:20]
-                
             addr1 = address_node.findtext('Address1', None)
             if addr1 and len(addr1) > 255:
                 addr1 = addr1[:255]
@@ -86,6 +82,10 @@ def import_parties(file_path):
                 if not city:
                     city = address_node.findtext('StateName', '')
                     
+            pincode = address_node.findtext('PINCode', '')
+            if pincode:
+                city = f"{city} - {pincode}" if city else pincode
+                    
             if city and len(city) > 120:
                 city = city[:120]
                 
@@ -106,9 +106,8 @@ def import_parties(file_path):
             existing.billing_address_line1 = addr1 or existing.billing_address_line1
             existing.billing_address_line2 = addr2 or existing.billing_address_line2
             existing.billing_address_line3 = addr3 or existing.billing_address_line3
-            existing.shipping_address_line1 = parent_group
+            existing.shipping_address_line1 = 'Sundry Debtors'
             existing.billing_city = city or existing.billing_city
-            existing.gstin = gstin or existing.gstin
             if notes and not existing.notes:
                 existing.notes = notes
             updated_count += 1
@@ -121,9 +120,8 @@ def import_parties(file_path):
                 billing_address_line1=addr1,
                 billing_address_line2=addr2,
                 billing_address_line3=addr3,
-                shipping_address_line1=parent_group,
+                shipping_address_line1='Sundry Debtors',
                 billing_city=city,
-                gstin=gstin,
                 notes=notes,
                 is_active=True,
                 created_by=1 # assuming admin user id 1
