@@ -247,6 +247,7 @@ def party_ledger(
         WITH ledger_raw AS (
             SELECT
                 'invoice'           AS type,
+                id                  AS record_id,
                 invoice_date        AS date,
                 invoice_number      AS reference,
                 amount              AS amount,
@@ -258,6 +259,7 @@ def party_ledger(
 
             SELECT
                 'payment'               AS type,
+                id                      AS record_id,
                 payment_date            AS date,
                 'PMT-' || id::text      AS reference,
                 -amount                 AS amount,
@@ -269,6 +271,7 @@ def party_ledger(
 
             SELECT
                 'journal'               AS type,
+                id                      AS record_id,
                 entry_date              AS date,
                 'JNL-' || id::text      AS reference,
                 amount                  AS amount,
@@ -278,6 +281,7 @@ def party_ledger(
         )
         SELECT
             type,
+            record_id,
             date,
             reference,
             amount,
@@ -299,6 +303,7 @@ def party_ledger(
     return [
         schemas.LedgerEntry(
             type=row.type,
+            record_id=row.record_id,
             date=row.date,
             reference=row.reference,
             amount=row.amount,

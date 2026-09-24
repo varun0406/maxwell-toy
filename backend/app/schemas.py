@@ -290,7 +290,8 @@ class JournalEntryOut(BaseModel):
 # ---------------------------------------------------------------------------
 
 class LedgerEntry(BaseModel):
-    type: str          # "invoice" | "payment"
+    type: str          # "invoice" | "payment" | "journal"
+    record_id: int     # ID of the corresponding record
     date: datetime
     reference: str     # invoice_number or "PMT-{id}"
     amount: Decimal

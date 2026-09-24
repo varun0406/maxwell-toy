@@ -167,7 +167,12 @@ export function InvoicesList() {
                   {status === 'paid' ? '✅' : status === 'partial' ? '⏳' : '📄'}
                 </div>
                 <div className="list-item-body">
-                  <p className="list-item-title">{inv.party_name}</p>
+                  <p 
+                    className="list-item-title party-link" 
+                    onClick={(e) => { e.stopPropagation(); navigate(`/parties/${inv.party_id}`); }}
+                  >
+                    {inv.party_name}
+                  </p>
                   <p className="list-item-sub" style={{ fontSize: 11 }}>{inv.invoice_number} · {formatDate(inv.invoice_date)}{inv.due_date ? ` · Due ${formatDate(inv.due_date)}` : ''}</p>
                   {status !== 'paid' && (
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>

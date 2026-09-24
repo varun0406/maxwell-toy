@@ -110,7 +110,12 @@ export function PaymentsList() {
             <div key={p.id} className="list-item" onClick={() => navigate(`/payments/${p.id}`)}>
               <div className="list-item-icon" style={{ background: 'var(--success-bg)' }}>💰</div>
               <div className="list-item-body">
-                <p className="list-item-title">{p.party_name}</p>
+                <p 
+                  className="list-item-title party-link" 
+                  onClick={(e) => { e.stopPropagation(); navigate(`/parties/${p.party_id}`); }}
+                >
+                  {p.party_name}
+                </p>
                 <p className="list-item-sub">PMT-{String(p.id).padStart(4, '0')} · {formatDate(p.payment_date)} · {(p.mode || 'cash').toUpperCase()}</p>
                 {p.note && <p className="list-item-sub" style={{ fontSize: 11 }}>{p.note}</p>}
               </div>

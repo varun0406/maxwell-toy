@@ -384,11 +384,8 @@ export function PartyDetail() {
                 className="ledger-row" 
                 style={{ cursor: entry.type === 'invoice' || entry.type === 'payment' ? 'pointer' : 'default' }}
                 onClick={() => {
-                  if (entry.type === 'invoice') navigate(`/invoices?search=${entry.reference}`);
-                  if (entry.type === 'payment') {
-                    const pid = entry.reference.split('-')[1];
-                    navigate(`/payments/${pid}`);
-                  }
+                  if (entry.type === 'invoice') navigate(`/invoices/new?view=${entry.record_id}`);
+                  if (entry.type === 'payment') navigate(`/payments/${entry.record_id}`);
                 }}
               >
                 <div className={`ledger-dot ${entry.type}`} />
@@ -421,7 +418,7 @@ export function PartyDetail() {
                 key={inv.id}
                 className="ledger-row"
                 style={{ cursor: 'pointer' }}
-                onClick={() => navigate(`/invoices?search=${inv.invoice_number}`)}
+                onClick={() => navigate(`/invoices/new?view=${inv.id}`)}
               >
                 <div className="ledger-dot invoice" />
                 <div style={{ flex: 1 }}>
