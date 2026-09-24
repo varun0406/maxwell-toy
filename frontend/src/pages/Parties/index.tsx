@@ -336,7 +336,7 @@ export function PartyDetail() {
           onClick={async () => {
             const unpaid = (await invoicesApi.list(Number(id), true, undefined, 0, 1000)).data.items;
             if (unpaid.length === 0) { alert('No pending invoices for this party.'); return; }
-            generateAndSharePartyStatement(party, unpaid, totalUnallocated);
+            generateAndSharePartyStatement(party, unpaid, totalUnallocated, Number(party.total_journal || 0));
           }}
         >
           <FileText size={18} />Outstanding Statement

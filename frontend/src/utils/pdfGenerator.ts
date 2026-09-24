@@ -90,7 +90,7 @@ export async function generateAndShareInvoice(invoice: any, party: any) {
 
 // ── Party Statement PDF ───────────────────────────────────────────────────────
 
-export async function generateAndSharePartyStatement(party: any, unpaidInvoices: any[], unallocatedBalance: number = 0) {
+export async function generateAndSharePartyStatement(party: any, unpaidInvoices: any[], unallocatedBalance: number = 0, journalBalance: number = 0) {
   const doc = new jsPDF();
   const today = new Date().toLocaleDateString('en-IN');
 
@@ -126,15 +126,19 @@ export async function generateAndSharePartyStatement(party: any, unpaidInvoices:
   ]);
 
   const totalOutstanding = unpaidInvoices.reduce((s: number, i: any) => s + Number(i.balance_due), 0);
-  const netPayable = totalOutstanding - unallocatedBalance;
+  const netPayable = totalOutstanding - unallocatedBalance + journalBalance;
 
   let foot: any[] = [];
-  if (unallocatedBalance > 0) {
-    foot = [
-      ['', '', '', 'Total Invoices Due:', `Rs. ${totalOutstanding.toFixed(2)}`],
-      ['', '', '', 'General Balance:', `Rs. ${unallocatedBalance.toFixed(2)}`],
-      ['', '', '', 'Net Payable:', `Rs. ${netPayable.toFixed(2)}`]
-    ];
+  
+  if (unallocatedBalance > 0 || journalBalance !== 0) {
+    foot.push(['', '', '', 'Total Invoices Due:', `Rs. ${totalOutstanding.toFixed(2)}`]);
+    if (unallocatedBalance > 0) {
+      foot.push(['', '', '', 'Advance (Unallocated):', `Rs. ${unallocatedBalance.toFixed(2)}`]);
+    }
+    if (journalBalance !== 0) {
+      foot.push(['', '', '', 'General A/c Adjustment:', `Rs. ${journalBalance.toFixed(2)}`]);
+    }
+    foot.push(['', '', '', 'Net Payable:', `Rs. ${netPayable.toFixed(2)}`]);
   } else {
     foot = [['', '', '', 'Total Outstanding:', `Rs. ${totalOutstanding.toFixed(2)}`]];
   }
