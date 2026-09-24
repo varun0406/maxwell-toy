@@ -314,3 +314,101 @@ def collections_by_mode(
         schemas.ModeBreakdown(mode=row.mode, total=row.total, count=row.count)
         for row in query
     ]
+
+
+@router.get("/by-agent", response_model=List[schemas.GroupedAnalytics])
+def agent_analytics(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = db.execute(text("""
+        WITH i_agg AS (
+            SELECT party_id, SUM(amount) AS total_invoiced
+            FROM invoices WHERE is_deleted = false GROUP BY party_id
+        ),
+        p_agg AS (
+            SELECT party_id, SUM(amount) AS total_paid
+            FROM payments WHERE is_deleted = false GROUP BY party_id
+        ),
+        j_agg AS (
+            SELECT party_id, SUM(amount) AS total_journal
+            FROM journal_entries WHERE is_deleted = false GROUP BY party_id
+        ),
+        agg AS (
+            SELECT
+                COALESCE(p.agent_name, 'Unassigned') AS group_name,
+                COUNT(p.id) AS party_count,
+                SUM(COALESCE(i_agg.total_invoiced, 0)) AS total_invoiced,
+                SUM(COALESCE(p_agg.total_paid, 0)) AS total_paid,
+                SUM(COALESCE(j_agg.total_journal, 0)) AS total_journal
+            FROM parties p
+            LEFT JOIN i_agg ON i_agg.party_id = p.id
+            LEFT JOIN p_agg ON p_agg.party_id = p.id
+            LEFT JOIN j_agg ON j_agg.party_id = p.id
+            WHERE p.is_active = true
+            GROUP BY COALESCE(p.agent_name, 'Unassigned')
+        )
+        SELECT *, (total_invoiced + total_journal - total_paid) AS outstanding
+        FROM agg
+        ORDER BY outstanding DESC
+    """)).fetchall()
+
+    return [
+        schemas.GroupedAnalytics(
+            group_name=row.group_name,
+            total_invoiced=row.total_invoiced,
+            total_paid=row.total_paid,
+            total_journal=row.total_journal,
+            outstanding=row.outstanding,
+            party_count=row.party_count,
+        ) for row in query
+    ]
+
+
+@router.get("/by-area", response_model=List[schemas.GroupedAnalytics])
+def area_analytics(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = db.execute(text("""
+        WITH i_agg AS (
+            SELECT party_id, SUM(amount) AS total_invoiced
+            FROM invoices WHERE is_deleted = false GROUP BY party_id
+        ),
+        p_agg AS (
+            SELECT party_id, SUM(amount) AS total_paid
+            FROM payments WHERE is_deleted = false GROUP BY party_id
+        ),
+        j_agg AS (
+            SELECT party_id, SUM(amount) AS total_journal
+            FROM journal_entries WHERE is_deleted = false GROUP BY party_id
+        ),
+        agg AS (
+            SELECT
+                COALESCE(p.area, 'Unassigned') AS group_name,
+                COUNT(p.id) AS party_count,
+                SUM(COALESCE(i_agg.total_invoiced, 0)) AS total_invoiced,
+                SUM(COALESCE(p_agg.total_paid, 0)) AS total_paid,
+                SUM(COALESCE(j_agg.total_journal, 0)) AS total_journal
+            FROM parties p
+            LEFT JOIN i_agg ON i_agg.party_id = p.id
+            LEFT JOIN p_agg ON p_agg.party_id = p.id
+            LEFT JOIN j_agg ON j_agg.party_id = p.id
+            WHERE p.is_active = true
+            GROUP BY COALESCE(p.area, 'Unassigned')
+        )
+        SELECT *, (total_invoiced + total_journal - total_paid) AS outstanding
+        FROM agg
+        ORDER BY outstanding DESC
+    """)).fetchall()
+
+    return [
+        schemas.GroupedAnalytics(
+            group_name=row.group_name,
+            total_invoiced=row.total_invoiced,
+            total_paid=row.total_paid,
+            total_journal=row.total_journal,
+            outstanding=row.outstanding,
+            party_count=row.party_count,
+        ) for row in query
+    ]

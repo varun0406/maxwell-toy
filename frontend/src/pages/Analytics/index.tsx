@@ -12,7 +12,7 @@ const MODE_COLORS: Record<string, string> = { cash: '#10b981', upi: '#6c63ff', b
 const PAGE_SIZE = 20;
 
 export default function Analytics() {
-  const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar'>('overview');
+  const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar' | 'agents' | 'areas'>('overview');
   const [collectionDateFilter, setCollectionDateFilter] = useState<'all' | 'month' | 'week'>('all');
 
   // Paginated state per tab
@@ -65,6 +65,18 @@ export default function Analytics() {
     queryKey: ['collections-by-mode', collectionDateFilter],
     queryFn: () => analyticsApi.collectionsByMode(collectionFrom).then(r => r.data),
     enabled: tab === 'collections',
+  });
+
+  const { data: agentData = [] } = useQuery({
+    queryKey: ['analytics-agent'],
+    queryFn: () => analyticsApi.byAgent().then(r => r.data),
+    enabled: tab === 'agents',
+  });
+
+  const { data: areaData = [] } = useQuery({
+    queryKey: ['analytics-area'],
+    queryFn: () => analyticsApi.byArea().then(r => r.data),
+    enabled: tab === 'areas',
   });
 
   const invoices = invData?.items || [];
@@ -129,9 +141,11 @@ export default function Analytics() {
 
       <div className="chips" style={{ marginBottom: 16 }}>
         <button className={`chip ${tab === 'overview' ? 'active' : ''}`} onClick={() => setTab('overview')}>Overview</button>
-        <button className={`chip ${tab === 'sales' ? 'active' : ''}`} onClick={() => setTab('sales')}>Sales Book</button>
+        <button className={`chip ${tab === 'sales' ? 'active' : ''}`} onClick={() => setTab('sales')}>Sales</button>
         <button className={`chip ${tab === 'collections' ? 'active' : ''}`} onClick={() => setTab('collections')}>Collections</button>
         <button className={`chip ${tab === 'ar' ? 'active' : ''}`} onClick={() => setTab('ar')}>A/R</button>
+        <button className={`chip ${tab === 'agents' ? 'active' : ''}`} onClick={() => setTab('agents')}>By Agent</button>
+        <button className={`chip ${tab === 'areas' ? 'active' : ''}`} onClick={() => setTab('areas')}>By Area</button>
       </div>
 
       {tab === 'overview' && (
@@ -406,6 +420,78 @@ export default function Analytics() {
               </table>
             )}
             {arPages > 1 && <PaginationBar page={arPage} totalPages={arPages} onPrev={() => setArPage(p => p - 1)} onNext={() => setArPage(p => p + 1)} />}
+          </div>
+        </div>
+      )}
+
+      {tab === 'agents' && (
+        <div style={{ padding: '0 20px', paddingBottom: 24 }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Performance by Agent</h3>
+            </div>
+            {agentData.length === 0 ? (
+              <div className="empty-state"><p>No agent data</p></div>
+            ) : (
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Agent Name</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'center' }}>Parties</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Total Sales</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Collected</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Outstanding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agentData.map((d: any, i: number) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 500 }}>{d.group_name}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>{d.party_count}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--accent)' }}>{formatCurrency(d.total_invoiced)}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--success)' }}>{formatCurrency(d.total_paid)}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--warning)' }}>{formatCurrency(d.outstanding)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'areas' && (
+        <div style={{ padding: '0 20px', paddingBottom: 24 }}>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Performance by Area</h3>
+            </div>
+            {areaData.length === 0 ? (
+              <div className="empty-state"><p>No area data</p></div>
+            ) : (
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Area</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'center' }}>Parties</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Total Sales</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Collected</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Outstanding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {areaData.map((d: any, i: number) => (
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 500 }}>{d.group_name}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>{d.party_count}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--accent)' }}>{formatCurrency(d.total_invoiced)}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--success)' }}>{formatCurrency(d.total_paid)}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--warning)' }}>{formatCurrency(d.outstanding)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}

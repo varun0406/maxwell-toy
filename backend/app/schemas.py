@@ -297,6 +297,18 @@ class LedgerEntry(BaseModel):
     balance_due: Optional[Decimal] = None   # for invoices
     running_balance: Decimal
 
+# ---------------------------------------------------------------------------
+# Agent / Area Analytics
+# ---------------------------------------------------------------------------
+
+class GroupedAnalytics(BaseModel):
+    group_name: str
+    total_invoiced: Decimal
+    total_paid: Decimal
+    total_journal: Decimal
+    outstanding: Decimal
+    party_count: int
+
 
 # ---------------------------------------------------------------------------
 # Analytics
