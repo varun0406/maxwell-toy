@@ -10,7 +10,7 @@ import { SearchCombobox } from '../../components/SearchCombobox';
 import type { ComboboxOption } from '../../components/SearchCombobox';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import { useInView } from 'react-intersection-observer';
-import { Search, X, Plus, ChevronLeft, Edit2, Share as ShareIcon, Receipt } from 'lucide-react';
+import { Search, X, Plus, ChevronLeft, Edit2, Receipt } from 'lucide-react';
 import { generateAndSharePaymentReceipt } from '../../utils/pdfGenerator';
 
 const schema = z.object({
