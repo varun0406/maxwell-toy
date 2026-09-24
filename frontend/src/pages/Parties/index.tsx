@@ -177,6 +177,8 @@ export function PartyDetail() {
   const [showJournalModal, setShowJournalModal] = useState(false);
   const [secureAction, setSecureAction] = useState<{ type: 'payment' | 'journal', id: number } | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const qc = useQueryClient();
 
   if (id === 'new') {
@@ -189,8 +191,8 @@ export function PartyDetail() {
   });
   
   const { data: ledger = [] } = useQuery({
-    queryKey: ['ledger', id],
-    queryFn: () => partiesApi.ledger(Number(id)).then((r) => r.data),
+    queryKey: ['ledger', id, fromDate, toDate],
+    queryFn: () => partiesApi.ledger(Number(id), fromDate || undefined, toDate || undefined).then((r) => r.data),
     enabled: tab === 'ledger',
   });
 
@@ -347,11 +349,30 @@ export function PartyDetail() {
       {/* Ledger */}
       {tab === 'ledger' && (
         <div style={{ padding: '0 20px', marginTop: 8 }}>
+          {/* Date Filters */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <input type="date" className="form-input" style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} value={fromDate} onChange={e => setFromDate(e.target.value)} />
+            <input type="date" className="form-input" style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} value={toDate} onChange={e => setToDate(e.target.value)} />
+            {(fromDate || toDate) && (
+              <button className="btn-icon" onClick={() => { setFromDate(''); setToDate(''); }}><X size={16} /></button>
+            )}
+          </div>
           {ledger.length === 0 ? (
-            <div className="empty-state"><p>No transactions yet</p></div>
+            <div className="empty-state"><p>No transactions in this period</p></div>
           ) : (
             ledger.map((entry: any, i: number) => (
-              <div key={i} className="ledger-row">
+              <div 
+                key={i} 
+                className="ledger-row" 
+                style={{ cursor: entry.type === 'invoice' || entry.type === 'payment' ? 'pointer' : 'default' }}
+                onClick={() => {
+                  if (entry.type === 'invoice') navigate(`/invoices?search=${entry.reference}`);
+                  if (entry.type === 'payment') {
+                    const pid = entry.reference.split('-')[1];
+                    navigate(`/payments/${pid}`);
+                  }
+                }}
+              >
                 <div className={`ledger-dot ${entry.type}`} />
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: 14, fontWeight: 600 }}>{entry.reference}</p>
@@ -362,21 +383,6 @@ export function PartyDetail() {
                     <p style={{ fontSize: 14, fontWeight: 700, color: Number(entry.amount) < 0 ? 'var(--success)' : 'var(--text-primary)' }}>
                       {Number(entry.amount) < 0 ? '-' : '+'}{formatCurrency(Math.abs(Number(entry.amount)))}
                     </p>
-                    {(entry.type === 'payment' || entry.type === 'journal') && (
-                      <button 
-                        className="btn-icon" 
-                        style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}
-                        onClick={() => {
-                          const idParts = entry.reference.split('-');
-                          const id = Number(idParts[1]);
-                          if (!isNaN(id)) {
-                            setSecureAction({ type: entry.type as 'payment' | 'journal', id });
-                          }
-                        }}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    )}
                   </div>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Bal: {formatCurrency(entry.running_balance)}</p>
                 </div>
