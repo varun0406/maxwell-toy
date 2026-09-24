@@ -19,9 +19,9 @@ echo "==> Installing/updating backend Python dependencies..."
 backend/venv/bin/pip install -r backend/requirements.txt
 
 echo "==> Restarting backend service (port 9833)..."
-cp "$APP_DIR/deploy/maxwell-backend.service" /etc/systemd/system/
+cp "$APP_DIR/deploy/maxwell-backend.service" /etc/systemd/system/maxwell-accounting.service
 systemctl daemon-reload
-systemctl restart maxwell-backend
+systemctl restart maxwell-accounting
 
 echo "==> Building frontend..."
 cd "$APP_DIR/frontend"
