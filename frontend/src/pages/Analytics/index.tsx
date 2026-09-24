@@ -13,7 +13,7 @@ const MODE_COLORS: Record<string, string> = { cash: '#10b981', upi: '#eab308', b
 const PAGE_SIZE = 20;
 
 export default function Analytics() {
-  const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar' | 'agents' | 'areas'>('overview');
+  const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar' | 'agents' | 'areas' | 'fabric'>('overview');
   const [collectionDateFilter, setCollectionDateFilter] = useState<'all' | 'month' | 'week'>('all');
 
   // Paginated state per tab
@@ -41,6 +41,16 @@ export default function Analytics() {
     queryKey: ['cashflow'],
     queryFn: () => analyticsApi.cashflow().then((r) => r.data),
     enabled: tab === 'overview',
+  });
+  const { data: execSummary } = useQuery({
+    queryKey: ['execSummary'],
+    queryFn: () => analyticsApi.executiveSummary().then((r) => r.data),
+    enabled: tab === 'overview',
+  });
+  const { data: fabricData = [] } = useQuery({
+    queryKey: ['fabricMetrics'],
+    queryFn: () => analyticsApi.fabricMetrics().then((r) => r.data),
+    enabled: tab === 'fabric',
   });
 
   const { data: invData } = useQuery({
@@ -167,10 +177,38 @@ export default function Analytics() {
         <button className={`chip ${tab === 'ar' ? 'active' : ''}`} onClick={() => setTab('ar')}>A/R</button>
         <button className={`chip ${tab === 'agents' ? 'active' : ''}`} onClick={() => setTab('agents')}>By Agent</button>
         <button className={`chip ${tab === 'areas' ? 'active' : ''}`} onClick={() => setTab('areas')}>By Area</button>
+        <button className={`chip ${tab === 'fabric' ? 'active' : ''}`} onClick={() => setTab('fabric')}>Fabric/Items</button>
       </div>
 
       {tab === 'overview' && (
         <>
+          {execSummary && (
+            <div style={{ padding: '0 20px', marginBottom: 24 }}>
+              <p className="section-label" style={{ padding: 0, marginBottom: 8 }}>Founder KPIs (Health & Risk)</p>
+              <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+                <div className="stat-card" style={{ background: 'var(--bg-card)' }}>
+                  <p className="stat-label">DSO (Velocity)</p>
+                  <p className="stat-value mono" style={{ fontSize: 18, color: Number(execSummary.dso_days) > 60 ? 'var(--danger)' : 'var(--success)' }}>{Number(execSummary.dso_days).toFixed(0)} Days</p>
+                </div>
+                <div className="stat-card" style={{ background: 'var(--bg-card)' }}>
+                  <p className="stat-label">Unallocated Adv.</p>
+                  <p className="stat-value mono" style={{ fontSize: 18, color: 'var(--accent)' }}>{formatCurrency(execSummary.unallocated_advance_pool)}</p>
+                </div>
+                <div className="stat-card" style={{ background: 'var(--bg-card)' }}>
+                  <p className="stat-label">At-Risk (>60d)</p>
+                  <p className="stat-value mono" style={{ fontSize: 18, color: Number(execSummary.at_risk_ratio) > 15 ? 'var(--danger)' : 'var(--warning)' }}>{Number(execSummary.at_risk_ratio).toFixed(1)}%</p>
+                </div>
+                <div className="stat-card" style={{ background: 'var(--bg-card)' }}>
+                  <p className="stat-label">Journal Adj.</p>
+                  <p className="stat-value mono" style={{ fontSize: 18, color: Number(execSummary.journal_adjustment_ratio) > 5 ? 'var(--danger)' : 'var(--success)' }}>{Number(execSummary.journal_adjustment_ratio).toFixed(1)}%</p>
+                </div>
+                <div className="stat-card" style={{ background: 'var(--bg-card)' }}>
+                  <p className="stat-label">Top 10 Risk</p>
+                  <p className="stat-value mono" style={{ fontSize: 18, color: Number(execSummary.top_10_concentration) > 50 ? 'var(--danger)' : 'var(--text-primary)' }}>{Number(execSummary.top_10_concentration).toFixed(1)}%</p>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Summary Row */}
           <div className="stats-grid">
             <div className="stat-card accent">
@@ -556,6 +594,41 @@ export default function Analytics() {
                 </tbody>
               </table>
             )}
+          </div>
+        </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'fabric' && (
+        <div style={{ padding: '0 20px', paddingBottom: 24 }}>
+          <p className="section-label">Fabric & Unit Economics</p>
+          <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+            <div className="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Item / Fabric</th>
+                    <th style={{ textAlign: 'right' }}>Total Volume (Meters)</th>
+                    <th style={{ textAlign: 'right' }}>Avg Realized Rate</th>
+                    <th style={{ textAlign: 'right' }}>Avg Ticket Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fabricData.map((f: any) => (
+                    <tr key={f.item_name}>
+                      <td style={{ fontWeight: 500 }}>{f.item_name}</td>
+                      <td style={{ textAlign: 'right' }}>{Number(f.total_meterage).toFixed(2)} m</td>
+                      <td style={{ textAlign: 'right', color: 'var(--success)' }}>₹{Number(f.avg_realized_rate).toFixed(2)} /m</td>
+                      <td style={{ textAlign: 'right', color: 'var(--accent)' }}>{formatCurrency(f.avg_ticket_size)}</td>
+                    </tr>
+                  ))}
+                  {fabricData.length === 0 && (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: 24 }}>No fabric data found</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

@@ -382,3 +382,16 @@ class CashFlowMonth(BaseModel):
     month: str
     invoiced: Decimal
     collected: Decimal
+
+class ExecutiveSummary(BaseModel):
+    dso_days: Decimal
+    unallocated_advance_pool: Decimal
+    at_risk_ratio: Decimal
+    journal_adjustment_ratio: Decimal
+    top_10_concentration: Decimal
+
+class FabricItemMetrics(BaseModel):
+    item_name: str
+    total_meterage: Decimal
+    avg_realized_rate: Decimal
+    avg_ticket_size: Decimal

@@ -112,6 +112,8 @@ export const analyticsApi = {
   byAgent: () => api.get('/analytics/by-agent'),
   byArea: () => api.get('/analytics/by-area'),
   cashflow: () => api.get('/analytics/cashflow'),
+  executiveSummary: () => api.get('/analytics/executive-summary'),
+  fabricMetrics: () => api.get('/analytics/fabric-metrics'),
 };
 
 // ── Address Book ─────────────────────────────────────────────────────────────

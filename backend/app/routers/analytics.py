@@ -454,3 +454,91 @@ def area_analytics(
             party_count=row.party_count,
         ) for row in query
     ]
+
+
+@router.get("/executive-summary", response_model=schemas.ExecutiveSummary)
+def executive_summary(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(timezone.utc)
+    date_60 = now - timedelta(days=60)
+    
+    # We do a massive aggregation here
+    res = db.execute(text("""
+        WITH agg AS (
+            SELECT 
+                (SELECT COALESCE(SUM(amount), 0) FROM invoices WHERE is_deleted=false) AS total_invoiced,
+                (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE is_deleted=false) AS total_paid,
+                (SELECT COALESCE(SUM(amount), 0) FROM journal_entries WHERE is_deleted=false) AS total_journal,
+                (SELECT COALESCE(SUM(unallocated), 0) FROM payments WHERE is_deleted=false) AS unallocated_advance,
+                (SELECT COALESCE(SUM(balance_due), 0) FROM invoices WHERE is_deleted=false AND is_paid=false AND COALESCE(due_date, invoice_date) < :date_60) AS at_risk
+        ),
+        party_bals AS (
+            SELECT p.id,
+                   (SELECT COALESCE(SUM(amount), 0) FROM invoices WHERE party_id = p.id AND is_deleted=false) +
+                   (SELECT COALESCE(SUM(amount), 0) FROM journal_entries WHERE party_id = p.id AND is_deleted=false) -
+                   (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE party_id = p.id AND is_deleted=false) AS outstanding
+            FROM parties p
+            WHERE p.is_active = true
+        ),
+        top_10 AS (
+            SELECT COALESCE(SUM(outstanding), 0) AS sum_top_10 
+            FROM (SELECT outstanding FROM party_bals ORDER BY outstanding DESC LIMIT 10) t
+        )
+        SELECT 
+            agg.total_invoiced, 
+            agg.total_paid, 
+            agg.total_journal, 
+            agg.unallocated_advance,
+            agg.at_risk,
+            (agg.total_invoiced + agg.total_journal - agg.total_paid) AS total_outstanding,
+            top_10.sum_top_10
+        FROM agg, top_10
+    """), {"date_60": date_60}).fetchone()
+
+    total_inv = res.total_invoiced or 1 # prevent div/0
+    total_out = res.total_outstanding or 1 # prevent div/0
+
+    dso = (res.total_outstanding / total_inv) * 365 if total_inv > 0 else 0
+    at_risk_ratio = (res.at_risk / total_out) * 100 if total_out > 0 else 0
+    journal_adj_ratio = (res.total_journal / total_inv) * 100 if total_inv > 0 else 0
+    top_10_conc = (res.sum_top_10 / total_out) * 100 if total_out > 0 else 0
+
+    return schemas.ExecutiveSummary(
+        dso_days=dso,
+        unallocated_advance_pool=res.unallocated_advance,
+        at_risk_ratio=at_risk_ratio,
+        journal_adjustment_ratio=journal_adj_ratio,
+        top_10_concentration=top_10_conc
+    )
+
+
+@router.get("/fabric-metrics", response_model=List[schemas.FabricItemMetrics])
+def fabric_metrics(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Fabric / Unit Economics
+    res = db.execute(text("""
+        SELECT 
+            item_name,
+            SUM(meter) AS total_meterage,
+            SUM(total) AS sum_total,
+            COUNT(DISTINCT invoice_id) as invoice_count
+        FROM invoice_items
+        GROUP BY item_name
+        ORDER BY total_meterage DESC
+    """)).fetchall()
+
+    items = []
+    for row in res:
+        avg_realized = (row.sum_total / row.total_meterage) if row.total_meterage and row.total_meterage > 0 else 0
+        avg_ticket = (row.sum_total / row.invoice_count) if row.invoice_count and row.invoice_count > 0 else 0
+        items.append(schemas.FabricItemMetrics(
+            item_name=row.item_name,
+            total_meterage=row.total_meterage or 0,
+            avg_realized_rate=avg_realized,
+            avg_ticket_size=avg_ticket
+        ))
+    return items
