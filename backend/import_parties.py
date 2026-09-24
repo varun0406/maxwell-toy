@@ -39,8 +39,12 @@ def import_parties(file_path):
         name = account.findtext('Name', '')
         if not name:
             continue
+        if len(name) > 120:
+            name = name[:120]
             
         broker_name = account.findtext('BrokerName', None)
+        if broker_name and len(broker_name) > 120:
+            broker_name = broker_name[:120]
         
         address_node = account.find('Address')
         phone = None
@@ -52,15 +56,25 @@ def import_parties(file_path):
             mobile = address_node.findtext('Mobile', '')
             whatsapp = address_node.findtext('WhatsAppNo', '')
             phone = mobile if mobile else whatsapp
-            # If multiple numbers separated by comma, just take the first one or leave it
-            # Schema allows string, so we can leave it as is if length < 255
-            if phone and len(phone) > 100:
-                phone = phone[:100]
+            # Truncate string fields to DB limits
+            if phone and len(phone) > 20:
+                phone = phone[:20]
                 
             gstin = address_node.findtext('GSTNo', None)
+            if gstin and len(gstin) > 20:
+                gstin = gstin[:20]
+                
             addr1 = address_node.findtext('Address1', None)
+            if addr1 and len(addr1) > 255:
+                addr1 = addr1[:255]
+                
             addr2 = address_node.findtext('Address2', None)
+            if addr2 and len(addr2) > 255:
+                addr2 = addr2[:255]
+                
             addr3 = address_node.findtext('Address3', None)
+            if addr3 and len(addr3) > 255:
+                addr3 = addr3[:255]
             
             city_name = address_node.findtext('CityName', '')
             if city_name and city_name != '---Others---':
@@ -71,10 +85,16 @@ def import_parties(file_path):
                     city = address_node.findtext('Address4', '')
                 if not city:
                     city = address_node.findtext('StateName', '')
+                    
+            if city and len(city) > 120:
+                city = city[:120]
                 
             transport = address_node.findtext('Transport', '')
             if transport:
                 notes = f"Transport: {transport}"
+                
+        if parent_group and len(parent_group) > 255:
+            parent_group = parent_group[:255]
                 
         # Check if party already exists
         existing = session.query(Party).filter(Party.name == name).first()
