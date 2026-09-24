@@ -161,16 +161,7 @@ export function InvoicesList() {
                 key={inv.id} 
                 className="list-item" 
                 style={{ cursor: 'pointer' }}
-                onClick={async () => {
-                  try {
-                    const party = (await partiesApi.get(inv.party_id)).data;
-                    const fullInv = (await invoicesApi.get(inv.id)).data;
-                    generateAndShareInvoice(fullInv, party);
-                  } catch (err) {
-                    console.error('Failed to load invoice', err);
-                    alert('Could not load invoice details.');
-                  }
-                }}
+                onClick={() => navigate(`/invoices/new?view=${inv.id}`)}
               >
                 <div className="list-item-icon" style={{ background: status === 'paid' ? 'var(--success-bg)' : status === 'partial' ? 'rgba(245,158,11,0.12)' : 'var(--warning-bg)' }}>
                   {status === 'paid' ? '✅' : status === 'partial' ? '⏳' : '📄'}
@@ -256,9 +247,13 @@ export function NewInvoice() {
 
   const editId = searchParams.get('edit') ? Number(searchParams.get('edit')) : null;
   const duplicateId = searchParams.get('duplicate') ? Number(searchParams.get('duplicate')) : null;
+  const viewId = searchParams.get('view') ? Number(searchParams.get('view')) : null;
+  const targetId = editId || duplicateId || viewId;
 
-  const { data: editInvoice } = useQuery({ queryKey: ['invoice', editId], queryFn: () => invoicesApi.get(editId!).then(r => r.data), enabled: !!editId });
-  const { data: duplicateInvoice } = useQuery({ queryKey: ['invoice', duplicateId], queryFn: () => invoicesApi.get(duplicateId!).then(r => r.data), enabled: !!duplicateId && !editId });
+  const { data: targetInvoice } = useQuery({ queryKey: ['invoice', targetId], queryFn: () => invoicesApi.get(targetId!).then(r => r.data), enabled: !!targetId });
+
+  const [pendingSubmitData, setPendingSubmitData] = useState<InvoiceForm | null>(null);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
   const [partySearch, setPartySearch] = useState('');
   const { data: parties = [] } = useQuery({ queryKey: ['parties', partySearch], queryFn: () => partiesApi.list(partySearch, 0, 100).then(r => r.data.items) });
@@ -271,30 +266,26 @@ export function NewInvoice() {
   });
 
   useEffect(() => {
-    if (editInvoice) {
-      setValue('party_id', editInvoice.party_id);
-      setValue('invoice_number', editInvoice.invoice_number);
-      setValue('invoice_date', editInvoice.invoice_date.split('T')[0]);
-      if (editInvoice.due_date) { const diff = new Date(editInvoice.due_date).getTime() - new Date(editInvoice.invoice_date).getTime(); setValue('due_days', Math.max(0, Math.ceil(diff / 86400000))); }
-      else setValue('due_days', 0);
-      setValue('description', editInvoice.description || '');
-      setValue('billing_address', editInvoice.billing_address || '');
-      setValue('shipping_address', editInvoice.shipping_address || '');
-      if (editInvoice.items?.length > 0) setValue('items', editInvoice.items.map((i: any) => ({ item_name: i.item_name, meter: i.meter, rate: i.rate })));
-      if (editInvoice.delivery_challan_url) setValue('delivery_challan_url', editInvoice.delivery_challan_url);
-    }
-  }, [editInvoice, setValue]);
+    if (targetInvoice) {
+      setValue('party_id', targetInvoice.party_id);
+      
+      if (!duplicateId) {
+        setValue('invoice_number', targetInvoice.invoice_number);
+        setValue('invoice_date', targetInvoice.invoice_date.split('T')[0]);
+        if (targetInvoice.due_date) { const diff = new Date(targetInvoice.due_date).getTime() - new Date(targetInvoice.invoice_date).getTime(); setValue('due_days', Math.max(0, Math.ceil(diff / 86400000))); }
+        else setValue('due_days', 0);
+        if (targetInvoice.delivery_challan_url) setValue('delivery_challan_url', targetInvoice.delivery_challan_url);
+      } else {
+        setValue('invoice_date', today);
+        setValue('due_days', 0);
+      }
 
-  useEffect(() => {
-    if (duplicateInvoice && !editId) {
-      setValue('party_id', duplicateInvoice.party_id);
-      setValue('invoice_date', today);
-      setValue('description', duplicateInvoice.description || '');
-      setValue('billing_address', duplicateInvoice.billing_address || '');
-      setValue('shipping_address', duplicateInvoice.shipping_address || '');
-      if (duplicateInvoice.items?.length > 0) setValue('items', duplicateInvoice.items.map((i: any) => ({ item_name: i.item_name, meter: i.meter, rate: i.rate })));
+      setValue('description', targetInvoice.description || '');
+      setValue('billing_address', targetInvoice.billing_address || '');
+      setValue('shipping_address', targetInvoice.shipping_address || '');
+      if (targetInvoice.items?.length > 0) setValue('items', targetInvoice.items.map((i: any) => ({ item_name: i.item_name, meter: i.meter, rate: i.rate })));
     }
-  }, [duplicateInvoice, editId, setValue, today]);
+  }, [targetInvoice, duplicateId, setValue, today]);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchItems = watch('items');
@@ -317,8 +308,15 @@ export function NewInvoice() {
     setShowAddressPicker(null); setAddressSearch('');
   };
 
-  const onSubmit = async (data: InvoiceForm) => {
-    if (loading) return;
+  const onSubmit = (data: InvoiceForm) => {
+    if (viewId) return;
+    setPendingSubmitData(data);
+    setShowSummaryModal(true);
+  };
+
+  const confirmSubmit = async () => {
+    if (loading || !pendingSubmitData) return;
+    const data = pendingSubmitData;
     setLoading(true); setErr(''); setSuggestedNumber('');
     try {
       let computedDueDate: string | undefined;
@@ -327,10 +325,12 @@ export function NewInvoice() {
       if (editId) await invoicesApi.update(editId, payload);
       else await invoicesApi.create(payload);
       qc.invalidateQueries();
+      setShowSummaryModal(false);
       navigate(-1);
     } catch (e: any) {
       const detail = e.response?.data?.detail || 'Failed to save invoice';
       setErr(detail);
+      setShowSummaryModal(false);
       // F7: Parse suggested next number from conflict error
       const invMatch = detail.match(/INV[\/\-][^\s'"]+/);
       if (invMatch) {
@@ -349,10 +349,10 @@ export function NewInvoice() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 20px 16px', borderBottom: '1px solid var(--border)' }}>
         <button className="btn-icon btn" onClick={() => navigate(-1)}><ChevronLeft size={20} /></button>
-        <h1 className="page-title">{editId ? 'Edit Invoice' : duplicateId ? 'Duplicate Invoice' : 'New Invoice'}</h1>
+        <h1 className="page-title">{viewId ? 'View Invoice' : editId ? 'Edit Invoice' : duplicateId ? 'Duplicate Invoice' : 'New Invoice'}</h1>
       </div>
 
-      <div className="page-content" style={{ paddingTop: 20, paddingLeft: 20, paddingRight: 20 }}>
+      <div className="page-content invoice-split-layout" style={{ paddingTop: 20, paddingLeft: 20, paddingRight: 20 }}>
         {err && (
           <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 8 }}>
             {err}
@@ -362,83 +362,89 @@ export function NewInvoice() {
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="form-group">
-            <label className="form-label">Party *</label>
-            <SearchCombobox value={watchPartyId || null} placeholder="Select party…" options={partyOptions} onChange={handlePartySelect} onSearch={setPartySearch} />
-            {errors.party_id && <span className="form-error">{errors.party_id.message}</span>}
-          </div>
-
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label className="form-label" style={{ margin: 0 }}>Billing Address</label>
-              <button type="button" style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setAddressSearch(''); setShowAddressPicker('billing'); }}><MapPin size={12} /> From Address Book</button>
+          <fieldset disabled={!!viewId} className="invoice-grid" style={{ border: 'none', padding: 0, margin: 0 }}>
+            <div className="form-group full-width">
+              <label className="form-label">Party *</label>
+              <SearchCombobox value={watchPartyId || null} placeholder="Select party…" options={partyOptions} onChange={handlePartySelect} onSearch={setPartySearch} />
+              {errors.party_id && <span className="form-error">{errors.party_id.message}</span>}
             </div>
-            <textarea className="form-textarea" rows={2} {...register('billing_address')} />
-          </div>
 
-          <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label className="form-label" style={{ margin: 0 }}>Shipping Address</label>
-              <button type="button" style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setAddressSearch(''); setShowAddressPicker('shipping'); }}><MapPin size={12} /> From Address Book</button>
-            </div>
-            <textarea className="form-textarea" rows={2} {...register('shipping_address')} />
-          </div>
-
-          <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-light)' }}>Items</h4>
-          {fields.map((field, index) => (
-            <div key={field.id} style={{ background: 'var(--bg-elevated)', padding: 12, borderRadius: 12, marginBottom: 12, position: 'relative' }}>
-              {index > 0 && <button type="button" onClick={() => remove(index)} style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><X size={16} /></button>}
-              <div className="form-group" style={{ marginBottom: 8 }}>
-                <label className="form-label">Item Name</label>
-                <ItemAutocomplete value={watchItems[index]?.item_name || ''} onChange={(name, rate) => { setValue(`items.${index}.item_name`, name); if (rate !== undefined && rate > 0) setValue(`items.${index}.rate`, rate); }} />
-                {errors.items?.[index]?.item_name && <span className="form-error">{errors.items[index]?.item_name?.message}</span>}
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label className="form-label" style={{ margin: 0 }}>Billing Address</label>
+                <button type="button" style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setAddressSearch(''); setShowAddressPicker('billing'); }}><MapPin size={12} /> From Address Book</button>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label">Meter / Qty</label>
-                  <input className="form-input" type="number" step="0.01" {...register(`items.${index}.meter`)} />
+              <textarea className="form-textarea" rows={2} {...register('billing_address')} />
+            </div>
+
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label className="form-label" style={{ margin: 0 }}>Shipping Address</label>
+                <button type="button" style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setAddressSearch(''); setShowAddressPicker('shipping'); }}><MapPin size={12} /> From Address Book</button>
+              </div>
+              <textarea className="form-textarea" rows={2} {...register('shipping_address')} />
+            </div>
+
+            <div className="full-width">
+              <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-light)' }}>Items</h4>
+              {fields.map((field, index) => (
+                <div key={field.id} style={{ background: 'var(--bg-elevated)', padding: 12, borderRadius: 12, marginBottom: 12, position: 'relative' }}>
+                  {index > 0 && <button type="button" onClick={() => remove(index)} style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><X size={16} /></button>}
+                  <div className="form-group" style={{ marginBottom: 8 }}>
+                    <label className="form-label">Item Name</label>
+                    <ItemAutocomplete value={watchItems[index]?.item_name || ''} onChange={(name, rate) => { setValue(`items.${index}.item_name`, name); if (rate !== undefined && rate > 0) setValue(`items.${index}.rate`, rate); }} />
+                    {errors.items?.[index]?.item_name && <span className="form-error">{errors.items[index]?.item_name?.message}</span>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                      <label className="form-label">Meter / Qty</label>
+                      <input className="form-input" type="number" step="0.01" {...register(`items.${index}.meter`)} />
+                    </div>
+                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                      <label className="form-label">Rate</label>
+                      <input className="form-input" type="number" step="0.01" {...register(`items.${index}.rate`)} />
+                    </div>
+                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+                      <label className="form-label">Total</label>
+                      <div style={{ padding: '12px 0', fontWeight: 600, color: 'var(--accent-light)' }}>{formatCurrency((watchItems[index]?.meter || 0) * (watchItems[index]?.rate || 0))}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label">Rate</label>
-                  <input className="form-input" type="number" step="0.01" {...register(`items.${index}.rate`)} />
-                </div>
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label">Total</label>
-                  <div style={{ padding: '12px 0', fontWeight: 600, color: 'var(--accent-light)' }}>{formatCurrency((watchItems[index]?.meter || 0) * (watchItems[index]?.rate || 0))}</div>
-                </div>
+              ))}
+              <button type="button" className="btn btn-secondary" style={{ width: '100%', marginBottom: 16 }} onClick={() => append({ item_name: '', meter: 0, rate: 0 })}><Plus size={16} /> Add Item</button>
+            </div>
+
+            <div className="full-width" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, background: 'rgba(108,99,255,0.1)', borderRadius: 12, marginBottom: 16 }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Grand Total</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent-light)' }}>{formatCurrency(totalAmount)}</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="form-group"><label className="form-label">Invoice Date *</label><input className="form-input" type="date" {...register('invoice_date')} /></div>
+              <div className="form-group"><label className="form-label">Due in Days</label><input className="form-input" type="number" placeholder="e.g. 30" {...register('due_days')} /></div>
+            </div>
+
+            <div className="form-group"><label className="form-label">Invoice Number (auto if blank)</label><input className="form-input" placeholder="Auto-generated…" {...register('invoice_number')} /></div>
+            <div className="form-group full-width"><label className="form-label">Description</label><textarea className="form-textarea" placeholder="Goods/services description…" {...register('description')} /></div>
+
+            <div className="form-group full-width">
+              <label className="form-label">Delivery Challan</label>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <input type="file" accept="image/*" capture="environment" id="challan-camera" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
+                <input type="file" accept="image/*,.pdf" id="challan-file" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-camera')?.click()}>Take Photo</button>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-file')?.click()}>Upload File</button>
+                {watch('delivery_challan_url') && <a href={watch('delivery_challan_url')} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>View</a>}
+                {uploadingChallan && <div className="spinner" style={{ width: 20, height: 20 }} />}
               </div>
             </div>
-          ))}
-          <button type="button" className="btn btn-secondary" style={{ width: '100%', marginBottom: 16 }} onClick={() => append({ item_name: '', meter: 0, rate: 0 })}><Plus size={16} /> Add Item</button>
+          </fieldset>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, background: 'rgba(108,99,255,0.1)', borderRadius: 12, marginBottom: 16 }}>
-            <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Grand Total</span>
-            <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent-light)' }}>{formatCurrency(totalAmount)}</span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div className="form-group"><label className="form-label">Invoice Date *</label><input className="form-input" type="date" {...register('invoice_date')} /></div>
-            <div className="form-group"><label className="form-label">Due in Days</label><input className="form-input" type="number" placeholder="e.g. 30" {...register('due_days')} /></div>
-          </div>
-
-          <div className="form-group"><label className="form-label">Invoice Number (auto if blank)</label><input className="form-input" placeholder="Auto-generated…" {...register('invoice_number')} /></div>
-          <div className="form-group"><label className="form-label">Description</label><textarea className="form-textarea" placeholder="Goods/services description…" {...register('description')} /></div>
-
-          <div className="form-group">
-            <label className="form-label">Delivery Challan</label>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <input type="file" accept="image/*" capture="environment" id="challan-camera" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
-              <input type="file" accept="image/*,.pdf" id="challan-file" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
-              <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-camera')?.click()}>Take Photo</button>
-              <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-file')?.click()}>Upload File</button>
-              {watch('delivery_challan_url') && <a href={watch('delivery_challan_url')} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>View</a>}
-              {uploadingChallan && <div className="spinner" style={{ width: 20, height: 20 }} />}
-            </div>
-          </div>
-
-          <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 8 }}>
-            {loading ? 'Saving…' : editId ? 'Update Invoice' : duplicateId ? 'Create Duplicate' : 'Create Invoice'}
-          </button>
+          {!viewId && (
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 8 }}>
+              {loading ? 'Processing…' : 'Review & Save Invoice'}
+            </button>
+          )}
         </form>
       </div>
 
@@ -470,6 +476,24 @@ export function NewInvoice() {
       )}
 
       {showNewAddressForm && <AddressFormModal initial={null} onClose={() => setShowNewAddressForm(false)} onSuccess={() => { setShowNewAddressForm(false); qc.invalidateQueries(); }} />}
+
+      {showSummaryModal && pendingSubmitData && (
+        <div className="modal-overlay" onClick={() => setShowSummaryModal(false)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ height: 'auto', maxHeight: '90vh', padding: 24 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>Review Invoice Details</h2>
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 20, border: '1px solid var(--border)', fontSize: 13, lineHeight: 1.6 }}>
+              <p><strong>Party:</strong> {parties.find((p: any) => p.id === pendingSubmitData.party_id)?.name}</p>
+              <p><strong>Date:</strong> {formatDate(pendingSubmitData.invoice_date)}</p>
+              <p><strong>Items:</strong> {pendingSubmitData.items.length}</p>
+              <p><strong>Grand Total:</strong> <span style={{ color: 'var(--accent)', fontWeight: 700, fontSize: 16 }}>{formatCurrency(pendingSubmitData.items.reduce((s, i) => s + (i.meter * i.rate), 0))}</span></p>
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowSummaryModal(false)}>Edit Form</button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={confirmSubmit} disabled={loading}>{loading ? 'Saving…' : 'Confirm & Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -429,6 +429,18 @@ body {
 
 .list-item:active::after { opacity: 1; }
 
+@media (min-width: 1024px) {
+  .invoice-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .invoice-grid > .full-width {
+    grid-column: 1 / -1;
+  }
+}
+
 .list-item-icon {
   width: 46px; height: 46px;
   border-radius: 14px;
