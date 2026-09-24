@@ -70,7 +70,11 @@ def import_parties(file_path):
             if city_name and city_name != '---Others---':
                 city = city_name
             else:
-                city = address_node.findtext('StateName', '')
+                city = address_node.findtext('Station', '')
+                if not city:
+                    city = address_node.findtext('Address4', '')
+                if not city:
+                    city = address_node.findtext('StateName', '')
                 
             transport = address_node.findtext('Transport', '')
             if transport:
