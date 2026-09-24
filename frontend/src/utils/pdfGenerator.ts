@@ -295,3 +295,88 @@ export async function generateAndSharePaymentReceipt(payment: any, party: any) {
     window.open(blobUrl, '_blank');
   }
 }
+
+// ── Full Ledger Export ────────────────────────────────────────────────────────
+
+export async function generateAndShareLedger(party: any, ledger: any[], fromDate?: string, toDate?: string) {
+  const doc = new jsPDF();
+  const today = new Date().toLocaleDateString('en-IN');
+
+  // Header
+  doc.setFontSize(18);
+  doc.text('ACCOUNT LEDGER', 105, 18, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.text('Maxwell Accounting', 14, 28);
+  
+  doc.text('Party:', 14, 38);
+  doc.setFont('', 'bold');
+  doc.text(party?.name || 'Unknown', 26, 38);
+  doc.setFont('', 'normal');
+
+  let periodStr = 'All Time';
+  if (fromDate && toDate) periodStr = `${new Date(fromDate).toLocaleDateString('en-IN')} to ${new Date(toDate).toLocaleDateString('en-IN')}`;
+  else if (fromDate) periodStr = `From ${new Date(fromDate).toLocaleDateString('en-IN')}`;
+  else if (toDate) periodStr = `Until ${new Date(toDate).toLocaleDateString('en-IN')}`;
+  
+  doc.text(`Period: ${periodStr}`, 14, 43);
+  doc.text(`Generated On: ${today}`, 140, 38);
+
+  const tableData = ledger.map((entry: any) => {
+    let debit = '';
+    let credit = '';
+    const amt = Number(entry.amount);
+    if (amt > 0) debit = amt.toFixed(2);
+    else if (amt < 0) credit = Math.abs(amt).toFixed(2);
+    
+    // Add notes/narration to reference if available
+    let refWithNote = entry.reference;
+    if (entry.note) refWithNote += `\n(${entry.note})`;
+
+    return [
+      new Date(entry.date).toLocaleDateString('en-IN'),
+      refWithNote,
+      debit,
+      credit,
+      Number(entry.running_balance).toFixed(2)
+    ];
+  });
+
+  autoTable(doc, {
+    startY: 55,
+    head: [['Date', 'Particulars / Ref', 'Debit (Rs)', 'Credit (Rs)', 'Balance (Rs)']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: { fillColor: [234, 179, 8] },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+    styles: { cellPadding: 3, fontSize: 9 },
+  });
+
+  const fileName = `Ledger_${party?.name?.replace(/\s+/g, '_')}_${today.replace(/\//g, '-')}.pdf`;
+  const pdfOutput = doc.output('datauristring');
+  const base64Data = pdfOutput.split(',')[1];
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const savedFile = await Filesystem.writeFile({
+        path: fileName,
+        data: base64Data,
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title: `Ledger — ${party.name}`,
+        text: `Account Ledger for ${party.name} (${periodStr}).`,
+        url: savedFile.uri,
+        dialogTitle: 'Share Ledger',
+      });
+    } catch (err) {
+      console.error('Error sharing ledger', err);
+      alert('Error sharing PDF on device');
+    }
+  } else {
+    // Web fallback: Open preview in new tab
+    const blobUrl = doc.output('bloburl');
+    window.open(blobUrl, '_blank');
+  }
+}

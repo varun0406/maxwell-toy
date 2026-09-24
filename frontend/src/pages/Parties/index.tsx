@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { partiesApi, paymentsApi, invoicesApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2 } from 'lucide-react';
-import { generateAndSharePartyStatement, openWhatsApp } from '../../utils/pdfGenerator';
+import { generateAndSharePartyStatement, openWhatsApp, generateAndShareLedger } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import CalculationEvidence from '../../components/CalculationEvidence';
 
@@ -345,12 +345,15 @@ export function PartyDetail() {
       {tab === 'ledger' && (
         <div style={{ padding: '0 20px', marginTop: 8 }}>
           {/* Date Filters */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
             <input type="date" className="form-input" style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} value={fromDate} onChange={e => setFromDate(e.target.value)} />
             <input type="date" className="form-input" style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} value={toDate} onChange={e => setToDate(e.target.value)} />
             {(fromDate || toDate) && (
               <button className="btn-icon" onClick={() => { setFromDate(''); setToDate(''); }}><X size={16} /></button>
             )}
+            <button className="btn btn-sm" style={{ background: 'var(--accent)', color: 'white' }} onClick={() => generateAndShareLedger(party, ledger, fromDate, toDate)}>
+              Export Ledger
+            </button>
           </div>
           {ledger.length === 0 ? (
             <div className="empty-state"><p>No transactions in this period</p></div>
