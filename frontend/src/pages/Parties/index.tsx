@@ -189,6 +189,12 @@ export function PartyDetail() {
     queryKey: ['payments', id],
     queryFn: () => paymentsApi.list(Number(id), undefined, 0, 1000).then(r => r.data.items)
   });
+
+  const { data: invoicesTab = [] } = useQuery({
+    queryKey: ['invoices-tab', id],
+    queryFn: () => invoicesApi.list(Number(id), undefined, undefined, 0, 1000).then(r => r.data.items),
+    enabled: tab === 'invoices',
+  });
   
   const hasUnallocated = payments.some((p: any) => p.unallocated > 0);
   const totalUnallocated = payments.reduce((sum: number, p: any) => sum + Number(p.unallocated), 0);
@@ -374,6 +380,64 @@ export function PartyDetail() {
                     </p>
                   </div>
                   <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Bal: {formatCurrency(entry.running_balance)}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Invoices */}
+      {tab === 'invoices' && (
+        <div style={{ padding: '0 20px', marginTop: 8 }}>
+          {invoicesTab.length === 0 ? (
+            <div className="empty-state"><p>No invoices for this party</p></div>
+          ) : (
+            invoicesTab.map((inv: any) => (
+              <div
+                key={inv.id}
+                className="ledger-row"
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/invoices?search=${inv.invoice_number}`)}
+              >
+                <div className="ledger-dot invoice" />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600 }}>{inv.invoice_number}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(inv.invoice_date)}</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 14, fontWeight: 700 }}>{formatCurrency(inv.amount)}</p>
+                  <p style={{ fontSize: 12, color: inv.is_paid ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>
+                    {inv.is_paid ? 'Paid' : `Due: ${formatCurrency(inv.balance_due)}`}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Payments */}
+      {tab === 'payments' && (
+        <div style={{ padding: '0 20px', marginTop: 8 }}>
+          {payments.length === 0 ? (
+            <div className="empty-state"><p>No payments recorded</p></div>
+          ) : (
+            payments.map((pmt: any) => (
+              <div
+                key={pmt.id}
+                className="ledger-row"
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/payments/${pmt.id}`)}
+              >
+                <div className="ledger-dot payment" />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600 }}>PMT-{String(pmt.id).padStart(4, '0')}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(pmt.payment_date)}</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(pmt.amount)}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{pmt.mode?.toUpperCase() || 'CASH'}</p>
                 </div>
               </div>
             ))
