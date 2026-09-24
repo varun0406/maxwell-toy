@@ -106,7 +106,6 @@ def import_parties(file_path):
             existing.billing_address_line1 = addr1 or existing.billing_address_line1
             existing.billing_address_line2 = addr2 or existing.billing_address_line2
             existing.billing_address_line3 = addr3 or existing.billing_address_line3
-            existing.shipping_address_line1 = parent_group
             existing.billing_city = city or existing.billing_city
             existing.gstin = gstin or existing.gstin
             if notes and not existing.notes:
@@ -121,7 +120,6 @@ def import_parties(file_path):
                 billing_address_line1=addr1,
                 billing_address_line2=addr2,
                 billing_address_line3=addr3,
-                shipping_address_line1=parent_group,
                 billing_city=city,
                 gstin=gstin,
                 notes=notes,
