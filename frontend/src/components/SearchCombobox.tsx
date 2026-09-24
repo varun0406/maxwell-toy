@@ -28,12 +28,16 @@ export function SearchCombobox({ value, placeholder = 'Select…', options, onSe
 
   const selected = options.find(o => o.value === value);
 
-  const filtered = query
-    ? options.filter(o =>
-        o.label.toLowerCase().includes(query.toLowerCase()) ||
-        (o.sublabel || '').toLowerCase().includes(query.toLowerCase())
-      )
-    : options;
+  // If onSearch is provided, the parent handles filtering server-side — just show all returned options.
+  // Only apply client-side filter when options are static (no onSearch).
+  const filtered = onSearch
+    ? options
+    : query
+      ? options.filter(o =>
+          o.label.toLowerCase().includes(query.toLowerCase()) ||
+          (o.sublabel || '').toLowerCase().includes(query.toLowerCase())
+        )
+      : options;
 
   useEffect(() => {
     if (open) {
