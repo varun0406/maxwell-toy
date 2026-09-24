@@ -377,3 +377,8 @@ class DashboardSummary(BaseModel):
 
 class PinReset(BaseModel):
     new_pin: str = Field(min_length=4)
+
+class CashFlowMonth(BaseModel):
+    month: str
+    invoiced: Decimal
+    collected: Decimal

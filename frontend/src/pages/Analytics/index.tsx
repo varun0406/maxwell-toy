@@ -4,7 +4,8 @@ import { analyticsApi, invoicesApi, paymentsApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend
+  ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  ComposedChart, Line
 } from 'recharts';
 
 const COLORS = ['#eab308', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#84cc16'];
@@ -34,6 +35,11 @@ export default function Analytics() {
   const { data: aging = [] } = useQuery({
     queryKey: ['aging'],
     queryFn: () => analyticsApi.aging().then((r) => r.data.items || []),
+    enabled: tab === 'overview',
+  });
+  const { data: cashflow = [] } = useQuery({
+    queryKey: ['cashflow'],
+    queryFn: () => analyticsApi.cashflow().then((r) => r.data),
     enabled: tab === 'overview',
   });
 
@@ -108,6 +114,21 @@ export default function Analytics() {
   const pieData = [
     ...top10.map((p: any) => ({ name: p.party_name.length > 18 ? p.party_name.slice(0, 18) + '…' : p.party_name, value: Number(p.outstanding) })),
     ...(othersTotal > 0 ? [{ name: `Others (${allWithOutstanding.length - 10})`, value: othersTotal }] : []),
+  ].filter(d => d.value > 0);
+
+  const totalAging = (Array.isArray(aging) ? aging : []).reduce((acc: any, curr: any) => {
+    acc.current += Number(curr.current || 0);
+    acc.days_31_60 += Number(curr.days_31_60 || 0);
+    acc.days_61_90 += Number(curr.days_61_90 || 0);
+    acc.over_90 += Number(curr.over_90 || 0);
+    return acc;
+  }, { current: 0, days_31_60: 0, days_61_90: 0, over_90: 0 });
+
+  const agingGraphData = [
+    { name: '0-30 Days', value: totalAging.current, fill: '#10b981' },
+    { name: '31-60 Days', value: totalAging.days_31_60, fill: '#f59e0b' },
+    { name: '61-90 Days', value: totalAging.days_61_90, fill: '#3b82f6' },
+    { name: '90+ Days', value: totalAging.over_90, fill: '#ef4444' }
   ].filter(d => d.value > 0);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -213,6 +234,49 @@ export default function Analytics() {
               </div>
             </>
           )}
+
+          {/* Cashflow & Aging Visuals */}
+          <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr', padding: '0 20px', marginBottom: 20 }}>
+            {cashflow.length > 0 && (
+              <div>
+                <p className="section-label" style={{ padding: 0, marginBottom: 8 }}>Monthly Cash Flow Pipeline</p>
+                <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', padding: '16px 16px 8px 4px' }}>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <ComposedChart data={cashflow}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                      <YAxis yAxisId="left" tickFormatter={(val) => `₹${val >= 1000 ? (val/1000).toFixed(0)+'k' : val}`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                      <Tooltip formatter={(value: any) => formatCurrency(value)} contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8 }} />
+                      <Legend formatter={(value) => <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{value.charAt(0).toUpperCase() + value.slice(1)}</span>} />
+                      <Bar yAxisId="left" dataKey="invoiced" name="Invoiced Sales" fill="var(--accent)" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Line yAxisId="left" type="monotone" dataKey="collected" name="Collections" stroke="var(--success)" strokeWidth={3} dot={{ r: 4 }} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+            
+            {agingGraphData.length > 0 && (
+              <div>
+                <p className="section-label" style={{ padding: 0, marginBottom: 8 }}>Total Receivable Aging</p>
+                <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', padding: '16px 16px 8px 4px' }}>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={agingGraphData} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.05)" />
+                      <XAxis type="number" tickFormatter={(val) => `₹${val >= 1000 ? (val/1000).toFixed(0)+'k' : val}`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                      <Tooltip formatter={(value: any) => formatCurrency(value)} cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8 }} />
+                      <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
+                        {agingGraphData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Aging Report */}
           {aging.length > 0 && (
