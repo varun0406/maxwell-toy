@@ -223,6 +223,10 @@ class PaymentAllocation(Base):
     payment = relationship("Payment", back_populates="allocations")
     invoice = relationship("Invoice", back_populates="allocations")
 
+    @property
+    def invoice_number(self):
+        return self.invoice.invoice_number if self.invoice else None
+
     __table_args__ = (
         # Speeds up finding allocations for a payment (delete payment)
         Index("ix_payment_allocations_payment_id", "payment_id"),
