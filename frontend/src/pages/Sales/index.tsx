@@ -362,82 +362,84 @@ export function NewInvoice() {
           </div>
         )}
         <form onSubmit={handleSubmit(onSubmit)}>
-          <fieldset disabled={!!viewId} className="invoice-grid" style={{ border: 'none', padding: 0, margin: 0 }}>
-            <div className="form-group full-width">
-              <label className="form-label">Party *</label>
-              <SearchCombobox value={watchPartyId || null} placeholder="Select party…" options={partyOptions} onChange={handlePartySelect} onSearch={setPartySearch} />
-              {errors.party_id && <span className="form-error">{errors.party_id.message}</span>}
-            </div>
-
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <label className="form-label" style={{ margin: 0 }}>Billing Address</label>
-                <button type="button" style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setAddressSearch(''); setShowAddressPicker('billing'); }}><MapPin size={12} /> From Address Book</button>
+          <fieldset disabled={!!viewId} style={{ border: 'none', padding: 0, margin: 0 }}>
+            
+            <div className="desktop-form-grid">
+              <div className="form-group">
+                <label className="form-label">Party *</label>
+                <SearchCombobox value={watchPartyId || null} placeholder="Select party…" options={partyOptions} onChange={handlePartySelect} onSearch={setPartySearch} />
+                {errors.party_id && <span className="form-error">{errors.party_id.message}</span>}
               </div>
-              <textarea className="form-textarea" rows={2} {...register('billing_address')} />
-            </div>
-
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <label className="form-label" style={{ margin: 0 }}>Shipping Address</label>
-                <button type="button" style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setAddressSearch(''); setShowAddressPicker('shipping'); }}><MapPin size={12} /> From Address Book</button>
+              <div className="form-group"><label className="form-label">Invoice Date *</label><input className="form-input" type="date" {...register('invoice_date')} /></div>
+              <div className="form-group"><label className="form-label">Due in Days</label><input className="form-input" type="number" placeholder="e.g. 30" {...register('due_days')} /></div>
+              <div className="form-group"><label className="form-label">Invoice Number</label><input className="form-input" placeholder="Auto-generated if blank…" {...register('invoice_number')} /></div>
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label className="form-label" style={{ margin: 0 }}>Billing Address</label>
+                  <button type="button" style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setAddressSearch(''); setShowAddressPicker('billing'); }}><MapPin size={12} /> From Address Book</button>
+                </div>
+                <textarea className="form-textarea" rows={3} {...register('billing_address')} />
               </div>
-              <textarea className="form-textarea" rows={2} {...register('shipping_address')} />
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label className="form-label" style={{ margin: 0 }}>Shipping Address</label>
+                  <button type="button" style={{ fontSize: 11, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => { setAddressSearch(''); setShowAddressPicker('shipping'); }}><MapPin size={12} /> From Address Book</button>
+                </div>
+                <textarea className="form-textarea" rows={3} {...register('shipping_address')} />
+              </div>
+              <div className="form-group full-width"><label className="form-label">Description / Remarks</label><textarea className="form-textarea" rows={2} placeholder="Goods/services description…" {...register('description')} /></div>
             </div>
 
-            <div className="full-width">
-              <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-light)' }}>Items</h4>
+            <div style={{ marginBottom: 24 }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: 16, color: 'var(--accent-light)', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Line Items</h4>
               {fields.map((field, index) => (
-                <div key={field.id} style={{ background: 'var(--bg-elevated)', padding: 12, borderRadius: 12, marginBottom: 12, position: 'relative' }}>
-                  {index > 0 && <button type="button" onClick={() => remove(index)} style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><X size={16} /></button>}
-                  <div className="form-group" style={{ marginBottom: 8 }}>
-                    <label className="form-label">Item Name</label>
-                    <ItemAutocomplete value={watchItems[index]?.item_name || ''} onChange={(name, rate) => { setValue(`items.${index}.item_name`, name); if (rate !== undefined && rate > 0) setValue(`items.${index}.rate`, rate); }} />
-                    {errors.items?.[index]?.item_name && <span className="form-error">{errors.items[index]?.item_name?.message}</span>}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                      <label className="form-label">Meter / Qty</label>
-                      <input className="form-input" type="number" step="0.01" {...register(`items.${index}.meter`)} />
+                <div key={field.id} style={{ background: 'var(--bg-elevated)', padding: '16px 16px 4px', borderRadius: 12, marginBottom: 12, position: 'relative', border: '1px solid var(--border)' }}>
+                  {index > 0 && <button type="button" onClick={() => remove(index)} style={{ position: 'absolute', top: 12, right: 12, background: 'var(--danger-bg)', border: 'none', color: 'var(--danger)', borderRadius: 8, padding: 4, cursor: 'pointer' }}><X size={16} /></button>}
+                  <div className="item-row">
+                    <div className="form-group" style={{ marginBottom: 12 }}>
+                      <label className="form-label">Item Name</label>
+                      <ItemAutocomplete value={watchItems[index]?.item_name || ''} onChange={(name, rate) => { setValue(`items.${index}.item_name`, name); if (rate !== undefined && rate > 0) setValue(`items.${index}.rate`, rate); }} />
+                      {errors.items?.[index]?.item_name && <span className="form-error">{errors.items[index]?.item_name?.message}</span>}
                     </div>
-                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                      <label className="form-label">Rate</label>
-                      <input className="form-input" type="number" step="0.01" {...register(`items.${index}.rate`)} />
-                    </div>
-                    <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                      <label className="form-label">Total</label>
-                      <div style={{ padding: '12px 0', fontWeight: 600, color: 'var(--accent-light)' }}>{formatCurrency((watchItems[index]?.meter || 0) * (watchItems[index]?.rate || 0))}</div>
+                    <div className="item-row-fields">
+                      <div className="form-group" style={{ flex: 1, marginBottom: 12 }}>
+                        <label className="form-label">Qty / Meter</label>
+                        <input className="form-input" type="number" step="0.01" {...register(`items.${index}.meter`)} />
+                      </div>
+                      <div className="form-group" style={{ flex: 1, marginBottom: 12 }}>
+                        <label className="form-label">Rate</label>
+                        <input className="form-input" type="number" step="0.01" {...register(`items.${index}.rate`)} />
+                      </div>
+                      <div className="form-group" style={{ flex: 1, marginBottom: 12 }}>
+                        <label className="form-label">Total</label>
+                        <div style={{ padding: '10px 12px', background: 'var(--bg-base)', borderRadius: 8, fontWeight: 700, color: 'var(--accent-light)', border: '1px solid var(--border)' }}>{formatCurrency((watchItems[index]?.meter || 0) * (watchItems[index]?.rate || 0))}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
-              <button type="button" className="btn btn-secondary" style={{ width: '100%', marginBottom: 16 }} onClick={() => append({ item_name: '', meter: 0, rate: 0 })}><Plus size={16} /> Add Item</button>
+              <button type="button" className="btn btn-secondary" style={{ width: '100%' }} onClick={() => append({ item_name: '', meter: 0, rate: 0 })}><Plus size={16} /> Add Another Item</button>
             </div>
 
-            <div className="full-width" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 16, background: 'rgba(108,99,255,0.1)', borderRadius: 12, marginBottom: 16 }}>
-              <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Grand Total</span>
-              <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--accent-light)' }}>{formatCurrency(totalAmount)}</span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div className="form-group"><label className="form-label">Invoice Date *</label><input className="form-input" type="date" {...register('invoice_date')} /></div>
-              <div className="form-group"><label className="form-label">Due in Days</label><input className="form-input" type="number" placeholder="e.g. 30" {...register('due_days')} /></div>
-            </div>
-
-            <div className="form-group"><label className="form-label">Invoice Number (auto if blank)</label><input className="form-input" placeholder="Auto-generated…" {...register('invoice_number')} /></div>
-            <div className="form-group full-width"><label className="form-label">Description</label><textarea className="form-textarea" placeholder="Goods/services description…" {...register('description')} /></div>
-
-            <div className="form-group full-width">
-              <label className="form-label">Delivery Challan</label>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <input type="file" accept="image/*" capture="environment" id="challan-camera" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
-                <input type="file" accept="image/*,.pdf" id="challan-file" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-camera')?.click()}>Take Photo</button>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-file')?.click()}>Upload File</button>
-                {watch('delivery_challan_url') && <a href={watch('delivery_challan_url')} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>View</a>}
-                {uploadingChallan && <div className="spinner" style={{ width: 20, height: 20 }} />}
+            <div className="desktop-form-grid" style={{ marginBottom: 0 }}>
+              <div className="form-group full-width">
+                <label className="form-label">Delivery Challan</label>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <input type="file" accept="image/*" capture="environment" id="challan-camera" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
+                  <input type="file" accept="image/*,.pdf" id="challan-file" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
+                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-camera')?.click()}>Take Photo</button>
+                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-file')?.click()}>Upload File</button>
+                  {watch('delivery_challan_url') && <a href={watch('delivery_challan_url')} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>View</a>}
+                  {uploadingChallan && <div className="spinner" style={{ width: 20, height: 20 }} />}
+                </div>
               </div>
             </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 20, background: 'rgba(108,99,255,0.1)', borderRadius: 12, marginBottom: 24, border: '1px solid rgba(108,99,255,0.2)' }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 16 }}>Grand Total</span>
+              <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-light)' }}>{formatCurrency(totalAmount)}</span>
+            </div>
+
           </fieldset>
 
           {!viewId && (

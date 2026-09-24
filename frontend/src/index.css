@@ -472,15 +472,39 @@ body {
 .list-item:active::after { opacity: 1; }
 
 @media (min-width: 1024px) {
-  .invoice-grid {
+  .desktop-form-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 24px;
     align-items: start;
+    margin-bottom: 24px;
   }
-  .invoice-grid > .full-width {
+  .desktop-form-grid .full-width {
     grid-column: 1 / -1;
   }
+  .item-row {
+    display: flex;
+    flex-direction: row !important;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .item-row-fields {
+    display: flex;
+    flex-direction: row !important;
+    gap: 16px;
+    flex: 1;
+  }
+  .item-row > div:nth-child(1) { flex: 2; } /* Item name */
+  .item-row > div:nth-child(2) { flex: 3; } /* Rest of fields */
+}
+.item-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.item-row-fields {
+  display: flex;
+  gap: 8px;
 }
 
 .list-item-icon {
