@@ -339,7 +339,7 @@ export function PartyDetail() {
             generateAndSharePartyStatement(party, unpaid, totalUnallocated);
           }}
         >
-          <FileText size={18} />Statement
+          <FileText size={18} />Outstanding Statement
         </button>
         {party.phone && (
           <button

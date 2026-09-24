@@ -128,11 +128,11 @@ export async function generateAndSharePartyStatement(party: any, unpaidInvoices:
   const totalOutstanding = unpaidInvoices.reduce((s: number, i: any) => s + Number(i.balance_due), 0);
   const netPayable = totalOutstanding - unallocatedBalance;
 
-  let foot = [];
+  let foot: any[] = [];
   if (unallocatedBalance > 0) {
     foot = [
       ['', '', '', 'Total Invoices Due:', `Rs. ${totalOutstanding.toFixed(2)}`],
-      ['', '', '', 'On Account / Advance:', `Rs. ${unallocatedBalance.toFixed(2)}`],
+      ['', '', '', 'General Balance:', `Rs. ${unallocatedBalance.toFixed(2)}`],
       ['', '', '', 'Net Payable:', `Rs. ${netPayable.toFixed(2)}`]
     ];
   } else {
