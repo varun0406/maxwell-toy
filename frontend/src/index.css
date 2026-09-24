@@ -173,6 +173,48 @@ body {
 .nav-item.active { color: var(--accent-light); }
 .nav-item.active svg { transform: scale(1.15) translateY(-1px); }
 
+@media (min-width: 1024px) {
+  .app-shell {
+    flex-direction: row;
+  }
+  .bottom-nav {
+    position: static;
+    transform: none;
+    width: 240px;
+    max-width: 240px;
+    height: 100vh;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    padding: 32px 16px;
+    background: var(--bg-card);
+    gap: 8px;
+  }
+  .nav-item {
+    flex-direction: row;
+    padding: 14px 20px;
+    font-size: 14px;
+    border-radius: var(--radius-lg);
+    justify-content: flex-start;
+    gap: 16px;
+  }
+  .nav-item svg {
+    width: 20px;
+    height: 20px;
+  }
+  .nav-item.active {
+    background: rgba(108,99,255,0.1);
+  }
+  .nav-item.active svg {
+    transform: none;
+  }
+  .page-content {
+    padding-bottom: 20px !important; 
+  }
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════
    Cards
 ══════════════════════════════════════════════════════════════════════════════ */

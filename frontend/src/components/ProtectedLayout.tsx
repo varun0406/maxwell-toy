@@ -11,8 +11,10 @@ export function ProtectedLayout() {
 
   return (
     <div className="app-shell">
-      <Outlet />
       <BottomNav />
+      <div className="app-main-content" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <Outlet />
+      </div>
     </div>
   );
 }
