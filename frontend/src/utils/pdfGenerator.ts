@@ -82,8 +82,9 @@ export async function generateAndShareInvoice(invoice: any, party: any) {
     }
   } else {
     // Web fallback: Open preview in new tab
-    const blobUrl = doc.output('bloburl');
-    window.open(blobUrl, '_blank');
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, `_blank_${Date.now()}`);
   }
 }
 
@@ -376,7 +377,8 @@ export async function generateAndShareLedger(party: any, ledger: any[], fromDate
     }
   } else {
     // Web fallback: Open preview in new tab
-    const blobUrl = doc.output('bloburl');
-    window.open(blobUrl, '_blank');
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, `_blank_${Date.now()}`);
   }
 }

@@ -59,16 +59,12 @@ def list_parties(
                 p.reminder_date,
                 p.is_active,
                 p.created_at,
-                COALESCE(SUM(i.amount)   FILTER (WHERE i.is_deleted = false), 0)   AS total_invoiced,
-                COALESCE(SUM(pay.amount) FILTER (WHERE pay.is_deleted = false), 0) AS total_paid,
-                COALESCE(SUM(j.amount)   FILTER (WHERE j.is_deleted = false), 0)   AS total_journal
+                (SELECT COALESCE(SUM(amount), 0) FROM invoices WHERE party_id = p.id AND is_deleted = false) AS total_invoiced,
+                (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE party_id = p.id AND is_deleted = false) AS total_paid,
+                (SELECT COALESCE(SUM(amount), 0) FROM journal_entries WHERE party_id = p.id AND is_deleted = false) AS total_journal
             FROM parties p
-            LEFT JOIN invoices        i   ON i.party_id   = p.id
-            LEFT JOIN payments        pay ON pay.party_id = p.id
-            LEFT JOIN journal_entries j   ON j.party_id   = p.id
             WHERE p.is_active = true
               AND (:search IS NULL OR p.name LIKE :search)
-            GROUP BY p.id
         ),
         filtered AS (
             SELECT *,
@@ -166,15 +162,11 @@ def get_party(
             p.reminder_date,
             p.is_active,
             p.created_at,
-            COALESCE(SUM(i.amount)   FILTER (WHERE i.is_deleted = false), 0)   AS total_invoiced,
-            COALESCE(SUM(pay.amount) FILTER (WHERE pay.is_deleted = false), 0) AS total_paid,
-            COALESCE(SUM(j.amount)   FILTER (WHERE j.is_deleted = false), 0)   AS total_journal
+            (SELECT COALESCE(SUM(amount), 0) FROM invoices WHERE party_id = p.id AND is_deleted = false) AS total_invoiced,
+            (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE party_id = p.id AND is_deleted = false) AS total_paid,
+            (SELECT COALESCE(SUM(amount), 0) FROM journal_entries WHERE party_id = p.id AND is_deleted = false) AS total_journal
         FROM parties p
-        LEFT JOIN invoices        i   ON i.party_id   = p.id
-        LEFT JOIN payments        pay ON pay.party_id = p.id
-        LEFT JOIN journal_entries j   ON j.party_id   = p.id
         WHERE p.id = :party_id
-        GROUP BY p.id
     """), {"party_id": party_id}).fetchone()
 
     if not row:
