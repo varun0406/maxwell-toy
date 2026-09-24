@@ -195,7 +195,7 @@ export default function Analytics() {
                   <p className="stat-value mono" style={{ fontSize: 18, color: 'var(--accent)' }}>{formatCurrency(execSummary.unallocated_advance_pool)}</p>
                 </div>
                 <div className="stat-card" style={{ background: 'var(--bg-card)' }}>
-                  <p className="stat-label">At-Risk (>60d)</p>
+                  <p className="stat-label">At-Risk (&gt;60d)</p>
                   <p className="stat-value mono" style={{ fontSize: 18, color: Number(execSummary.at_risk_ratio) > 15 ? 'var(--danger)' : 'var(--warning)' }}>{Number(execSummary.at_risk_ratio).toFixed(1)}%</p>
                 </div>
                 <div className="stat-card" style={{ background: 'var(--bg-card)' }}>
@@ -596,10 +596,7 @@ export default function Analytics() {
             )}
           </div>
         </div>
-          </div>
-        </div>
       )}
-
       {tab === 'fabric' && (
         <div style={{ padding: '0 20px', paddingBottom: 24 }}>
           <p className="section-label">Fabric & Unit Economics</p>
