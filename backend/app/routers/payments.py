@@ -1,6 +1,7 @@
 from decimal import Decimal
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 
@@ -15,6 +16,8 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 def list_payments(
     party_id: int | None = None,
     search: str = "",
+    from_date: Optional[str] = None,  # F17
+    to_date: Optional[str] = None,    # F17
     skip: int = 0,
     limit: int = 1000000,
     current_user: models.User = Depends(get_current_user),
@@ -38,6 +41,11 @@ def list_payments(
         agg_query = agg_query.join(models.Party).filter(
             models.Party.name.ilike(f"%{search}%")
         )
+    # F17: date filters
+    if from_date:
+        agg_query = agg_query.filter(models.Payment.payment_date >= datetime.fromisoformat(from_date))
+    if to_date:
+        agg_query = agg_query.filter(models.Payment.payment_date <= datetime.fromisoformat(to_date))
 
     agg = agg_query.one()
     total = agg.total
@@ -55,6 +63,11 @@ def list_payments(
         items_query = items_query.join(models.Party).filter(
             models.Party.name.ilike(f"%{search}%")
         )
+    # F17: date filters on items query
+    if from_date:
+        items_query = items_query.filter(models.Payment.payment_date >= datetime.fromisoformat(from_date))
+    if to_date:
+        items_query = items_query.filter(models.Payment.payment_date <= datetime.fromisoformat(to_date))
 
     items = items_query.order_by(models.Payment.payment_date.desc()).offset(skip).limit(limit).all()
 
@@ -214,9 +227,35 @@ def allocate_payment(
     return payment
 
 
+# F13 — Edit payment (date/mode/note only; amount intentionally excluded)
+@router.put("/{payment_id}", response_model=schemas.PaymentOut)
+def update_payment(
+    payment_id: int,
+    payload: schemas.PaymentUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    payment = (
+        db.query(models.Payment)
+        .filter(models.Payment.id == payment_id, models.Payment.is_deleted == False)
+        .first()
+    )
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    update_data = payload.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(payment, field, value)
+
+    db.commit()
+    db.refresh(payment)
+    return payment
+
+
 @router.delete("/{payment_id}", status_code=204)
 def delete_payment(
     payment_id: int,
+    reason: str = Body(default="Entry Error", embed=True),  # F9: reason required
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -229,6 +268,8 @@ def delete_payment(
         raise HTTPException(status_code=404, detail="Payment not found")
 
     payment.is_deleted = True
+    payment.deleted_reason = reason   # F9: store reason
+    payment.deleted_at = datetime.now(timezone.utc)  # F9: store timestamp
 
     # Recalibrate: fetch all allocations, then bulk-fetch all affected invoices in ONE IN query
     allocations = (

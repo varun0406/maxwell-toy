@@ -121,6 +121,15 @@ export default function PendingDues() {
                       {formatCurrency(p.outstanding)}
                     </p>
                   </CalculationEvidence>
+                  {/* F18: Collection % */}
+                  {(p.total_invoiced || 0) > 0 && (
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                      Collected{' '}
+                      <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                        {Math.round(((p.total_paid || 0) / (p.total_invoiced || 1)) * 100)}%
+                      </span>
+                    </p>
+                  )}
                   {p.phone && (
                     <a href={`tel:${p.phone}`} onClick={(e) => e.stopPropagation()} style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, marginTop: 4, textDecoration: 'none', fontWeight: 500 }}>
                       <PhoneCall size={12} /> Call

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import List
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
@@ -255,3 +256,34 @@ def aging_report(
         skip=skip,
         limit=limit,
     )
+
+
+# F12 — Collections breakdown by payment mode
+@router.get("/collections-by-mode", response_model=List[schemas.ModeBreakdown])
+def collections_by_mode(
+    from_date: str | None = None,
+    to_date: str | None = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from sqlalchemy import case
+    query = db.execute(text("""
+        SELECT
+            COALESCE(mode, 'cash') AS mode,
+            COUNT(*)               AS count,
+            COALESCE(SUM(amount), 0) AS total
+        FROM payments
+        WHERE is_deleted = false
+          AND (:from_date IS NULL OR payment_date >= :from_date)
+          AND (:to_date IS NULL OR payment_date <= :to_date)
+        GROUP BY COALESCE(mode, 'cash')
+        ORDER BY total DESC
+    """), {
+        "from_date": from_date,
+        "to_date": to_date,
+    }).fetchall()
+
+    return [
+        schemas.ModeBreakdown(mode=row.mode, total=row.total, count=row.count)
+        for row in query
+    ]

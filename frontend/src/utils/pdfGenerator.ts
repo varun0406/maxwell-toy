@@ -187,3 +187,106 @@ export function openWhatsApp(phone: string, message = '') {
   window.open(url, '_blank');
 }
 
+
+// ── F11: Payment Receipt PDF ──────────────────────────────────────────────────
+
+export async function generateAndSharePaymentReceipt(payment: any, party: any) {
+  const doc = new jsPDF();
+  const today = new Date(payment.payment_date).toLocaleDateString('en-IN');
+  const receiptNo = `PMT-${String(payment.id).padStart(4, '0')}`;
+  const modeLabel = (payment.mode || 'cash').toUpperCase();
+
+  // Header
+  doc.setFontSize(20);
+  doc.text('PAYMENT RECEIPT', 105, 20, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.text('Maxwell Accounting', 14, 30);
+  doc.text(`Receipt No: ${receiptNo}`, 140, 30);
+  doc.text(`Date: ${today}`, 140, 35);
+  doc.text(`Mode: ${modeLabel}`, 140, 40);
+
+  // Divider
+  doc.setDrawColor(108, 99, 255);
+  doc.setLineWidth(0.5);
+  doc.line(14, 46, 196, 46);
+
+  // Party info
+  doc.setFontSize(11);
+  doc.setFont('', 'bold');
+  doc.text('Received From:', 14, 55);
+  doc.setFont('', 'normal');
+  doc.setFontSize(10);
+  doc.text(party?.name || 'Unknown Party', 14, 61);
+  if (party?.phone) doc.text(`Phone: ${party.phone}`, 14, 66);
+  if (party?.billing_city) doc.text(`City: ${party.billing_city}`, 14, 71);
+
+  // Amount box
+  doc.setFillColor(108, 99, 255);
+  doc.roundedRect(14, 80, 182, 24, 4, 4, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.text('Amount Received:', 20, 91);
+  doc.setFontSize(18);
+  doc.setFont('', 'bold');
+  doc.text(`Rs. ${Number(payment.amount).toFixed(2)}`, 196, 91, { align: 'right' });
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('', 'normal');
+
+  // Note
+  if (payment.note) {
+    doc.setFontSize(10);
+    doc.text(`Note: ${payment.note}`, 14, 115);
+  }
+
+  // Allocations
+  if (payment.allocations && payment.allocations.length > 0) {
+    autoTable(doc, {
+      startY: 122,
+      head: [['Invoice No.', 'Amount Applied']],
+      body: payment.allocations.map((a: any) => [
+        a.invoice_number,
+        `Rs. ${Number(a.allocated_amount).toFixed(2)}`,
+      ]),
+      ...(payment.unallocated > 0
+        ? { foot: [['On Account / Advance', `Rs. ${Number(payment.unallocated).toFixed(2)}`]] }
+        : {}),
+      theme: 'grid',
+      headStyles: { fillColor: [108, 99, 255] },
+      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+    });
+  } else if (Number(payment.unallocated) > 0) {
+    doc.setFontSize(10);
+    doc.text(`On Account / Advance: Rs. ${Number(payment.unallocated).toFixed(2)}`, 14, 122);
+  }
+
+  // Footer
+  doc.setFontSize(9);
+  doc.setTextColor(150, 150, 150);
+  doc.text('This is a computer-generated receipt. No signature required.', 105, 285, { align: 'center' });
+
+  const fileName = `Receipt_${receiptNo}_${party?.name?.replace(/\s+/g, '_') || 'party'}.pdf`;
+  const pdfOutput = doc.output('datauristring');
+  const base64Data = pdfOutput.split(',')[1];
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const savedFile = await Filesystem.writeFile({
+        path: fileName,
+        data: base64Data,
+        directory: Directory.Cache,
+      });
+      await Share.share({
+        title: `Payment Receipt — ${party?.name}`,
+        text: `Payment receipt ${receiptNo} for Rs. ${Number(payment.amount).toFixed(2)} from ${party?.name}.`,
+        url: savedFile.uri,
+        dialogTitle: 'Share Receipt',
+      });
+    } catch (err) {
+      console.error('Error sharing receipt', err);
+      alert('Error sharing receipt on device');
+    }
+  } else {
+    doc.save(fileName);
+  }
+}

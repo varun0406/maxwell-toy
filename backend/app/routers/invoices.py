@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import List, Optional
+
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
@@ -13,10 +14,26 @@ from ..gcs import upload_file_to_gcs
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
 
+def _current_fy() -> tuple[int, int]:
+    """Return (fy_start_year, fy_end_year) based on today. FY starts April 1."""
+    today = datetime.now(timezone.utc)
+    if today.month >= 4:
+        return today.year, today.year + 1
+    return today.year - 1, today.year
+
+
 def _next_invoice_number(user_id: int, db: Session) -> str:
-    # Use MAX(id) instead of COUNT(*) — faster and race-condition safe
-    max_id = db.execute(text("SELECT COALESCE(MAX(id), 0) FROM invoices")).scalar()
-    return f"INV-{max_id + 1:05d}"
+    """F3: FY-scoped invoice number with prefix INV/YY-YY/NNNN."""
+    fy_start, fy_end = _current_fy()
+    fy_start_dt = datetime(fy_start, 4, 1, tzinfo=timezone.utc)
+    fy_end_dt   = datetime(fy_end,   4, 1, tzinfo=timezone.utc)
+    prefix = f"INV/{str(fy_start)[2:]}-{str(fy_end)[2:]}/"
+
+    count = db.execute(
+        text("SELECT COUNT(*) FROM invoices WHERE invoice_date >= :s AND invoice_date < :e"),
+        {"s": fy_start_dt, "e": fy_end_dt},
+    ).scalar() or 0
+    return f"{prefix}{count + 1:04d}"
 
 
 @router.post("/upload")
@@ -36,6 +53,10 @@ def list_invoices(
     party_id: int | None = None,
     unpaid_only: bool = False,
     search: str = "",
+    from_date: Optional[str] = None,   # F4: ISO date string
+    to_date: Optional[str] = None,     # F4: ISO date string
+    min_amount: Optional[float] = None, # F19
+    max_amount: Optional[float] = None, # F19
     skip: int = 0,
     limit: int = 1000000,
     current_user: models.User = Depends(get_current_user),
@@ -43,7 +64,6 @@ def list_invoices(
 ):
     # Build base filter — single query for both count+sum using func aggregates,
     # then a second paginated query for the actual rows with eager-loaded relations.
-    # This avoids the previous 3-query pattern (count + sum + rows).
     query = (
         db.query(
             func.count(models.Invoice.id).label("total"),
@@ -61,6 +81,16 @@ def list_invoices(
             (models.Invoice.invoice_number.ilike(f"%{search}%")) |
             (models.Party.name.ilike(f"%{search}%"))
         )
+    # F4: date filters
+    if from_date:
+        query = query.filter(models.Invoice.invoice_date >= datetime.fromisoformat(from_date))
+    if to_date:
+        query = query.filter(models.Invoice.invoice_date <= datetime.fromisoformat(to_date))
+    # F19: amount filters
+    if min_amount is not None:
+        query = query.filter(models.Invoice.amount >= min_amount)
+    if max_amount is not None:
+        query = query.filter(models.Invoice.amount <= max_amount)
 
     agg = query.one()
     total = agg.total
@@ -85,6 +115,16 @@ def list_invoices(
             (models.Invoice.invoice_number.ilike(f"%{search}%")) |
             (models.Party.name.ilike(f"%{search}%"))
         )
+    # F4: date filters on items query
+    if from_date:
+        items_query = items_query.filter(models.Invoice.invoice_date >= datetime.fromisoformat(from_date))
+    if to_date:
+        items_query = items_query.filter(models.Invoice.invoice_date <= datetime.fromisoformat(to_date))
+    # F19: amount filters on items query
+    if min_amount is not None:
+        items_query = items_query.filter(models.Invoice.amount >= min_amount)
+    if max_amount is not None:
+        items_query = items_query.filter(models.Invoice.amount <= max_amount)
 
     items = items_query.order_by(models.Invoice.invoice_date.desc()).offset(skip).limit(limit).all()
 

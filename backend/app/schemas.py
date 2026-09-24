@@ -245,10 +245,23 @@ class PaymentOut(BaseModel):
     note: Optional[str]
     mode: Optional[str]
     is_deleted: bool
+    deleted_reason: Optional[str] = None  # F9
     created_at: datetime
     allocations: List[AllocationOut] = []
 
     model_config = {"from_attributes": True}
+
+
+# F9 — Payment delete with reason
+class PaymentDeleteRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=200)
+
+
+# F13 — Payment edit (only non-allocation fields)
+class PaymentUpdate(BaseModel):
+    payment_date: Optional[datetime] = None
+    mode: Optional[str] = Field(default=None, max_length=30)
+    note: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -321,6 +334,13 @@ class AddressBookOut(AddressBookCreate):
     id: int
     created_at: datetime
     model_config = {"from_attributes": True}
+
+
+# F12 — Collections breakdown by payment mode
+class ModeBreakdown(BaseModel):
+    mode: str
+    total: Decimal
+    count: int
 
 
 class AgingBucket(BaseModel):

@@ -33,8 +33,30 @@ export const partiesApi = {
 
 // ── Invoices ─────────────────────────────────────────────────────────────────
 export const invoicesApi = {
-  list: (partyId?: number, unpaidOnly?: boolean, search?: string, skip: number = 0, limit: number = 1000000) =>
-    api.get('/invoices/', { params: { ...(partyId && { party_id: partyId }), ...(unpaidOnly && { unpaid_only: true }), ...(search ? { search } : {}), skip, limit } }),
+  list: (
+    partyId?: number,
+    unpaidOnly?: boolean,
+    search?: string,
+    skip: number = 0,
+    limit: number = 1000000,
+    fromDate?: string,   // F4
+    toDate?: string,     // F4
+    minAmount?: number,  // F19
+    maxAmount?: number,  // F19
+  ) =>
+    api.get('/invoices/', {
+      params: {
+        ...(partyId && { party_id: partyId }),
+        ...(unpaidOnly && { unpaid_only: true }),
+        ...(search ? { search } : {}),
+        skip,
+        limit,
+        ...(fromDate ? { from_date: fromDate } : {}),
+        ...(toDate ? { to_date: toDate } : {}),
+        ...(minAmount != null ? { min_amount: minAmount } : {}),
+        ...(maxAmount != null ? { max_amount: maxAmount } : {}),
+      },
+    }),
   create: (data: unknown) => api.post('/invoices/', data),
   get: (id: number) => api.get(`/invoices/${id}`),
   update: (id: number, data: unknown) => api.put(`/invoices/${id}`, data),
@@ -50,12 +72,30 @@ export const invoicesApi = {
 
 // ── Payments ─────────────────────────────────────────────────────────────────
 export const paymentsApi = {
-  list: (partyId?: number, search?: string, skip: number = 0, limit: number = 1000000) =>
-    api.get('/payments/', { params: { ...(partyId && { party_id: partyId }), ...(search ? { search } : {}), skip, limit } }),
+  list: (
+    partyId?: number,
+    search?: string,
+    skip: number = 0,
+    limit: number = 1000000,
+    fromDate?: string,  // F17
+    toDate?: string,    // F17
+  ) =>
+    api.get('/payments/', {
+      params: {
+        ...(partyId && { party_id: partyId }),
+        ...(search ? { search } : {}),
+        skip,
+        limit,
+        ...(fromDate ? { from_date: fromDate } : {}),
+        ...(toDate ? { to_date: toDate } : {}),
+      },
+    }),
   create: (data: unknown) => api.post('/payments/', data),
   get: (id: number) => api.get(`/payments/${id}`),
+  update: (id: number, data: unknown) => api.put(`/payments/${id}`, data),  // F13
   allocate: (id: number, data: unknown) => api.post(`/payments/${id}/allocate`, data),
-  delete: (id: number) => api.delete(`/payments/${id}`),
+  delete: (id: number, reason: string = 'Entry Error') =>  // F9: reason
+    api.delete(`/payments/${id}`, { data: { reason } }),
 };
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
@@ -66,6 +106,8 @@ export const analyticsApi = {
   party: (id: number) => api.get(`/analytics/party/${id}`),
   aging: (search?: string, skip: number = 0, limit: number = 1000000) => 
     api.get('/analytics/aging', { params: { ...(search ? { search } : {}), skip, limit } }),
+  collectionsByMode: (fromDate?: string, toDate?: string) =>  // F12
+    api.get('/analytics/collections-by-mode', { params: { ...(fromDate ? { from_date: fromDate } : {}), ...(toDate ? { to_date: toDate } : {}) } }),
 };
 
 // ── Address Book ─────────────────────────────────────────────────────────────
@@ -82,3 +124,4 @@ export const itemsApi = {
   upsert: (data: { item_name: string; default_rate?: number }) => api.post('/items/upsert', data),
   delete: (id: number) => api.delete(`/items/${id}`),
 };
+

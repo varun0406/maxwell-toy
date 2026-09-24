@@ -185,6 +185,8 @@ class Payment(Base):
     note = Column(Text, nullable=True)
     mode = Column(String(30), nullable=True)  # cash / upi / bank
     is_deleted = Column(Boolean, default=False)
+    deleted_reason = Column(String(200), nullable=True)  # F9: reason for deletion
+    deleted_at = Column(DateTime(timezone=True), nullable=True)    # F9: when deleted
 
     created_at = Column(DateTime(timezone=True), default=utcnow)
 

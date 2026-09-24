@@ -9,9 +9,11 @@ import {
 } from 'recharts';
 
 const COLORS = ['#6c63ff', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const MODE_COLORS: Record<string, string> = { cash: '#10b981', upi: '#6c63ff', bank: '#3b82f6', cheque: '#f59e0b' };
 
 export default function Analytics() {
   const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar'>('overview');
+  const [collectionDateFilter, setCollectionDateFilter] = useState<'all' | 'month' | 'week'>('all');
   const { ref, inView } = useInView();
   const { data: summary } = useQuery({
     queryKey: ['dashboard'],
@@ -49,6 +51,18 @@ export default function Analytics() {
     getNextPageParam: (lastPage) => (lastPage.skip + lastPage.limit < lastPage.total) ? lastPage.skip + lastPage.limit : undefined,
     initialPageParam: 0,
     enabled: tab === 'ar',
+  });
+
+  // F12: Mode breakdown
+  const collectionFrom = collectionDateFilter === 'month'
+    ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+    : collectionDateFilter === 'week'
+      ? (() => { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return d.toISOString().split('T')[0]; })()
+      : undefined;
+  const { data: modeData = [] } = useQuery({
+    queryKey: ['collections-by-mode', collectionDateFilter],
+    queryFn: () => analyticsApi.collectionsByMode(collectionFrom).then(r => r.data),
+    enabled: tab === 'collections',
   });
 
   useEffect(() => {
@@ -256,6 +270,42 @@ export default function Analytics() {
 
       {tab === 'collections' && (
         <div style={{ padding: '0 20px', paddingBottom: 24 }}>
+
+          {/* F12: Mode breakdown */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {(['all', 'month', 'week'] as const).map(f => (
+              <button key={f} onClick={() => setCollectionDateFilter(f)} style={{ padding: '5px 14px', borderRadius: 20, border: `1px solid ${collectionDateFilter === f ? 'var(--accent)' : 'var(--border)'}`, background: collectionDateFilter === f ? 'var(--accent-glow)' : 'transparent', color: collectionDateFilter === f ? 'var(--accent)' : 'var(--text-muted)', fontSize: 12, fontWeight: collectionDateFilter === f ? 600 : 400, cursor: 'pointer' }}>{f === 'all' ? 'All Time' : f === 'month' ? 'This Month' : 'This Week'}</button>
+            ))}
+          </div>
+
+          {Array.isArray(modeData) && modeData.length > 0 && (
+            <>
+              <p className="section-label" style={{ paddingLeft: 0, marginBottom: 8 }}>Collections by Mode</p>
+              <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', padding: '16px 4px 8px', marginBottom: 16 }}>
+                <ResponsiveContainer width="100%" height={180}>
+                  <BarChart data={modeData.map((m: any) => ({ name: m.mode.toUpperCase(), Amount: Number(m.total), Count: m.count }))} margin={{ left: -16 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                    <Tooltip formatter={(v: any) => formatCurrency(v)} contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8 }} />
+                    <Bar dataKey="Amount" radius={[4, 4, 0, 0]}>
+                      {modeData.map((m: any, i: number) => <Cell key={i} fill={MODE_COLORS[m.mode] || COLORS[i % COLORS.length]} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 16 }}>
+                {modeData.map((m: any) => (
+                  <div key={m.mode} style={{ background: 'var(--bg-card)', borderRadius: 10, border: '1px solid var(--border)', padding: 12 }}>
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: 1 }}>{m.mode}</p>
+                    <p style={{ fontSize: 16, fontWeight: 700, color: MODE_COLORS[m.mode] || 'var(--accent)', marginTop: 4 }}>{formatCurrency(m.total)}</p>
+                    <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>{m.count} payment{m.count !== 1 ? 's' : ''}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 700 }}>Collection Register</h3>
