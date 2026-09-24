@@ -111,6 +111,7 @@ export const analyticsApi = {
     api.get('/analytics/collections-by-mode', { params: { ...(fromDate ? { from_date: fromDate } : {}), ...(toDate ? { to_date: toDate } : {}) } }),
   byAgent: () => api.get('/analytics/by-agent'),
   byArea: () => api.get('/analytics/by-area'),
+  cashflow: () => api.get('/analytics/cashflow'),
 };
 
 // ── Address Book ─────────────────────────────────────────────────────────────
