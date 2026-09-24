@@ -29,6 +29,7 @@ def list_parties(
     limit: int = 1000000,
     search: str = "",
     unpaid_only: bool = False,
+    agent: Optional[str] = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -65,6 +66,7 @@ def list_parties(
             FROM parties p
             WHERE p.is_active = true
               AND (:search IS NULL OR p.name LIKE :search)
+              AND (:agent IS NULL OR p.agent_name = :agent)
         ),
         filtered AS (
             SELECT *,
@@ -79,6 +81,7 @@ def list_parties(
     """), {
         "search": search_filter,
         "unpaid_only": unpaid_only,
+        "agent": agent,
         "skip": skip,
         "limit": limit,
     }).fetchall()
