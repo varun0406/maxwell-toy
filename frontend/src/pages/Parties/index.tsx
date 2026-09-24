@@ -718,8 +718,8 @@ function AddPartyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">GSTIN</label>
-              <input className="form-input" placeholder="22AAAAA0000A1Z5" {...register('gstin')} />
+              <label className="form-label">PINCODE</label>
+              <input className="form-input" placeholder="380001" {...register('gstin')} />
             </div>
 
             <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Categorization & Reminders</h4>
@@ -839,8 +839,8 @@ function EditPartyModal({ party, onClose, onSuccess }: { party: any; onClose: ()
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">GSTIN</label>
-              <input className="form-input" placeholder="22AAAAA0000A1Z5" {...register('gstin')} />
+              <label className="form-label">PINCODE</label>
+              <input className="form-input" placeholder="380001" {...register('gstin')} />
             </div>
 
             <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Categorization & Reminders</h4>
