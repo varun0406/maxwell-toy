@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { analyticsApi, invoicesApi, paymentsApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import {
@@ -18,6 +19,7 @@ export default function Analytics() {
   const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar' | 'agents' | 'areas' | 'fabric'>('overview');
   const [collectionDateFilter, setCollectionDateFilter] = useState<'all' | 'month' | 'week'>('all');
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Paginated state per tab
   const [invPage, setInvPage] = useState(0);
@@ -388,7 +390,7 @@ export default function Analytics() {
                 </thead>
                 <tbody>
                   {invoices.map((inv: any) => (
-                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => navigate(`/parties/${inv.party_id}`)}>
                       <td style={{ padding: '12px 16px', color: 'var(--text)' }}>{formatDate(inv.invoice_date)}</td>
                       <td style={{ padding: '12px 16px', fontWeight: 500 }}>{inv.invoice_number}</td>
                       <td style={{ padding: '12px 16px' }}>{inv.party_name}</td>
@@ -470,7 +472,7 @@ export default function Analytics() {
                 </thead>
                 <tbody>
                   {payments.map((p: any) => (
-                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <tr key={p.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => navigate(`/parties/${p.party_id}`)}>
                       <td style={{ padding: '12px 16px', color: 'var(--text)' }}>{formatDate(p.payment_date)}</td>
                       <td style={{ padding: '12px 16px', fontWeight: 500 }}>PMT-{String(p.id).padStart(4, '0')}</td>
                       <td style={{ padding: '12px 16px' }}>{p.party_name}</td>
@@ -515,7 +517,7 @@ export default function Analytics() {
                 </thead>
                 <tbody>
                   {arParties.map((p: any) => (
-                    <tr key={p.party_id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <tr key={p.party_id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => navigate(`/parties/${p.party_id}`)}>
                       <td style={{ padding: '12px 16px', fontWeight: 500 }}>{p.party_name}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-secondary)' }}>{formatCurrency(p.total_invoiced)}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--warning)' }}>{formatCurrency(p.outstanding)}</td>
