@@ -3,7 +3,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi, partiesApi, addressBookApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon, Copy, CreditCard, Filter } from 'lucide-react';
@@ -13,7 +13,6 @@ import { SearchCombobox } from '../../components/SearchCombobox';
 import type { ComboboxOption } from '../../components/SearchCombobox';
 import { ItemAutocomplete } from '../../components/ItemAutocomplete';
 import { AddressFormModal } from '../AddressBook';
-import { useInView } from 'react-intersection-observer';
 
 const itemSchema = z.object({
   item_name: z.string().min(1, 'Required'),
@@ -62,31 +61,32 @@ export function InvoicesList() {
   const [showAmountFilter, setShowAmountFilter] = useState(false);
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
-  const { ref, inView } = useInView();
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+
+  // Reset to page 0 when any filter changes
+  useEffect(() => { setPage(0); }, [filter, search, dateFilter, customFrom, customTo, minAmount, maxAmount]);
 
   const dateRange = dateFilter === 'custom'
     ? (customFrom || customTo ? { from: customFrom, to: customTo } : null)
     : getDateRange(dateFilter);
 
-  const { data, isLoading, fetchNextPage, hasNextPage } = useInfiniteQuery({
-    queryKey: ['invoices', filter, search, dateFilter, customFrom, customTo, minAmount, maxAmount],
-    queryFn: ({ pageParam = 0 }) =>
+  const { data, isLoading } = useQuery({
+    queryKey: ['invoices', filter, search, dateFilter, customFrom, customTo, minAmount, maxAmount, page],
+    queryFn: () =>
       invoicesApi.list(
-        undefined, filter === 'unpaid', search, pageParam, 20,
+        undefined, filter === 'unpaid', search, page * PAGE_SIZE, PAGE_SIZE,
         dateRange?.from || undefined,
         dateRange?.to ? dateRange.to + 'T23:59:59' : undefined,
         minAmount ? parseFloat(minAmount) : undefined,
         maxAmount ? parseFloat(maxAmount) : undefined,
       ).then(r => r.data),
-    getNextPageParam: (lastPage) => (lastPage.skip + lastPage.limit < lastPage.total) ? lastPage.skip + lastPage.limit : undefined,
-    initialPageParam: 0,
   });
 
-  useEffect(() => { if (inView && hasNextPage) fetchNextPage(); }, [inView, hasNextPage, fetchNextPage]);
-
-  const invoices = data ? data.pages.flatMap(p => p.items) : [];
-  const totalCount = data ? data.pages[0]?.total || 0 : 0;
-  const summaryTotal = data ? data.pages[0]?.summary_total || 0 : 0;
+  const invoices = data?.items || [];
+  const totalCount = data?.total || 0;
+  const summaryTotal = data?.summary_total || 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const qc = useQueryClient();
   const [secureAction, setSecureAction] = useState<{ type: 'edit' | 'delete', id: number } | null>(null);
 
@@ -164,14 +164,12 @@ export function InvoicesList() {
                 <div className="list-item-body">
                   <p className="list-item-title">{inv.party_name}</p>
                   <p className="list-item-sub" style={{ fontSize: 11 }}>{inv.invoice_number} · {formatDate(inv.invoice_date)}{inv.due_date ? ` · Due ${formatDate(inv.due_date)}` : ''}</p>
-                  {/* F5: Both amounts */}
                   {status !== 'paid' && (
                     <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
                       Invoice: <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(inv.amount)}</span>
                       {status === 'partial' && <> · Paid: <span style={{ color: 'var(--success)' }}>{formatCurrency(Number(inv.amount) - Number(inv.balance_due))}</span></>}
                     </p>
                   )}
-                  {/* F2: Progress bar */}
                   {status === 'partial' && (
                     <div style={{ marginTop: 4, height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden', width: '100%' }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: 'var(--success)', borderRadius: 2 }} />
@@ -180,11 +178,9 @@ export function InvoicesList() {
                   {inv.delivery_challan_url && <a href={inv.delivery_challan_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, display: 'inline-block', marginTop: 2 }}>📎 Challan</a>}
                 </div>
                 <div className="list-item-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  {/* F2: Status badge */}
                   <span className="badge" style={{ background: status === 'paid' ? 'var(--success-bg)' : status === 'partial' ? 'rgba(245,158,11,0.15)' : 'var(--warning-bg)', color: status === 'paid' ? 'var(--success)' : status === 'partial' ? '#f59e0b' : 'var(--warning)', fontSize: 10 }}>
                     {status === 'paid' ? 'Paid' : status === 'partial' ? 'Partial' : 'Unpaid'}
                   </span>
-                  {/* F5: Prominent amount */}
                   <p style={{ fontWeight: 700, fontSize: 14, color: status === 'paid' ? 'var(--success)' : 'var(--warning)' }}>
                     {formatCurrency(status === 'paid' ? inv.amount : inv.balance_due)}
                   </p>
@@ -193,9 +189,7 @@ export function InvoicesList() {
                     <button className="btn-icon" style={{ padding: 4, background: 'rgba(108,99,255,0.1)', color: 'var(--accent)' }} onClick={e => { e.stopPropagation(); setSecureAction({ type: 'edit', id: inv.id }); }}><Edit2 size={13} /></button>
                     <button className="btn-icon" style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }} onClick={e => { e.stopPropagation(); setSecureAction({ type: 'delete', id: inv.id }); }}><Trash2 size={13} /></button>
                     <button className="btn-icon" style={{ padding: 4, background: 'rgba(108,99,255,0.1)', color: 'var(--accent)' }} onClick={async e => { e.stopPropagation(); const party = (await partiesApi.get(inv.party_id)).data; const fullInv = (await invoicesApi.get(inv.id)).data; generateAndShareInvoice(fullInv, party); }}><ShareIcon size={13} /></button>
-                    {/* F6: Duplicate */}
                     <button className="btn-icon" title="Duplicate invoice" style={{ padding: 4, background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }} onClick={e => { e.stopPropagation(); navigate(`/invoices/new?duplicate=${inv.id}`); }}><Copy size={13} /></button>
-                    {/* F8: Quick full payment */}
                     {status !== 'paid' && (
                       <button className="btn-icon" title="Receive full payment" style={{ padding: 4, background: 'rgba(16,185,129,0.2)', color: 'var(--success)' }} onClick={e => { e.stopPropagation(); navigate(`/payments/new?party=${inv.party_id}&invoice=${inv.id}&amount=${inv.balance_due}`); }}><CreditCard size={13} /></button>
                     )}
@@ -205,7 +199,14 @@ export function InvoicesList() {
               </div>
             );
           })}
-          {hasNextPage && <div ref={ref} style={{ padding: '20px 0', textAlign: 'center' }}><div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} /></div>}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, padding: '20px 0' }}>
+              <button className="btn btn-sm btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Page {page + 1} of {totalPages}</span>
+              <button className="btn btn-sm btn-secondary" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
+            </div>
+          )}
         </div>
       )}
 

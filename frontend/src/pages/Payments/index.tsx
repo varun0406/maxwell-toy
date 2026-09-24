@@ -3,13 +3,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentsApi, partiesApi, invoicesApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { SearchCombobox } from '../../components/SearchCombobox';
 import type { ComboboxOption } from '../../components/SearchCombobox';
 import { SecureActionModal } from '../../components/SecureActionModal';
-import { useInView } from 'react-intersection-observer';
 import { Search, X, Plus, ChevronLeft, Edit2, Receipt } from 'lucide-react';
 import { generateAndSharePaymentReceipt } from '../../utils/pdfGenerator';
 
@@ -33,11 +32,13 @@ type EditPaymentForm = z.infer<typeof editSchema>;
 export function PaymentsList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  // F17: Date filter
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
-  const { ref, inView } = useInView();
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+
+  useEffect(() => { setPage(0); }, [search, dateFilter, customFrom, customTo]);
 
   function getDateRange(f: string): { from: string; to: string } | null {
     const now = new Date();
@@ -53,18 +54,15 @@ export function PaymentsList() {
     ? (customFrom || customTo ? { from: customFrom, to: customTo } : null)
     : getDateRange(dateFilter);
 
-  const { data, isLoading, fetchNextPage, hasNextPage } = useInfiniteQuery({
-    queryKey: ['payments', search, dateFilter, customFrom, customTo],
-    queryFn: ({ pageParam = 0 }) => paymentsApi.list(undefined, search, pageParam, 20, dateRange?.from, dateRange?.to ? dateRange.to + 'T23:59:59' : undefined).then(r => r.data),
-    getNextPageParam: (lastPage) => (lastPage.skip + lastPage.limit < lastPage.total) ? lastPage.skip + lastPage.limit : undefined,
-    initialPageParam: 0,
+  const { data, isLoading } = useQuery({
+    queryKey: ['payments', search, dateFilter, customFrom, customTo, page],
+    queryFn: () => paymentsApi.list(undefined, search, page * PAGE_SIZE, PAGE_SIZE, dateRange?.from, dateRange?.to ? dateRange.to + 'T23:59:59' : undefined).then(r => r.data),
   });
 
-  useEffect(() => { if (inView && hasNextPage) fetchNextPage(); }, [inView, hasNextPage, fetchNextPage]);
-
-  const payments = data ? data.pages.flatMap(p => p.items) : [];
-  const totalCount = data ? data.pages[0]?.total || 0 : 0;
-  const summaryTotal = data ? data.pages[0]?.summary_total || 0 : 0;
+  const payments = data?.items || [];
+  const totalCount = data?.total || 0;
+  const summaryTotal = data?.summary_total || 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const DATE_CHIPS = [
     { id: 'all' as const, label: 'All Time' },
@@ -122,7 +120,14 @@ export function PaymentsList() {
               </div>
             </div>
           ))}
-          {hasNextPage && <div ref={ref} style={{ padding: '20px 0', textAlign: 'center' }}><div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} /></div>}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, padding: '20px 0' }}>
+              <button className="btn btn-sm btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Page {page + 1} of {totalPages}</span>
+              <button className="btn btn-sm btn-secondary" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
+            </div>
+          )}
         </div>
       )}
 

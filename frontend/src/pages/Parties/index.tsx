@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { useInView } from 'react-intersection-observer';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,40 +40,26 @@ export function PartiesList() {
   const location = useLocation();
   const [showAdd, setShowAdd] = useState(location.state?.showAdd || false);
   const [secureActionId, setSecureActionId] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
 
-  const { ref, inView } = useInView();
+  // reset to first page when search changes
+  useEffect(() => { setPage(0); }, [search]);
 
-  const {
-    data,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    refetch,
-  } = useInfiniteQuery({
-    queryKey: ['parties', search],
-    queryFn: ({ pageParam = 0 }) => partiesApi.list(search, pageParam, 20).then(r => r.data),
-    getNextPageParam: (lastPage) => {
-      if (lastPage.skip + lastPage.limit < lastPage.total) {
-        return lastPage.skip + lastPage.limit;
-      }
-      return undefined;
-    },
-    initialPageParam: 0,
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['parties', search, page],
+    queryFn: () => partiesApi.list(search, page * PAGE_SIZE, PAGE_SIZE).then(r => r.data),
   });
 
-  useEffect(() => {
-    if (inView && hasNextPage) {
-      fetchNextPage();
-    }
-  }, [inView, hasNextPage, fetchNextPage]);
-
-  const parties = data ? data.pages.flatMap((page) => page.items) : [];
+  const parties = data?.items || [];
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="page-content">
       <div className="page-header">
         <h1 className="page-title">Parties</h1>
-        <p className="page-subtitle">{parties.length} customers / suppliers</p>
+        <p className="page-subtitle">{total} customers / suppliers</p>
       </div>
 
       <div className="search-bar">
@@ -135,9 +121,12 @@ export function PartiesList() {
               </div>
             </div>
           ))}
-          {hasNextPage && (
-            <div ref={ref} style={{ padding: '20px 0', textAlign: 'center' }}>
-              <div className="spinner" style={{ width: 24, height: 24, borderWidth: 3 }} />
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, padding: '20px 0' }}>
+              <button className="btn btn-sm btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Page {page + 1} of {totalPages}</span>
+              <button className="btn btn-sm btn-secondary" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
             </div>
           )}
         </div>
