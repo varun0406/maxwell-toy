@@ -32,8 +32,8 @@ def import_parties(file_path):
     for account in root.findall('.//Account'):
         parent_group = account.findtext('ParentGroup', '')
         
-        # We only want Sundry Debtors and Karigar
-        if parent_group not in ['Sundry Debtors', 'Karigar', 'KARIGAR']:
+        # We only want Sundry Debtors
+        if parent_group != 'Sundry Debtors':
             continue
             
         name = account.findtext('Name', '')
