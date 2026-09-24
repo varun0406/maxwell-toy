@@ -1,5 +1,6 @@
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
@@ -236,6 +237,8 @@ def delete_party(
 @router.get("/{party_id}/ledger", response_model=List[schemas.LedgerEntry])
 def party_ledger(
     party_id: int,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -289,6 +292,15 @@ def party_ledger(
         ORDER BY date, reference
     """), {"party_id": party_id}).fetchall()
 
+    filtered_rows = []
+    for row in rows:
+        r_date = row.date.date() if hasattr(row.date, 'date') else row.date
+        if from_date and r_date < from_date:
+            continue
+        if to_date and r_date > to_date:
+            continue
+        filtered_rows.append(row)
+
     return [
         schemas.LedgerEntry(
             type=row.type,
@@ -298,7 +310,7 @@ def party_ledger(
             balance_due=row.balance_due,
             running_balance=row.running_balance,
         )
-        for row in rows
+        for row in filtered_rows
     ]
 
 
