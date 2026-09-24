@@ -53,6 +53,7 @@ def list_invoices(
     party_id: int | None = None,
     unpaid_only: bool = False,
     search: str = "",
+    agent_name: str | None = None,
     from_date: Optional[str] = None,   # F4: ISO date string
     to_date: Optional[str] = None,     # F4: ISO date string
     min_amount: Optional[float] = None, # F19
@@ -76,11 +77,18 @@ def list_invoices(
         query = query.filter(models.Invoice.party_id == party_id)
     if unpaid_only:
         query = query.filter(models.Invoice.is_paid == False)
+    
+    if search or agent_name:
+        query = query.join(models.Party)
+        
     if search:
-        query = query.join(models.Party).filter(
+        query = query.filter(
             (models.Invoice.invoice_number.ilike(f"%{search}%")) |
             (models.Party.name.ilike(f"%{search}%"))
         )
+    if agent_name:
+        query = query.filter(models.Party.agent == agent_name)
+
     # F4: date filters
     if from_date:
         query = query.filter(models.Invoice.invoice_date >= datetime.fromisoformat(from_date))
@@ -110,11 +118,18 @@ def list_invoices(
         items_query = items_query.filter(models.Invoice.party_id == party_id)
     if unpaid_only:
         items_query = items_query.filter(models.Invoice.is_paid == False)
+    
+    if search or agent_name:
+        items_query = items_query.join(models.Party)
+        
     if search:
-        items_query = items_query.join(models.Party).filter(
+        items_query = items_query.filter(
             (models.Invoice.invoice_number.ilike(f"%{search}%")) |
             (models.Party.name.ilike(f"%{search}%"))
         )
+    if agent_name:
+        items_query = items_query.filter(models.Party.agent == agent_name)
+
     # F4: date filters on items query
     if from_date:
         items_query = items_query.filter(models.Invoice.invoice_date >= datetime.fromisoformat(from_date))

@@ -8,6 +8,8 @@ import {
   ComposedChart, Line
 } from 'recharts';
 
+import { Download, X } from 'lucide-react';
+
 const COLORS = ['#eab308', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#84cc16'];
 const MODE_COLORS: Record<string, string> = { cash: '#10b981', upi: '#eab308', bank: '#3b82f6', cheque: '#f59e0b' };
 const PAGE_SIZE = 20;
@@ -15,6 +17,7 @@ const PAGE_SIZE = 20;
 export default function Analytics() {
   const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar' | 'agents' | 'areas' | 'fabric'>('overview');
   const [collectionDateFilter, setCollectionDateFilter] = useState<'all' | 'month' | 'week'>('all');
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   // Paginated state per tab
   const [invPage, setInvPage] = useState(0);
@@ -547,8 +550,13 @@ export default function Analytics() {
                 </thead>
                 <tbody>
                   {agentData.map((d: any, i: number) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 500 }}>{d.group_name}</td>
+                    <tr 
+                      key={i} 
+                      style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                      onClick={() => setSelectedAgent(d.group_name)}
+                      className="hover:bg-[var(--bg-hover)]"
+                    >
+                      <td style={{ padding: '12px 16px', fontWeight: 500, color: 'var(--accent)' }}>{d.group_name}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>{d.party_count}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--accent)' }}>{formatCurrency(d.total_invoiced)}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--success)' }}>{formatCurrency(d.total_paid)}</td>
@@ -630,6 +638,108 @@ export default function Analytics() {
         </div>
       )}
 
+      {selectedAgent && (
+        <AgentLedgerModal agentName={selectedAgent} onClose={() => setSelectedAgent(null)} />
+      )}
+    </div>
+  );
+}
+
+function AgentLedgerModal({ agentName, onClose }: { agentName: string, onClose: () => void }) {
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 15;
+  const { data, isLoading } = useQuery({
+    queryKey: ['agent-ledger', agentName, page],
+    queryFn: () => invoicesApi.list(undefined, false, undefined, page * PAGE_SIZE, PAGE_SIZE, undefined, undefined, undefined, undefined, agentName).then(r => r.data)
+  });
+
+  const downloadExcel = async () => {
+    try {
+      const allData = await invoicesApi.list(undefined, false, undefined, 0, 10000, undefined, undefined, undefined, undefined, agentName).then(r => r.data.items);
+      let csv = "Invoice Number,Date,Party,Total Sales,Collected,Outstanding\n";
+      allData.forEach((inv: any) => {
+        const collected = Number(inv.amount) - Number(inv.balance_due);
+        csv += `${inv.invoice_number},${inv.invoice_date},"${inv.party_name}",${inv.amount},${collected},${inv.balance_due}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Agent_${agentName}_Ledger.csv`;
+      a.click();
+    } catch (err) {
+      alert("Failed to export.");
+    }
+  };
+
+  const invoices = data?.items || [];
+  const totalCount = data?.total || 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: 'var(--bg-base)', width: '100%', maxWidth: 800, maxHeight: '90vh', borderRadius: 'var(--radius-xl)', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}>
+        
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-elevated)' }}>
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 800 }}>{agentName} Ledger</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Detailed invoices mapped to this agent</p>
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button className="btn btn-secondary" onClick={downloadExcel} style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Download size={14} /> Export CSV
+            </button>
+            <button className="btn-icon" onClick={onClose} style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}><X size={18} /></button>
+          </div>
+        </div>
+
+        <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
+          {isLoading ? (
+            <div style={{ padding: 40, textAlign: 'center' }}>Loading ledger...</div>
+          ) : invoices.length === 0 ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No invoices found for this agent.</div>
+          ) : (
+            <div className="table-responsive" style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Inv #</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Date</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)' }}>Party</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Total Sales</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Collected</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Outstanding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map((inv: any) => {
+                    const collected = Number(inv.amount) - Number(inv.balance_due);
+                    const isPaid = Number(inv.balance_due) === 0;
+                    return (
+                      <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 500 }}>{inv.invoice_number}</td>
+                        <td style={{ padding: '12px 16px' }}>{formatDate(inv.invoice_date)}</td>
+                        <td style={{ padding: '12px 16px' }}>{inv.party_name}</td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>{formatCurrency(inv.amount)}</td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--success)' }}>{formatCurrency(collected)}</td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: isPaid ? 'var(--success)' : 'var(--warning)' }}>{formatCurrency(inv.balance_due)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, padding: '20px 0 0' }}>
+              <button className="btn btn-sm btn-secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Page {page + 1} of {totalPages}</span>
+              <button className="btn btn-sm btn-secondary" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

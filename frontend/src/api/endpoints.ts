@@ -44,12 +44,14 @@ export const invoicesApi = {
     toDate?: string,     // F4
     minAmount?: number,  // F19
     maxAmount?: number,  // F19
+    agentName?: string,
   ) =>
     api.get('/invoices/', {
       params: {
         ...(partyId && { party_id: partyId }),
         ...(unpaidOnly && { unpaid_only: true }),
         ...(search ? { search } : {}),
+        ...(agentName ? { agent_name: agentName } : {}),
         skip,
         limit,
         ...(fromDate ? { from_date: fromDate } : {}),
