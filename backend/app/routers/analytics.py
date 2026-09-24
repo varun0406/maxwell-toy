@@ -85,22 +85,38 @@ def party_summaries(
     search_filter = f"%{search}%" if search else None
 
     result = db.execute(text("""
-        WITH agg AS (
+        WITH i_agg AS (
+            SELECT party_id, 
+                   SUM(amount) AS total_invoiced, 
+                   COUNT(id) AS invoice_count
+            FROM invoices WHERE is_deleted = false GROUP BY party_id
+        ),
+        p_agg AS (
+            SELECT party_id, 
+                   SUM(amount) AS total_paid, 
+                   COUNT(id) AS payment_count
+            FROM payments WHERE is_deleted = false GROUP BY party_id
+        ),
+        j_agg AS (
+            SELECT party_id, 
+                   SUM(amount) AS total_journal
+            FROM journal_entries WHERE is_deleted = false GROUP BY party_id
+        ),
+        agg AS (
             SELECT
                 p.id                                                                AS party_id,
                 p.name                                                              AS party_name,
-                COALESCE(SUM(i.amount)   FILTER (WHERE i.is_deleted = false), 0)   AS total_invoiced,
-                COALESCE(SUM(pay.amount) FILTER (WHERE pay.is_deleted = false), 0) AS total_paid,
-                COALESCE(SUM(j.amount)   FILTER (WHERE j.is_deleted = false), 0)   AS total_journal,
-                COUNT(i.id)              FILTER (WHERE i.is_deleted = false)        AS invoice_count,
-                COUNT(pay.id)            FILTER (WHERE pay.is_deleted = false)      AS payment_count
+                COALESCE(i_agg.total_invoiced, 0)                                   AS total_invoiced,
+                COALESCE(p_agg.total_paid, 0)                                       AS total_paid,
+                COALESCE(j_agg.total_journal, 0)                                    AS total_journal,
+                COALESCE(i_agg.invoice_count, 0)                                    AS invoice_count,
+                COALESCE(p_agg.payment_count, 0)                                    AS payment_count
             FROM parties p
-            LEFT JOIN invoices       i   ON i.party_id   = p.id
-            LEFT JOIN payments       pay ON pay.party_id = p.id
-            LEFT JOIN journal_entries j  ON j.party_id   = p.id
+            LEFT JOIN i_agg ON i_agg.party_id = p.id
+            LEFT JOIN p_agg ON p_agg.party_id = p.id
+            LEFT JOIN j_agg ON j_agg.party_id = p.id
             WHERE p.is_active = true
               AND (:search IS NULL OR p.name LIKE :search)
-            GROUP BY p.id, p.name
         ),
         counted AS (
             SELECT *, COUNT(*) OVER() AS total_count,
@@ -144,20 +160,31 @@ def party_analytics(
     db: Session = Depends(get_db),
 ):
     row = db.execute(text("""
+        WITH i_agg AS (
+            SELECT party_id, SUM(amount) AS total_invoiced, COUNT(id) AS invoice_count
+            FROM invoices WHERE is_deleted = false AND party_id = :party_id GROUP BY party_id
+        ),
+        p_agg AS (
+            SELECT party_id, SUM(amount) AS total_paid, COUNT(id) AS payment_count
+            FROM payments WHERE is_deleted = false AND party_id = :party_id GROUP BY party_id
+        ),
+        j_agg AS (
+            SELECT party_id, SUM(amount) AS total_journal
+            FROM journal_entries WHERE is_deleted = false AND party_id = :party_id GROUP BY party_id
+        )
         SELECT
             p.id                                                                AS party_id,
             p.name                                                              AS party_name,
-            COALESCE(SUM(i.amount)   FILTER (WHERE i.is_deleted = false), 0)   AS total_invoiced,
-            COALESCE(SUM(pay.amount) FILTER (WHERE pay.is_deleted = false), 0) AS total_paid,
-            COALESCE(SUM(j.amount)   FILTER (WHERE j.is_deleted = false), 0)   AS total_journal,
-            COUNT(i.id)              FILTER (WHERE i.is_deleted = false)        AS invoice_count,
-            COUNT(pay.id)            FILTER (WHERE pay.is_deleted = false)      AS payment_count
+            COALESCE(i_agg.total_invoiced, 0)                                   AS total_invoiced,
+            COALESCE(p_agg.total_paid, 0)                                       AS total_paid,
+            COALESCE(j_agg.total_journal, 0)                                    AS total_journal,
+            COALESCE(i_agg.invoice_count, 0)                                    AS invoice_count,
+            COALESCE(p_agg.payment_count, 0)                                    AS payment_count
         FROM parties p
-        LEFT JOIN invoices        i   ON i.party_id   = p.id
-        LEFT JOIN payments        pay ON pay.party_id = p.id
-        LEFT JOIN journal_entries j   ON j.party_id   = p.id
+        LEFT JOIN i_agg ON i_agg.party_id = p.id
+        LEFT JOIN p_agg ON p_agg.party_id = p.id
+        LEFT JOIN j_agg ON j_agg.party_id = p.id
         WHERE p.id = :party_id
-        GROUP BY p.id, p.name
     """), {"party_id": party_id}).fetchone()
 
     if not row:
