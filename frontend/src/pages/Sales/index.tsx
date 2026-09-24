@@ -157,7 +157,21 @@ export function InvoicesList() {
             const status = getPaymentStatus(inv);
             const pct = Number(inv.amount) > 0 ? Math.round((1 - Number(inv.balance_due) / Number(inv.amount)) * 100) : 100;
             return (
-              <div key={inv.id} className="list-item">
+              <div 
+                key={inv.id} 
+                className="list-item" 
+                style={{ cursor: 'pointer' }}
+                onClick={async () => {
+                  try {
+                    const party = (await partiesApi.get(inv.party_id)).data;
+                    const fullInv = (await invoicesApi.get(inv.id)).data;
+                    generateAndShareInvoice(fullInv, party);
+                  } catch (err) {
+                    console.error('Failed to load invoice', err);
+                    alert('Could not load invoice details.');
+                  }
+                }}
+              >
                 <div className="list-item-icon" style={{ background: status === 'paid' ? 'var(--success-bg)' : status === 'partial' ? 'rgba(245,158,11,0.12)' : 'var(--warning-bg)' }}>
                   {status === 'paid' ? '✅' : status === 'partial' ? '⏳' : '📄'}
                 </div>
