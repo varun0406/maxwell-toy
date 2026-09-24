@@ -204,6 +204,48 @@ def party_analytics(
     )
 
 
+@router.get("/cashflow", response_model=List[schemas.CashFlowMonth])
+def cashflow_report(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Get last 6 months of cashflow
+    result = db.execute(text("""
+        WITH months AS (
+            SELECT date_trunc('month', d)::date AS month_date
+            FROM generate_series(
+                date_trunc('month', CURRENT_DATE - INTERVAL '5 months'),
+                date_trunc('month', CURRENT_DATE),
+                '1 month'::interval
+            ) d
+        ),
+        inv_agg AS (
+            SELECT date_trunc('month', invoice_date)::date AS month_date, SUM(amount) AS total_invoiced
+            FROM invoices WHERE is_deleted = false GROUP BY 1
+        ),
+        pay_agg AS (
+            SELECT date_trunc('month', payment_date)::date AS month_date, SUM(amount) AS total_collected
+            FROM payments WHERE is_deleted = false GROUP BY 1
+        )
+        SELECT 
+            TO_CHAR(m.month_date, 'Mon YYYY') AS month_name,
+            COALESCE(i.total_invoiced, 0) AS invoiced,
+            COALESCE(p.total_collected, 0) AS collected
+        FROM months m
+        LEFT JOIN inv_agg i ON m.month_date = i.month_date
+        LEFT JOIN pay_agg p ON m.month_date = p.month_date
+        ORDER BY m.month_date ASC
+    """)).fetchall()
+    
+    return [
+        schemas.CashFlowMonth(
+            month=row.month_name,
+            invoiced=row.invoiced,
+            collected=row.collected
+        ) for row in result
+    ]
+
+
 @router.get("/aging", response_model=schemas.PaginatedResponse[schemas.AgingBucket])
 def aging_report(
     skip: int = 0,
