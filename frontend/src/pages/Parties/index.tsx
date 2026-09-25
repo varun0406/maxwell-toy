@@ -691,78 +691,82 @@ function AddPartyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-sheet" style={{ maxWidth: 800 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-handle" />
         <h2 className="modal-title">New Party</h2>
         {err && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{err}</div>}
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: 8, paddingBottom: 16 }}>
-            <h4 style={{ margin: '8px 0', fontSize: 14, color: 'var(--accent-glow)' }}>General</h4>
-            <div className="form-group">
-              <label className="form-label">Name *</label>
-              <input className="form-input" placeholder="Party / Company name" {...register('name')} />
-              {errors.name && <span className="form-error">{errors.name.message}</span>}
-            </div>
-            <div className="form-group">
-              <label className="form-label">Agent Name</label>
-              <input className="form-input" placeholder="e.g. Rahul Agent" {...register('agent_name')} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Phone</label>
-                <input className="form-input" type="tel" placeholder="+91 9999999999" {...register('phone')} />
+          <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 8, paddingBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+            <div>
+              <h4 style={{ margin: '8px 0', fontSize: 14, color: 'var(--accent-glow)' }}>General</h4>
+              <div className="form-group">
+                <label className="form-label">Name *</label>
+                <input className="form-input" placeholder="Party / Company name" {...register('name')} />
+                {errors.name && <span className="form-error">{errors.name.message}</span>}
               </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Email</label>
-                <input className="form-input" type="email" placeholder="party@email.com" {...register('email')} />
+              <div className="form-group">
+                <label className="form-label">Agent Name</label>
+                <input className="form-input" placeholder="e.g. Rahul Agent" {...register('agent_name')} />
               </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">PINCODE</label>
-              <input className="form-input" placeholder="380001" {...register('gstin')} />
-            </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Phone</label>
+                  <input className="form-input" type="tel" placeholder="+91 9999999999" {...register('phone')} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Email</label>
+                  <input className="form-input" type="email" placeholder="party@email.com" {...register('email')} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">PINCODE</label>
+                <input className="form-input" placeholder="380001" {...register('gstin')} />
+              </div>
 
-            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Categorization & Reminders</h4>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Area</label>
-                <input className="form-input" placeholder="e.g. North Zone" {...register('area')} />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Reminder Date</label>
-                <input className="form-input" type="date" {...register('reminder_date')} />
-              </div>
-            </div>
-
-            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Billing Address</h4>
-            <div className="form-group">
-              <input className="form-input" placeholder="Line 1" {...register('billing_address_line1')} />
-            </div>
-            <div className="form-group">
-              <input className="form-input" placeholder="Line 2" {...register('billing_address_line2')} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <input className="form-input" placeholder="Line 3" {...register('billing_address_line3')} />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <input className="form-input" placeholder="City" {...register('billing_city')} />
+              <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Categorization & Reminders</h4>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Area</label>
+                  <input className="form-input" placeholder="e.g. North Zone" {...register('area')} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Reminder Date</label>
+                  <input className="form-input" type="date" {...register('reminder_date')} />
+                </div>
               </div>
             </div>
 
-            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Shipping Address</h4>
-            <div className="form-group">
-              <input className="form-input" placeholder="Line 1" {...register('shipping_address_line1')} />
-            </div>
-            <div className="form-group">
-              <input className="form-input" placeholder="Line 2" {...register('shipping_address_line2')} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <input className="form-input" placeholder="Line 3" {...register('shipping_address_line3')} />
+            <div>
+              <h4 style={{ margin: '8px 0', fontSize: 14, color: 'var(--accent-glow)' }}>Billing Address</h4>
+              <div className="form-group">
+                <input className="form-input" placeholder="Line 1" {...register('billing_address_line1')} />
               </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <input className="form-input" placeholder="City" {...register('shipping_city')} />
+              <div className="form-group">
+                <input className="form-input" placeholder="Line 2" {...register('billing_address_line2')} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <input className="form-input" placeholder="Line 3" {...register('billing_address_line3')} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <input className="form-input" placeholder="City" {...register('billing_city')} />
+                </div>
+              </div>
+
+              <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Shipping Address</h4>
+              <div className="form-group">
+                <input className="form-input" placeholder="Line 1" {...register('shipping_address_line1')} />
+              </div>
+              <div className="form-group">
+                <input className="form-input" placeholder="Line 2" {...register('shipping_address_line2')} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <input className="form-input" placeholder="Line 3" {...register('shipping_address_line3')} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <input className="form-input" placeholder="City" {...register('shipping_city')} />
+                </div>
               </div>
             </div>
           </div>
@@ -812,78 +816,82 @@ function EditPartyModal({ party, onClose, onSuccess }: { party: any; onClose: ()
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-sheet" style={{ maxWidth: 800 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-handle" />
         <h2 className="modal-title">Edit Party</h2>
         {err && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{err}</div>}
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: 8, paddingBottom: 16 }}>
-            <h4 style={{ margin: '8px 0', fontSize: 14, color: 'var(--accent-glow)' }}>General</h4>
-            <div className="form-group">
-              <label className="form-label">Name *</label>
-              <input className="form-input" placeholder="Party / Company name" {...register('name')} />
-              {errors.name && <span className="form-error">{errors.name.message}</span>}
-            </div>
-            <div className="form-group">
-              <label className="form-label">Agent Name</label>
-              <input className="form-input" placeholder="e.g. Rahul Agent" {...register('agent_name')} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Phone</label>
-                <input className="form-input" type="tel" placeholder="+91 9999999999" {...register('phone')} />
+          <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 8, paddingBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+            <div>
+              <h4 style={{ margin: '8px 0', fontSize: 14, color: 'var(--accent-glow)' }}>General</h4>
+              <div className="form-group">
+                <label className="form-label">Name *</label>
+                <input className="form-input" placeholder="Party / Company name" {...register('name')} />
+                {errors.name && <span className="form-error">{errors.name.message}</span>}
               </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Email</label>
-                <input className="form-input" type="email" placeholder="party@email.com" {...register('email')} />
+              <div className="form-group">
+                <label className="form-label">Agent Name</label>
+                <input className="form-input" placeholder="e.g. Rahul Agent" {...register('agent_name')} />
               </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">PINCODE</label>
-              <input className="form-input" placeholder="380001" {...register('gstin')} />
-            </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Phone</label>
+                  <input className="form-input" type="tel" placeholder="+91 9999999999" {...register('phone')} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Email</label>
+                  <input className="form-input" type="email" placeholder="party@email.com" {...register('email')} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">PINCODE</label>
+                <input className="form-input" placeholder="380001" {...register('gstin')} />
+              </div>
 
-            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Categorization & Reminders</h4>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Area</label>
-                <input className="form-input" placeholder="e.g. North Zone" {...register('area')} />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Reminder Date</label>
-                <input className="form-input" type="date" {...register('reminder_date')} />
-              </div>
-            </div>
-
-            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Billing Address</h4>
-            <div className="form-group">
-              <input className="form-input" placeholder="Line 1" {...register('billing_address_line1')} />
-            </div>
-            <div className="form-group">
-              <input className="form-input" placeholder="Line 2" {...register('billing_address_line2')} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <input className="form-input" placeholder="Line 3" {...register('billing_address_line3')} />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <input className="form-input" placeholder="City" {...register('billing_city')} />
+              <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Categorization & Reminders</h4>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Area</label>
+                  <input className="form-input" placeholder="e.g. North Zone" {...register('area')} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Reminder Date</label>
+                  <input className="form-input" type="date" {...register('reminder_date')} />
+                </div>
               </div>
             </div>
 
-            <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Shipping Address</h4>
-            <div className="form-group">
-              <input className="form-input" placeholder="Line 1" {...register('shipping_address_line1')} />
-            </div>
-            <div className="form-group">
-              <input className="form-input" placeholder="Line 2" {...register('shipping_address_line2')} />
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <input className="form-input" placeholder="Line 3" {...register('shipping_address_line3')} />
+            <div>
+              <h4 style={{ margin: '8px 0', fontSize: 14, color: 'var(--accent-glow)' }}>Billing Address</h4>
+              <div className="form-group">
+                <input className="form-input" placeholder="Line 1" {...register('billing_address_line1')} />
               </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <input className="form-input" placeholder="City" {...register('shipping_city')} />
+              <div className="form-group">
+                <input className="form-input" placeholder="Line 2" {...register('billing_address_line2')} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <input className="form-input" placeholder="Line 3" {...register('billing_address_line3')} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <input className="form-input" placeholder="City" {...register('billing_city')} />
+                </div>
+              </div>
+
+              <h4 style={{ margin: '16px 0 8px', fontSize: 14, color: 'var(--accent-glow)' }}>Shipping Address</h4>
+              <div className="form-group">
+                <input className="form-input" placeholder="Line 1" {...register('shipping_address_line1')} />
+              </div>
+              <div className="form-group">
+                <input className="form-input" placeholder="Line 2" {...register('shipping_address_line2')} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <input className="form-input" placeholder="Line 3" {...register('shipping_address_line3')} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <input className="form-input" placeholder="City" {...register('shipping_city')} />
+                </div>
               </div>
             </div>
           </div>
