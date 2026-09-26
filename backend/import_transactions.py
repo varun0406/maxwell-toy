@@ -183,11 +183,19 @@ def import_transactions(file_path):
         root = ET.fromstring(content)
 
     session = SessionLocal()
-    stats = {'sales': 0, 'returns': 0, 'payments': 0, 'journals': 0, 'adj_payments': 0}
+    stats = {
+        'sales_found': 0, 'sales_imported': 0, 'sales_skipped': 0,
+        'returns_found': 0, 'returns_imported': 0, 'returns_skipped': 0,
+        'payments_found': 0, 'payments_imported': 0, 'payments_skipped': 0,
+        'journals_found': 0, 'journals_imported': 0, 'journals_skipped': 0,
+        'crnts_found': 0, 'crnts_imported': 0, 'crnts_skipped': 0,
+        'adj_payments_imported': 0
+    }
 
     # ── 1. SALES ───────────────────────────────────────
     print("\n[1/4] Importing Sales...")
     for sale in root.findall('.//Sales/Sale'):
+        stats['sales_found'] += 1
         vch_no = sale.findtext('VchNo', '').strip()
         date_str = sale.findtext('Date', '')
         party_name = sale.findtext('MasterName1', '').strip()
@@ -195,9 +203,11 @@ def import_transactions(file_path):
         party = get_or_create_party(session, party_name)
         if not party:
             print(f"  SKIP (no party): {vch_no}")
+            stats['sales_skipped'] += 1
             continue
 
         if session.query(Invoice).filter(Invoice.invoice_number == vch_no).first():
+            stats['sales_skipped'] += 1
             continue  # already imported
 
         amount = to_decimal(sale.findtext('tmpTotalAmt', '0'))
@@ -220,11 +230,12 @@ def import_transactions(file_path):
         if abs(diff) > Decimal('0.01'):
             add_adjustment_item(session, invoice, diff, sale)
 
-        stats['sales'] += 1
+        stats['sales_imported'] += 1
 
     # ── 2. SALE RETURNS ────────────────────────────────
     print("\n[2/4] Importing Sale Returns (Credit Notes)...")
     for slrt in root.findall('.//SlRts/SaleReturn'):
+        stats['returns_found'] += 1
         vch_no = slrt.findtext('VchNo', '').strip()
         inv_no = f"SR-{vch_no}"
         date_str = slrt.findtext('Date', '')
@@ -232,9 +243,11 @@ def import_transactions(file_path):
 
         party = get_or_create_party(session, party_name)
         if not party:
+            stats['returns_skipped'] += 1
             continue
 
         if session.query(Invoice).filter(Invoice.invoice_number == inv_no).first():
+            stats['returns_skipped'] += 1
             continue
 
         # Amount is negative (reduces outstanding)
@@ -285,11 +298,12 @@ def import_transactions(file_path):
         if abs(diff) > Decimal('0.01'):
             add_adjustment_item(session, invoice, diff, slrt)
 
-        stats['returns'] += 1
+        stats['returns_imported'] += 1
 
     # ── 3. RECEIPTS ────────────────────────────────────
     print("\n[3/4] Importing Receipts...")
     for rcpt in root.findall('.//Rcpts/Receipt'):
+        stats['payments_found'] += 1
         date_str = rcpt.findtext('Date', '')
         party = None
         amount = Decimal('0')
@@ -322,6 +336,20 @@ def import_transactions(file_path):
             note = nar
 
         if not party or amount == 0:
+            stats['payments_skipped'] += 1
+            continue
+
+        p_date = parse_date(date_str)
+        # Check for duplicate payment (same date, party, amount, and note)
+        existing_payment = session.query(Payment).filter(
+            Payment.party_id == party.id,
+            Payment.amount == amount,
+            Payment.payment_date == p_date,
+            Payment.note == note
+        ).first()
+        
+        if existing_payment:
+            stats['payments_skipped'] += 1
             continue
 
         payment = Payment(
@@ -329,7 +357,7 @@ def import_transactions(file_path):
             created_by=1,
             amount=amount,
             unallocated=amount,
-            payment_date=parse_date(date_str),
+            payment_date=p_date,
             mode=mode,
             note=note
         )
@@ -339,12 +367,14 @@ def import_transactions(file_path):
         if debtor_acc is not None:
             allocate_bill_refs(session, payment, debtor_acc.find('BillRefs'))
 
-        stats['payments'] += 1
+        stats['payments_imported'] += 1
 
     # ── 4. JOURNALS ────────────────────────────────────
     print("\n[4/4] Importing Journal Entries...")
     for jrnl in root.findall('.//Jrnls/Journal'):
+        stats['journals_found'] += 1
         date_str = jrnl.findtext('Date', '')
+        p_date = parse_date(date_str)
         vch_other = jrnl.find('VchOtherInfoDetails')
         jrnl_nar = narration(vch_other)
 
@@ -384,34 +414,61 @@ def import_transactions(file_path):
 
             # Credit journal with specific bill refs → treat as Adjustment Payment
             if je_amt < 0 and has_bill_refs:
+                # Basic duplicate check
+                existing_adj = session.query(Payment).filter(
+                    Payment.party_id == party.id,
+                    Payment.amount == abs(je_amt),
+                    Payment.payment_date == p_date,
+                    Payment.note == desc,
+                    Payment.mode == 'adjustment'
+                ).first()
+                
+                if existing_adj:
+                    stats['journals_skipped'] += 1
+                    continue
+                    
                 payment = Payment(
                     party_id=party.id,
                     created_by=1,
                     amount=abs(je_amt),
                     unallocated=abs(je_amt),
-                    payment_date=parse_date(date_str),
+                    payment_date=p_date,
                     mode='adjustment',
                     note=desc
                 )
                 session.add(payment)
                 session.flush()
                 allocate_bill_refs(session, payment, bill_refs_node)
-                stats['adj_payments'] += 1
+                stats['adj_payments_imported'] += 1
+                stats['journals_imported'] += 1
             else:
+                # Basic duplicate check
+                existing_je = session.query(JournalEntry).filter(
+                    JournalEntry.party_id == party.id,
+                    JournalEntry.amount == je_amt,
+                    JournalEntry.entry_date == p_date,
+                    JournalEntry.description == desc
+                ).first()
+                
+                if existing_je:
+                    stats['journals_skipped'] += 1
+                    continue
+                    
                 session.add(JournalEntry(
                     party_id=party.id,
                     created_by=1,
                     amount=je_amt,
-                    entry_date=parse_date(date_str),
+                    entry_date=p_date,
                     description=desc
                 ))
-                stats['journals'] += 1
+                stats['journals_imported'] += 1
 
     # ── 5. CREDIT NOTES (CrNts) ───────────────────────
     crnts = root.findall('.//CrNts/CrNt')
     if crnts:
         print(f"\n[5/5] Importing Credit Notes ({len(crnts)} records)...")
         for crnt in crnts:
+            stats['crnts_found'] += 1
             vch_no = crnt.findtext('VchNo', '').strip()
             inv_no = f"CN-{vch_no}"
             date_str = crnt.findtext('Date', '')
@@ -419,9 +476,11 @@ def import_transactions(file_path):
 
             party = get_or_create_party(session, party_name)
             if not party:
+                stats['crnts_skipped'] += 1
                 continue
 
             if session.query(Invoice).filter(Invoice.invoice_number == inv_no).first():
+                stats['crnts_skipped'] += 1
                 continue
 
             raw_amt = to_decimal(crnt.findtext('tmpTotalAmt', '0'))
@@ -468,19 +527,22 @@ def import_transactions(file_path):
             if abs(diff) > Decimal('0.01'):
                 add_adjustment_item(session, invoice, diff, crnt)
 
-            stats['returns'] += 1
+            stats['crnts_imported'] += 1
 
     session.commit()
     session.close()
 
-    print("\n" + "=" * 50)
+    print("\n" + "=" * 65)
     print(f"IMPORT COMPLETE: {file_path}")
-    print(f"  Sales Invoices  : {stats['sales']}")
-    print(f"  Sale Returns    : {stats['returns']} (incl. Credit Notes)")
-    print(f"  Receipts        : {stats['payments']}")
-    print(f"  Adj. Journals   : {stats['adj_payments']}")
-    print(f"  Journal Entries : {stats['journals']}")
-    print("=" * 50)
+    print("-" * 65)
+    print(f"  Sales Invoices  | Found: {stats['sales_found']:<5} | Imported: {stats['sales_imported']:<5} | Skipped: {stats['sales_skipped']}")
+    print(f"  Sale Returns    | Found: {stats['returns_found']:<5} | Imported: {stats['returns_imported']:<5} | Skipped: {stats['returns_skipped']}")
+    print(f"  Credit Notes    | Found: {stats['crnts_found']:<5} | Imported: {stats['crnts_imported']:<5} | Skipped: {stats['crnts_skipped']}")
+    print(f"  Receipts        | Found: {stats['payments_found']:<5} | Imported: {stats['payments_imported']:<5} | Skipped: {stats['payments_skipped']}")
+    print(f"  Journal Entries | Found: {stats['journals_found']:<5} | Imported: {stats['journals_imported']:<5} | Skipped: {stats['journals_skipped']}")
+    print("-" * 65)
+    print(f"  (Note: Journals included {stats['adj_payments_imported']} Adjustment Payments)")
+    print("=" * 65)
 
 
 if __name__ == "__main__":
