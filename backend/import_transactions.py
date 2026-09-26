@@ -45,6 +45,36 @@ def get_or_create_party(session, name):
     return party
 
 
+def extract_address(node):
+    """Extract address from BillingDetails if present."""
+    billing_details = node.find('BillingDetails')
+    if billing_details is None:
+        return None
+        
+    parts = [
+        billing_details.findtext('Address1', '').strip(),
+        billing_details.findtext('Address2', '').strip(),
+        billing_details.findtext('Address3', '').strip(),
+        billing_details.findtext('Address4', '').strip(),
+    ]
+    parts = [p for p in parts if p]
+    return ", ".join(parts) if parts else None
+
+
+def get_party_address(party):
+    """Combine party's billing address fields into a single string."""
+    if not party:
+        return None
+    parts = [
+        party.billing_address_line1,
+        party.billing_address_line2,
+        party.billing_address_line3,
+        party.billing_city
+    ]
+    parts = [p.strip() for p in parts if p and p.strip()]
+    return ", ".join(parts) if parts else None
+
+
 def narration(vch_other_node):
     """Combine Narration1 + Narration2 if both present."""
     if vch_other_node is None:
@@ -212,6 +242,9 @@ def import_transactions(file_path):
 
         amount = to_decimal(sale.findtext('tmpTotalAmt', '0'))
         desc = build_sale_description(vch_no, sale)
+        
+        party_billing_addr = get_party_address(party)
+        transaction_addr = extract_address(sale)
 
         invoice = Invoice(
             invoice_number=vch_no,
@@ -220,7 +253,9 @@ def import_transactions(file_path):
             amount=amount,
             balance_due=amount,
             invoice_date=parse_date(date_str),
-            description=desc
+            description=desc,
+            billing_address=party_billing_addr,
+            shipping_address=transaction_addr or party_billing_addr
         )
         session.add(invoice)
         session.flush()
@@ -262,6 +297,9 @@ def import_transactions(file_path):
         nar = narration(vch_other)
         if nar:
             desc_parts.append(nar)
+            
+        party_billing_addr = get_party_address(party)
+        transaction_addr = extract_address(slrt)
 
         invoice = Invoice(
             invoice_number=inv_no,
@@ -270,7 +308,9 @@ def import_transactions(file_path):
             amount=amount,
             balance_due=amount,
             invoice_date=parse_date(date_str),
-            description=" | ".join(desc_parts)
+            description=" | ".join(desc_parts),
+            billing_address=party_billing_addr,
+            shipping_address=transaction_addr or party_billing_addr
         )
         session.add(invoice)
         session.flush()
@@ -494,6 +534,9 @@ def import_transactions(file_path):
             nar = narration(vch_other)
             if nar:
                 desc_parts.append(nar)
+                
+            party_billing_addr = get_party_address(party)
+            transaction_addr = extract_address(crnt)
 
             invoice = Invoice(
                 invoice_number=inv_no,
@@ -502,7 +545,9 @@ def import_transactions(file_path):
                 amount=amount,
                 balance_due=amount,
                 invoice_date=parse_date(date_str),
-                description=" | ".join(desc_parts)
+                description=" | ".join(desc_parts),
+                billing_address=party_billing_addr,
+                shipping_address=transaction_addr or party_billing_addr
             )
             session.add(invoice)
             session.flush()
