@@ -134,6 +134,7 @@ def import_parties(file_path):
                 notes=notes,
                 is_active=True,
                 created_by=1 # assuming admin user id 1
+            )
             session.add(new_party)
             session.flush() # flush to get new_party.id
             party_record = new_party
