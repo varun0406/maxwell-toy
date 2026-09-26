@@ -205,4 +205,11 @@ def import_parties(file_path):
     print(f"Import complete! Added {added_count} and updated {updated_count} Sundry Debtors.")
 
 if __name__ == "__main__":
-    import_parties("../BUSY.DAT")
+    import sys as _sys
+    # Support passing multiple files as CLI args, e.g.:
+    #   python import_parties.py ../BUSY.DAT "../BUSY 25-26.DAT"
+    # BUSY.DAT (current year) should come FIRST so its data takes priority.
+    # BUSY 25-26.DAT (last year) fills in any parties that were active last year.
+    files = _sys.argv[1:] if len(_sys.argv) > 1 else ["../BUSY.DAT"]
+    for f in files:
+        import_parties(f)
