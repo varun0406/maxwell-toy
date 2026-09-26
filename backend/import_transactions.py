@@ -407,13 +407,76 @@ def import_transactions(file_path):
                 ))
                 stats['journals'] += 1
 
+    # ── 5. CREDIT NOTES (CrNts) ───────────────────────
+    crnts = root.findall('.//CrNts/CrNt')
+    if crnts:
+        print(f"\n[5/5] Importing Credit Notes ({len(crnts)} records)...")
+        for crnt in crnts:
+            vch_no = crnt.findtext('VchNo', '').strip()
+            inv_no = f"CN-{vch_no}"
+            date_str = crnt.findtext('Date', '')
+            party_name = crnt.findtext('MasterName1', '').strip()
+
+            party = get_or_create_party(session, party_name)
+            if not party:
+                continue
+
+            if session.query(Invoice).filter(Invoice.invoice_number == inv_no).first():
+                continue
+
+            raw_amt = to_decimal(crnt.findtext('tmpTotalAmt', '0'))
+            amount = -abs(raw_amt)  # Credit Note reduces outstanding
+
+            vch_other = crnt.find('VchOtherInfoDetails')
+            desc_parts = ["Credit Note"]
+            orig_ref = crnt.findtext('.//VchOtherInfoDetails/PurchaseBillNo', '').strip()
+            if orig_ref:
+                desc_parts.append(f"Against: {orig_ref}")
+            nar = narration(vch_other)
+            if nar:
+                desc_parts.append(nar)
+
+            invoice = Invoice(
+                invoice_number=inv_no,
+                party_id=party.id,
+                created_by=1,
+                amount=amount,
+                balance_due=amount,
+                invoice_date=parse_date(date_str),
+                description=" | ".join(desc_parts)
+            )
+            session.add(invoice)
+            session.flush()
+
+            # Items
+            item_sum = Decimal('0')
+            for item in crnt.findall('.//ItemEntries/ItemDetail'):
+                item_name = item.findtext('ItemName', 'Unknown').strip()
+                qty = to_decimal(item.findtext('QtyMainUnit', '0'))
+                price = to_decimal(item.findtext('Price', '0'))
+                amt = -abs(to_decimal(item.findtext('Amt', '0')))
+                session.add(InvoiceItem(
+                    invoice_id=invoice.id,
+                    item_name=item_name,
+                    meter=qty,
+                    rate=price,
+                    total=amt
+                ))
+                item_sum += amt
+
+            diff = amount - item_sum
+            if abs(diff) > Decimal('0.01'):
+                add_adjustment_item(session, invoice, diff, crnt)
+
+            stats['returns'] += 1
+
     session.commit()
     session.close()
 
     print("\n" + "=" * 50)
-    print("IMPORT COMPLETE!")
+    print(f"IMPORT COMPLETE: {file_path}")
     print(f"  Sales Invoices  : {stats['sales']}")
-    print(f"  Sale Returns    : {stats['returns']}")
+    print(f"  Sale Returns    : {stats['returns']} (incl. Credit Notes)")
     print(f"  Receipts        : {stats['payments']}")
     print(f"  Adj. Journals   : {stats['adj_payments']}")
     print(f"  Journal Entries : {stats['journals']}")
@@ -421,4 +484,9 @@ def import_transactions(file_path):
 
 
 if __name__ == "__main__":
-    import_transactions("../TR.DAT")
+    import sys as _sys
+    # Support passing multiple files as CLI args, e.g.:
+    #   python import_transactions.py "../BUSY 25-26.DAT" ../TR.DAT
+    files = _sys.argv[1:] if len(_sys.argv) > 1 else ["../TR.DAT"]
+    for f in files:
+        import_transactions(f)
