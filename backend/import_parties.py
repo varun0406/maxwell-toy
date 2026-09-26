@@ -165,6 +165,13 @@ def import_parties(file_path):
                 if not ref_no or val == 0:
                     continue
 
+                # IMPORTANT: Skip bills that will be imported as real transactions.
+                # 25-26 and 26-27 vouchers come from BUSY 25-26.DAT and TR.DAT respectively.
+                # Only create OB Invoices for bills older than 25-26 (e.g., 24-25 and before).
+                ref_prefix = ref_no[:5]  # e.g. "25-26" or "24-25"
+                if ref_prefix in ('25-26', '26-27'):
+                    continue
+
                 # Skip if already imported (e.g. duplicate run)
                 existing_inv = session.query(Invoice).filter(Invoice.invoice_number == ref_no).first()
                 if not existing_inv:
