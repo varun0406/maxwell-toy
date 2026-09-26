@@ -380,17 +380,6 @@ def import_transactions(file_path):
             continue
 
         p_date = parse_date(date_str)
-        # Check for duplicate payment (same date, party, amount, and note)
-        existing_payment = session.query(Payment).filter(
-            Payment.party_id == party.id,
-            Payment.amount == amount,
-            Payment.payment_date == p_date,
-            Payment.note == note
-        ).first()
-        
-        if existing_payment:
-            stats['payments_skipped'] += 1
-            continue
 
         payment = Payment(
             party_id=party.id,
@@ -454,19 +443,6 @@ def import_transactions(file_path):
 
             # Credit journal with specific bill refs → treat as Adjustment Payment
             if je_amt < 0 and has_bill_refs:
-                # Basic duplicate check
-                existing_adj = session.query(Payment).filter(
-                    Payment.party_id == party.id,
-                    Payment.amount == abs(je_amt),
-                    Payment.payment_date == p_date,
-                    Payment.note == desc,
-                    Payment.mode == 'adjustment'
-                ).first()
-                
-                if existing_adj:
-                    stats['journals_skipped'] += 1
-                    continue
-                    
                 payment = Payment(
                     party_id=party.id,
                     created_by=1,
@@ -482,18 +458,6 @@ def import_transactions(file_path):
                 stats['adj_payments_imported'] += 1
                 stats['journals_imported'] += 1
             else:
-                # Basic duplicate check
-                existing_je = session.query(JournalEntry).filter(
-                    JournalEntry.party_id == party.id,
-                    JournalEntry.amount == je_amt,
-                    JournalEntry.entry_date == p_date,
-                    JournalEntry.description == desc
-                ).first()
-                
-                if existing_je:
-                    stats['journals_skipped'] += 1
-                    continue
-                    
                 session.add(JournalEntry(
                     party_id=party.id,
                     created_by=1,
