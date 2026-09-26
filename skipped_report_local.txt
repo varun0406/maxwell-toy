@@ -1,0 +1,35 @@
+
+--- BUSY 24-25.DAT ---
+Total Skipped Sales in BUSY 24-25.DAT: 0
+Total Skipped Receipts in BUSY 24-25.DAT: 0
+
+--- BUSY 25-26.DAT ---
+Skipping Receipt on 01-04-2025: Party='None', Amount=0
+Skipping Receipt on 01-04-2025: Party='None', Amount=0
+Skipping Receipt on 01-04-2025: Party='None', Amount=0
+Skipping Receipt on 02-04-2025: Party='None', Amount=0
+Skipping Receipt on 02-04-2025: Party='None', Amount=0
+Skipping Receipt on 02-04-2025: Party='None', Amount=0
+Skipping Receipt on 03-04-2025: Party='None', Amount=0
+Skipping Receipt on 03-04-2025: Party='None', Amount=0
+Skipping Receipt on 03-04-2025: Party='None', Amount=0
+Skipping Receipt on 03-04-2025: Party='None', Amount=0
+Skipping Receipt on 03-04-2025: Party='None', Amount=0
+Skipping Receipt on 03-04-2025: Party='None', Amount=0
+Skipping Receipt on 04-04-2025: Party='None', Amount=0
+Skipping Receipt on 04-04-2025: Party='None', Amount=0
+Skipping Receipt on 06-04-2025: Party='None', Amount=0
+Skipping Receipt on 06-04-2025: Party='None', Amount=0
+Skipping Receipt on 06-04-2025: Party='None', Amount=0
+Skipping Receipt on 06-04-2025: Party='None', Amount=0
+Skipping Receipt on 06-04-2025: Party='None', Amount=0
+Skipping Receipt on 06-04-2025: Party='None', Amount=0
+Skipping Receipt on 06-04-2025: Party='None', Amount=0
+Skipping Receipt on 06-04-2025: Party='None', Amount=0
+Total Skipped Sales in BUSY 25-26.DAT: 0
+Total Skipped Receipts in BUSY 25-26.DAT: 22
+
+--- BUSY26-27..DAT ---
+Skipping Receipt on 07-05-2026: Party='None', Amount=0
+Total Skipped Sales in BUSY26-27..DAT: 0
+Total Skipped Receipts in BUSY26-27..DAT: 1

@@ -375,9 +375,8 @@ def import_transactions(file_path):
         if nar:
             note = nar
 
-        if not party or amount == 0:
-            stats['payments_skipped'] += 1
-            continue
+        if not party:
+            party = get_or_create_party(session, "UNKNOWN PARTY (SYSTEM)")
 
         p_date = parse_date(date_str)
 
@@ -419,9 +418,7 @@ def import_transactions(file_path):
                 continue
 
             party_name = acc.findtext('AccountName', '').strip()
-            party = get_or_create_party(session, party_name)
-            if not party:
-                continue
+            party = get_or_create_party(session, party_name if party_name else "UNKNOWN PARTY (SYSTEM)")
 
             amt_str = acc.findtext('AmtMainCur', '0')
             amt_type = acc.findtext('AmountType', '1')
@@ -429,7 +426,7 @@ def import_transactions(file_path):
             je_amt = -raw if amt_type == '2' else raw  # 2=Credit, reduces balance
 
             if je_amt == 0:
-                continue
+                pass # Still import it to avoid skipping
 
             desc = jrnl_nar or acc.findtext('ShortNar', '').strip()
             if not desc:

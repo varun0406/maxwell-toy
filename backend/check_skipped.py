@@ -11,7 +11,7 @@ def parse_date(d):
         pass
     return d
 
-tree = ET.parse('BUSY26-27..DAT')
+tree = ET.parse('BUSY 25-26.DAT')
 root = tree.getroot()
 
 receipts = root.findall('.//Rcpts/Receipt')
