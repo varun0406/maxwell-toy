@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.models import Party, Invoice, InvoiceItem, Payment, JournalEntry
+from app.models import Party, Invoice, InvoiceItem, Payment, JournalEntry, PaymentAllocation
 from app.database import SessionLocal
 
 def parse_date(date_str):
@@ -33,6 +33,47 @@ def get_amount(amt_str, amount_type):
         return val
     except:
         return Decimal('0')
+
+def allocate_bill_refs(session, payment, bill_refs_node):
+    """Parses <BillRefs> and creates PaymentAllocations for a given Payment."""
+    if bill_refs_node is None:
+        return
+        
+    for bd in bill_refs_node.findall('BillDetails'):
+        ref_no = bd.findtext('RefNo')
+        val_str = bd.findtext('Value1', '0')
+        
+        try:
+            alloc_amt = abs(Decimal(val_str))
+        except:
+            continue
+            
+        if not ref_no or alloc_amt == 0:
+            continue
+            
+        # Find invoice
+        invoice = session.query(Invoice).filter(Invoice.invoice_number == ref_no).first()
+        if not invoice:
+            continue
+            
+        # Cap allocation to whatever is available
+        actual_alloc = min(alloc_amt, payment.unallocated, invoice.balance_due)
+        if actual_alloc <= 0:
+            continue
+            
+        allocation = PaymentAllocation(
+            payment_id=payment.id,
+            invoice_id=invoice.id,
+            allocated_amount=actual_alloc
+        )
+        session.add(allocation)
+        
+        # Update balances
+        payment.unallocated -= actual_alloc
+        invoice.balance_due -= actual_alloc
+        if invoice.balance_due <= 0:
+            invoice.is_paid = True
+
 
 def import_transactions(file_path):
     print(f"Reading {file_path}...")
@@ -73,7 +114,6 @@ def import_transactions(file_path):
         except:
             amount = Decimal('0')
             
-        # Try to find description / narration
         description = f"Sale Vch {vch_no}"
         
         invoice = Invoice(
@@ -115,7 +155,6 @@ def import_transactions(file_path):
             session.add(inv_item)
             item_sum += item_amt
             
-        # Adjust for total mismatch (Taxes/Brokerage/Rounding)
         diff = amount - item_sum
         if abs(diff) > Decimal('0.01'):
             adj_item = InvoiceItem(
@@ -165,15 +204,16 @@ def import_transactions(file_path):
     print("Importing Receipts...")
     for rcpt in root.findall('.//Rcpts/Receipt'):
         date_str = rcpt.findtext('Date', '')
-        
         party = None
         amount = Decimal('0')
         note = "Imported from TR.DAT"
         mode = "cash"
         
+        debtor_acc = None
         for acc in rcpt.findall('.//AccEntries/AccDetail'):
             grp = acc.findtext('tmpGroupName', '')
             if grp == 'Sundry Debtors':
+                debtor_acc = acc
                 party_name = acc.findtext('AccountName', '')
                 party = get_party(session, party_name)
                 
@@ -206,13 +246,18 @@ def import_transactions(file_path):
             note=note
         )
         session.add(payment)
+        session.flush() # flush to get payment.id
+        
+        # Parse Allocations
+        if debtor_acc is not None:
+            allocate_bill_refs(session, payment, debtor_acc.find('BillRefs'))
+            
         payments_added += 1
         
     # 4. Import Journals
     print("Importing Journal Entries...")
     for jrnl in root.findall('.//Jrnls/Journal'):
         date_str = jrnl.findtext('Date', '')
-        vch_no = jrnl.findtext('VchNo', '')
         
         for acc in jrnl.findall('.//AccEntries/AccDetail'):
             grp = acc.findtext('tmpGroupName', '')
@@ -230,7 +275,6 @@ def import_transactions(file_path):
                 if je_amt == 0:
                     continue
                     
-                # Find the contra account name for description
                 contra_acc = ""
                 for c_acc in jrnl.findall('.//AccEntries/AccDetail'):
                     if c_acc.findtext('AccountName') != party_name:
@@ -241,19 +285,36 @@ def import_transactions(file_path):
                 if not desc:
                     desc = f"Journal: {contra_acc}" if contra_acc else "Journal Entry"
                 
-                je = JournalEntry(
-                    party_id=party.id,
-                    created_by=1,
-                    amount=je_amt,
-                    entry_date=parse_date(date_str),
-                    description=desc
-                )
-                session.add(je)
-                journals_added += 1
+                bill_refs = acc.find('BillRefs')
+                # If this journal is a Credit (-) and has BillRefs, treat as Payment so we can allocate it to the Invoice!
+                if je_amt < 0 and bill_refs is not None and list(bill_refs):
+                    payment = Payment(
+                        party_id=party.id,
+                        created_by=1,
+                        amount=abs(je_amt),
+                        unallocated=abs(je_amt),
+                        payment_date=parse_date(date_str),
+                        mode='adjustment',
+                        note=desc
+                    )
+                    session.add(payment)
+                    session.flush()
+                    allocate_bill_refs(session, payment, bill_refs)
+                    payments_added += 1
+                else:
+                    je = JournalEntry(
+                        party_id=party.id,
+                        created_by=1,
+                        amount=je_amt,
+                        entry_date=parse_date(date_str),
+                        description=desc
+                    )
+                    session.add(je)
+                    journals_added += 1
 
     session.commit()
     session.close()
-    print(f"Import complete! Added {invoices_added} invoices/returns, {payments_added} payments, and {journals_added} journal entries.")
+    print(f"Import complete! Added {invoices_added} invoices/returns, {payments_added} payments (incl. adjusting journals), and {journals_added} journal entries.")
 
 if __name__ == "__main__":
     import_transactions("../TR.DAT")
