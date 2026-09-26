@@ -6,8 +6,10 @@ from sqlalchemy.orm import sessionmaker
 
 # Add the current directory to sys.path to import app modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.models import Party
+from app.models import Party, JournalEntry
 from app.database import SessionLocal
+from decimal import Decimal
+from datetime import datetime, timezone
 
 def import_parties(file_path):
     print(f"Reading {file_path}...")
@@ -60,9 +62,13 @@ def import_parties(file_path):
             if phone and len(phone) > 20:
                 phone = phone[:20]
                 
-            gstin = address_node.findtext('PINCode', None)
+            gstin = address_node.findtext('GSTNo', None)
             if gstin and len(gstin) > 20:
                 gstin = gstin[:20]
+                
+            email = address_node.findtext('Email', None)
+            if email and len(email) > 120:
+                email = email[:120]
                 
             addr1 = address_node.findtext('Address1', None)
             if addr1 and len(addr1) > 255:
@@ -108,8 +114,10 @@ def import_parties(file_path):
             existing.billing_address_line3 = addr3 or existing.billing_address_line3
             existing.billing_city = city or existing.billing_city
             existing.gstin = gstin or existing.gstin
+            existing.email = email or existing.email
             if notes and not existing.notes:
                 existing.notes = notes
+            party_record = existing
             updated_count += 1
         else:
             # Create new
@@ -122,12 +130,40 @@ def import_parties(file_path):
                 billing_address_line3=addr3,
                 billing_city=city,
                 gstin=gstin,
+                email=email,
                 notes=notes,
                 is_active=True,
                 created_by=1 # assuming admin user id 1
-            )
             session.add(new_party)
+            session.flush() # flush to get new_party.id
+            party_record = new_party
             added_count += 1
+            
+        # Handle Opening Balance
+        op_bal_str = account.findtext('OPBal', '0')
+        try:
+            op_bal = Decimal(op_bal_str)
+        except:
+            op_bal = Decimal('0')
+            
+        if op_bal != 0:
+            # Check if opening balance journal entry already exists
+            existing_je = session.query(JournalEntry).filter(
+                JournalEntry.party_id == party_record.id,
+                JournalEntry.description == 'Opening Balance'
+            ).first()
+            
+            if not existing_je:
+                # Create a Journal Entry for Opening Balance
+                # In BUSY, OPBal for Debtors is positive for Debit (Amount Due)
+                je = JournalEntry(
+                    party_id=party_record.id,
+                    created_by=1,
+                    amount=op_bal,
+                    entry_date=datetime(2026, 4, 1, tzinfo=timezone.utc), # Start of FinYear
+                    description='Opening Balance'
+                )
+                session.add(je)
             
     session.commit()
     session.close()
