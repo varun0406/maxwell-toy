@@ -65,7 +65,7 @@ def list_parties(
                 (SELECT COALESCE(SUM(amount), 0) FROM journal_entries WHERE party_id = p.id AND is_deleted = false) AS total_journal
             FROM parties p
             WHERE p.is_active = true
-              AND (:search IS NULL OR p.name LIKE :search)
+              AND (:search IS NULL OR p.name ILIKE :search)
               AND (:agent IS NULL OR p.agent_name = :agent)
         ),
         filtered AS (
