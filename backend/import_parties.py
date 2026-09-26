@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 # Add the current directory to sys.path to import app modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.models import Party, JournalEntry
+from app.models import Party, JournalEntry, Invoice
 from app.database import SessionLocal
 from decimal import Decimal
 from datetime import datetime, timezone
@@ -148,27 +148,61 @@ def import_parties(file_path):
             op_bal = Decimal('0')
             
         if op_bal != 0:
-            # Check if opening balance journal entry already exists
-            existing_je = session.query(JournalEntry).filter(
-                JournalEntry.party_id == party_record.id,
-                JournalEntry.description == 'Opening Balance'
-            ).first()
-            
-            if not existing_je:
-                # Create a Journal Entry for Opening Balance
-                # In BUSY, OPBal for Debtors is positive for Debit (Amount Due)
-                je = JournalEntry(
-                    party_id=party_record.id,
-                    created_by=1,
-                    amount=op_bal,
-                    entry_date=datetime(2026, 4, 1, tzinfo=timezone.utc), # Start of FinYear
-                    description='Opening Balance'
-                )
-                session.add(je)
+            bill_detail_node = account.find('BillByBillDetail')
+            if bill_detail_node is not None and list(bill_detail_node):
+                # Has individual bills
+                for ref in bill_detail_node.findall('BillReference'):
+                    ref_no = ref.findtext('RefNo')
+                    date_str = ref.findtext('Date')
+                    val_str = ref.findtext('Value1', '0')
+                    try:
+                        val = Decimal(val_str)
+                    except:
+                        continue
+                        
+                    if not ref_no or val == 0:
+                        continue
+                        
+                    # Check if Invoice already exists
+                    existing_inv = session.query(Invoice).filter(Invoice.invoice_number == ref_no).first()
+                    if not existing_inv:
+                        # Parse date
+                        try:
+                            inv_date = datetime.strptime(date_str, '%d-%m-%Y').replace(tzinfo=timezone.utc)
+                        except:
+                            inv_date = datetime(2026, 4, 1, tzinfo=timezone.utc)
+                            
+                        inv = Invoice(
+                            invoice_number=ref_no,
+                            party_id=party_record.id,
+                            created_by=1,
+                            amount=val,
+                            balance_due=val,
+                            invoice_date=inv_date,
+                            description='Opening Balance Invoice'
+                        )
+                        session.add(inv)
+            else:
+                # Fallback: Create a single Journal Entry for Opening Balance
+                existing_je = session.query(JournalEntry).filter(
+                    JournalEntry.party_id == party_record.id,
+                    JournalEntry.description == 'Opening Balance'
+                ).first()
+                
+                if not existing_je:
+                    # Create a Journal Entry for Opening Balance
+                    je = JournalEntry(
+                        party_id=party_record.id,
+                        created_by=1,
+                        amount=op_bal,
+                        entry_date=datetime(2026, 4, 1, tzinfo=timezone.utc),
+                        description='Opening Balance'
+                    )
+                    session.add(je)
             
     session.commit()
     session.close()
     print(f"Import complete! Added {added_count} and updated {updated_count} Sundry Debtors.")
 
 if __name__ == "__main__":
-    import_parties("../MCMPL_20260924_MSAll.DAT")
+    import_parties("../BUSY.DAT")
