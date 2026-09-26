@@ -1,35 +1,45 @@
 import sys
 sys.path.append('.')
 from app.database import SessionLocal
-from app.models import Party
+from app.models import Party, Invoice, JournalEntry
 import xml.etree.ElementTree as ET
-from collections import defaultdict
+from decimal import Decimal
 
 session = SessionLocal()
-tree = ET.parse('../TR.DAT')
+
+# The BillByBillDetail invoices are 0 - means they weren't created
+# Let's check why - check if BillByBillDetail is being parsed from BUSY.DAT
+tree = ET.parse('../BUSY.DAT')
 root = tree.getroot()
 
-party_names_in_sales = defaultdict(int)
-for sale in root.findall('.//Sales/Sale'):
-    n = sale.findtext('MasterName1', '').strip()
-    if n:
-        party_names_in_sales[n] += 1
+with_bb = 0
+total_refs = 0
+for acc in root.findall('.//Account'):
+    if acc.findtext('ParentGroup','') == 'Sundry Debtors':
+        bb = acc.find('BillByBillDetail')
+        if bb is not None and list(bb):
+            with_bb += 1
+            refs = bb.findall('BillReference')
+            total_refs += len(refs)
+            
+print(f"Accounts with BillByBillDetail in BUSY.DAT: {with_bb}")
+print(f"Total BillReferences (prev-year invoices)  : {total_refs}")
+print()
+print("Sample party:")
+for acc in root.findall('.//Account'):
+    if acc.findtext('ParentGroup','') == 'Sundry Debtors':
+        bb = acc.find('BillByBillDetail')
+        if bb is not None and list(bb):
+            print(f"  Party: {acc.findtext('Name')}")
+            for ref in bb.findall('BillReference')[:2]:
+                print(f"    RefNo: {ref.findtext('RefNo')}, Value1: {ref.findtext('Value1')}, Date: {ref.findtext('Date')}")
+            break
+            
+# Check how many OB invoices we actually have in DB
+ob_invs = session.query(Invoice).filter(Invoice.description == 'Opening Balance Invoice').count()
+print(f"\nOpening Balance Invoices in DB: {ob_invs}")
+# Also check journal entries for opening balance
+ob_jes = session.query(JournalEntry).filter(JournalEntry.description == 'Opening Balance').count()
+print(f"Opening Balance Journal Entries in DB: {ob_jes}")
 
-print(f"{'#':<3} {'Party Name':<45} {'# Sales':<10} {'In DB?'}")
-print("-" * 75)
-missing = []
-found = []
-for name, count in sorted(party_names_in_sales.items()):
-    p = session.query(Party).filter(Party.name == name).first()
-    if not p:
-        missing.append((name, count))
-    else:
-        found.append((name, count))
-
-for i, (name, count) in enumerate(missing, 1):
-    print(f"{i:<3} {name:<45} {count:<10} ❌ MISSING")
-
-print(f"\n{'─'*75}")
-print(f"Total missing: {len(missing)} parties → {sum(c for _,c in missing)} sales invoices affected")
-print(f"Total found:   {len(found)} parties → {sum(c for _,c in found)} sales invoices safe")
 session.close()

@@ -146,59 +146,59 @@ def import_parties(file_path):
             op_bal = Decimal(op_bal_str)
         except:
             op_bal = Decimal('0')
-            
-        if op_bal != 0:
-            bill_detail_node = account.find('BillByBillDetail')
-            if bill_detail_node is not None and list(bill_detail_node):
-                # Has individual bills
-                for ref in bill_detail_node.findall('BillReference'):
-                    ref_no = ref.findtext('RefNo')
-                    date_str = ref.findtext('Date')
-                    val_str = ref.findtext('Value1', '0')
+
+        bill_detail_node = account.find('BillByBillDetail')
+        has_bills = bill_detail_node is not None and list(bill_detail_node)
+
+        if has_bills:
+            # Import each individual prev-year bill as an Invoice
+            for ref in bill_detail_node.findall('BillReference'):
+                ref_no = ref.findtext('RefNo', '').strip()
+                date_str = ref.findtext('Date', '')
+                val_str = ref.findtext('Value1', '0')
+                try:
+                    # BUSY stores debtor amounts as negative; we store as positive (amount owed to us)
+                    val = abs(Decimal(val_str))
+                except:
+                    continue
+
+                if not ref_no or val == 0:
+                    continue
+
+                # Skip if already imported (e.g. duplicate run)
+                existing_inv = session.query(Invoice).filter(Invoice.invoice_number == ref_no).first()
+                if not existing_inv:
                     try:
-                        val = Decimal(val_str)
+                        inv_date = datetime.strptime(date_str, '%d-%m-%Y').replace(tzinfo=timezone.utc)
                     except:
-                        continue
-                        
-                    if not ref_no or val == 0:
-                        continue
-                        
-                    # Check if Invoice already exists
-                    existing_inv = session.query(Invoice).filter(Invoice.invoice_number == ref_no).first()
-                    if not existing_inv:
-                        # Parse date
-                        try:
-                            inv_date = datetime.strptime(date_str, '%d-%m-%Y').replace(tzinfo=timezone.utc)
-                        except:
-                            inv_date = datetime(2026, 4, 1, tzinfo=timezone.utc)
-                            
-                        inv = Invoice(
-                            invoice_number=ref_no,
-                            party_id=party_record.id,
-                            created_by=1,
-                            amount=val,
-                            balance_due=val,
-                            invoice_date=inv_date,
-                            description='Opening Balance Invoice'
-                        )
-                        session.add(inv)
-            else:
-                # Fallback: Create a single Journal Entry for Opening Balance
-                existing_je = session.query(JournalEntry).filter(
-                    JournalEntry.party_id == party_record.id,
-                    JournalEntry.description == 'Opening Balance'
-                ).first()
-                
-                if not existing_je:
-                    # Create a Journal Entry for Opening Balance
-                    je = JournalEntry(
+                        inv_date = datetime(2026, 4, 1, tzinfo=timezone.utc)
+
+                    session.add(Invoice(
+                        invoice_number=ref_no,
                         party_id=party_record.id,
                         created_by=1,
-                        amount=op_bal,
-                        entry_date=datetime(2026, 4, 1, tzinfo=timezone.utc),
-                        description='Opening Balance'
-                    )
-                    session.add(je)
+                        amount=val,
+                        balance_due=val,
+                        invoice_date=inv_date,
+                        description='Opening Balance Invoice'
+                    ))
+
+        elif op_bal != 0:
+            # No individual bills → single lump-sum Journal Entry
+            existing_je = session.query(JournalEntry).filter(
+                JournalEntry.party_id == party_record.id,
+                JournalEntry.description == 'Opening Balance'
+            ).first()
+
+            if not existing_je:
+                # BUSY stores debtor OPBal as negative; negate so positive = amount owed to us
+                session.add(JournalEntry(
+                    party_id=party_record.id,
+                    created_by=1,
+                    amount=abs(op_bal),
+                    entry_date=datetime(2026, 4, 1, tzinfo=timezone.utc),
+                    description='Opening Balance'
+                ))
             
     session.commit()
     session.close()
