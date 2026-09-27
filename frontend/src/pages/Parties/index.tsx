@@ -699,7 +699,7 @@ function AddPartyModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
         <h2 className="modal-title">New Party</h2>
         {err && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{err}</div>}
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 8, paddingBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div className="party-form-grid">
             <div>
               <h4 style={{ margin: '8px 0', fontSize: 14, color: 'var(--accent-glow)' }}>General</h4>
               <div className="form-group">
