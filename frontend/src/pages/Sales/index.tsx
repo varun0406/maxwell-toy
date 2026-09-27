@@ -13,6 +13,7 @@ import { SearchCombobox } from '../../components/SearchCombobox';
 import type { ComboboxOption } from '../../components/SearchCombobox';
 import { ItemAutocomplete } from '../../components/ItemAutocomplete';
 import { AddressFormModal } from '../AddressBook';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 const itemSchema = z.object({
   item_name: z.string().min(1, 'Required'),
@@ -64,22 +65,26 @@ export function InvoicesList() {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
 
+  const debouncedSearch = useDebouncedValue(search, 400);
+  const debouncedMinAmount = useDebouncedValue(minAmount, 400);
+  const debouncedMaxAmount = useDebouncedValue(maxAmount, 400);
+
   // Reset to page 0 when any filter changes
-  useEffect(() => { setPage(0); }, [filter, search, dateFilter, customFrom, customTo, minAmount, maxAmount]);
+  useEffect(() => { setPage(0); }, [filter, debouncedSearch, dateFilter, customFrom, customTo, debouncedMinAmount, debouncedMaxAmount]);
 
   const dateRange = dateFilter === 'custom'
     ? (customFrom || customTo ? { from: customFrom, to: customTo } : null)
     : getDateRange(dateFilter);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['invoices', filter, search, dateFilter, customFrom, customTo, minAmount, maxAmount, page],
+    queryKey: ['invoices', filter, debouncedSearch, dateFilter, customFrom, customTo, debouncedMinAmount, debouncedMaxAmount, page],
     queryFn: () =>
       invoicesApi.list(
-        undefined, filter === 'unpaid', search, page * PAGE_SIZE, PAGE_SIZE,
+        undefined, filter === 'unpaid', debouncedSearch, page * PAGE_SIZE, PAGE_SIZE,
         dateRange?.from || undefined,
         dateRange?.to ? dateRange.to + 'T23:59:59' : undefined,
-        minAmount ? parseFloat(minAmount) : undefined,
-        maxAmount ? parseFloat(maxAmount) : undefined,
+        debouncedMinAmount ? parseFloat(debouncedMinAmount) : undefined,
+        debouncedMaxAmount ? parseFloat(debouncedMaxAmount) : undefined,
       ).then(r => r.data),
   });
 

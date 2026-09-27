@@ -11,6 +11,7 @@ import type { ComboboxOption } from '../../components/SearchCombobox';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import { Search, X, Plus, ChevronLeft, Edit2, Receipt } from 'lucide-react';
 import { generateAndSharePaymentReceipt } from '../../utils/pdfGenerator';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 const schema = z.object({
   party_id: z.coerce.number().min(1, 'Select a party'),
@@ -38,7 +39,9 @@ export function PaymentsList() {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
 
-  useEffect(() => { setPage(0); }, [search, dateFilter, customFrom, customTo]);
+  const debouncedSearch = useDebouncedValue(search, 400);
+
+  useEffect(() => { setPage(0); }, [debouncedSearch, dateFilter, customFrom, customTo]);
 
   function getDateRange(f: string): { from: string; to: string } | null {
     const now = new Date();
@@ -55,8 +58,8 @@ export function PaymentsList() {
     : getDateRange(dateFilter);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['payments', search, dateFilter, customFrom, customTo, page],
-    queryFn: () => paymentsApi.list(undefined, search, page * PAGE_SIZE, PAGE_SIZE, dateRange?.from, dateRange?.to ? dateRange.to + 'T23:59:59' : undefined).then(r => r.data),
+    queryKey: ['payments', debouncedSearch, dateFilter, customFrom, customTo, page],
+    queryFn: () => paymentsApi.list(undefined, debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, dateRange?.from, dateRange?.to ? dateRange.to + 'T23:59:59' : undefined).then(r => r.data),
   });
 
   const payments = data?.items || [];

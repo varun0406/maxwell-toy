@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { addressBookApi } from '../../api/endpoints';
 import { Plus, Search, X, Phone, MapPin, Pencil, Trash2 } from 'lucide-react';
 
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+
 export interface AddressEntry {
   id: number;
   name: string;
@@ -15,13 +17,14 @@ export interface AddressEntry {
 // ── Address Book List ─────────────────────────────────────────────────────────
 export default function AddressBook() {
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 400);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<AddressEntry | null>(null);
   const qc = useQueryClient();
 
   const { data: entries = [], isLoading } = useQuery({
-    queryKey: ['address-book', search],
-    queryFn: () => addressBookApi.list(search || undefined).then(r => r.data),
+    queryKey: ['address-book', debouncedSearch],
+    queryFn: () => addressBookApi.list(debouncedSearch || undefined).then(r => r.data),
   });
 
   const handleDelete = async (id: number) => {

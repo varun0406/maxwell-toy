@@ -7,10 +7,12 @@ import { formatCurrency, formatDate } from '../../utils/format';
 import { Search, CalendarClock, PhoneCall, User, X } from 'lucide-react';
 
 import CalculationEvidence from '../../components/CalculationEvidence';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 export default function PendingDues() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 400);
   
   const { ref, inView } = useInView();
 
@@ -20,8 +22,8 @@ export default function PendingDues() {
     fetchNextPage,
     hasNextPage,
   } = useInfiniteQuery({
-    queryKey: ['pending_dues', search],
-    queryFn: ({ pageParam = 0 }) => partiesApi.list(search, pageParam, 20, true).then(r => r.data),
+    queryKey: ['pending_dues', debouncedSearch],
+    queryFn: ({ pageParam = 0 }) => partiesApi.list(debouncedSearch, pageParam, 20, true).then(r => r.data),
     getNextPageParam: (lastPage) => {
       if (lastPage.skip + lastPage.limit < lastPage.total) {
         return lastPage.skip + lastPage.limit;

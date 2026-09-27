@@ -11,6 +11,7 @@ import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Tras
 import { generateAndSharePartyStatement, openWhatsApp, generateAndShareLedger } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import CalculationEvidence from '../../components/CalculationEvidence';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 const schema = z.object({
   name: z.string().min(1, 'Name required'),
@@ -44,9 +45,10 @@ export function PartiesList() {
   const PAGE_SIZE = 20;
 
   const [agent, setAgent] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 400);
   
   // reset to first page when search changes
-  useEffect(() => { setPage(0); }, [search, agent]);
+  useEffect(() => { setPage(0); }, [debouncedSearch, agent]);
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
@@ -54,8 +56,8 @@ export function PartiesList() {
   });
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['parties', search, page, agent],
-    queryFn: () => partiesApi.list(search, page * PAGE_SIZE, PAGE_SIZE, false, agent || undefined).then(r => r.data),
+    queryKey: ['parties', debouncedSearch, page, agent],
+    queryFn: () => partiesApi.list(debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, false, agent || undefined).then(r => r.data),
   });
 
   const parties = data?.items || [];
