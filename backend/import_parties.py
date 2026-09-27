@@ -1,17 +1,21 @@
 import os
 import sys
+import argparse
+import json
 import xml.etree.ElementTree as ET
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 # Add the current directory to sys.path to import app modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.models import Party, JournalEntry, Invoice
+from app.models import Party, JournalEntry, Invoice, AddressBook
 from app.database import SessionLocal
 from decimal import Decimal
 from datetime import datetime, timezone
 
-def import_parties(file_path):
+def clean(value):
+    return ' '.join((value or '').split()) or None
+
+
+def import_parties(file_path, created_by=1, include_suppliers=True, dry_run=False, report_path=None):
     print(f"Reading {file_path}...")
     
     # Check if the file starts with a root tag. If it's just a sequence of <Account> tags,
@@ -30,34 +34,65 @@ def import_parties(file_path):
     
     added_count = 0
     updated_count = 0
+    address_added = 0
+    address_updated = 0
+    skipped = []
     
     for account in root.findall('.//Account'):
         parent_group = account.findtext('ParentGroup', '')
         
         # We only want Sundry Debtors
         if parent_group != 'Sundry Debtors':
+            if include_suppliers and parent_group == 'Sundry Creditors':
+                name = clean(account.findtext('Name'))
+                address_node = account.find('Address')
+                if not name:
+                    skipped.append({'type': 'supplier', 'reason': 'missing name'})
+                    continue
+                phone = clean((address_node.findtext('Mobile') if address_node is not None else None) or
+                              (address_node.findtext('WhatsAppNo') if address_node is not None else None))
+                address_line1 = clean(address_node.findtext('Address1') if address_node is not None else None)
+                address_line2 = clean(address_node.findtext('Address2') if address_node is not None else None)
+                city = clean((address_node.findtext('CityName') if address_node is not None else None) or
+                             (address_node.findtext('Station') if address_node is not None else None) or
+                             (address_node.findtext('StateName') if address_node is not None else None))
+                if dry_run:
+                    address_added += 1
+                    continue
+                existing_address = session.query(AddressBook).filter(AddressBook.name == name).first()
+                if existing_address:
+                    existing_address.phone = phone or existing_address.phone
+                    existing_address.address_line1 = address_line1 or existing_address.address_line1
+                    existing_address.address_line2 = address_line2 or existing_address.address_line2
+                    existing_address.city = city or existing_address.city
+                    address_updated += 1
+                else:
+                    session.add(AddressBook(name=name, phone=phone, address_line1=address_line1,
+                                            address_line2=address_line2, city=city))
+                    address_added += 1
             continue
             
-        name = account.findtext('Name', '')
+        name = clean(account.findtext('Name'))
         if not name:
             continue
         if len(name) > 120:
             name = name[:120]
             
-        broker_name = account.findtext('BrokerName', None)
+        broker_name = clean(account.findtext('BrokerName'))
         if broker_name and len(broker_name) > 120:
             broker_name = broker_name[:120]
         
         address_node = account.find('Address')
         phone = None
         gstin = None
+        email = None
         addr1, addr2, addr3, city = None, None, None, None
         notes = ""
         
         if address_node is not None:
-            mobile = address_node.findtext('Mobile', '')
-            whatsapp = address_node.findtext('WhatsAppNo', '')
-            phone = mobile if mobile else whatsapp
+            mobile = clean(address_node.findtext('Mobile'))
+            whatsapp = clean(address_node.findtext('WhatsAppNo'))
+            phone = mobile or whatsapp
             # Truncate string fields to DB limits
             if phone and len(phone) > 20:
                 phone = phone[:20]
@@ -82,15 +117,15 @@ def import_parties(file_path):
             if addr3 and len(addr3) > 255:
                 addr3 = addr3[:255]
             
-            city_name = address_node.findtext('CityName', '')
+            city_name = clean(address_node.findtext('CityName'))
             if city_name and city_name != '---Others---':
                 city = city_name
             else:
-                city = address_node.findtext('Station', '')
+                city = clean(address_node.findtext('Station'))
                 if not city:
-                    city = address_node.findtext('Address4', '')
+                    city = clean(address_node.findtext('Address4'))
                 if not city:
-                    city = address_node.findtext('StateName', '')
+                    city = clean(address_node.findtext('StateName'))
                     
             if city and len(city) > 120:
                 city = city[:120]
@@ -133,7 +168,7 @@ def import_parties(file_path):
                 email=email,
                 notes=notes,
                 is_active=True,
-                created_by=1 # assuming admin user id 1
+                created_by=created_by
             )
             session.add(new_party)
             session.flush() # flush to get new_party.id
@@ -201,15 +236,27 @@ def import_parties(file_path):
                 # BUSY stores debtor OPBal as negative; negate so positive = amount owed to us
                 session.add(JournalEntry(
                     party_id=party_record.id,
-                    created_by=1,
+                    created_by=created_by,
                     amount=abs(op_bal),
                     entry_date=datetime(2026, 4, 1, tzinfo=timezone.utc),
                     description='Opening Balance'
                 ))
             
-    session.commit()
+    if dry_run:
+        session.rollback()
+    else:
+        session.commit()
     session.close()
-    print(f"Import complete! Added {added_count} and updated {updated_count} Sundry Debtors.")
+    report = {
+        'source': file_path, 'dry_run': dry_run,
+        'parties_added': added_count, 'parties_updated': updated_count,
+        'supplier_addresses_added': address_added, 'supplier_addresses_updated': address_updated,
+        'skipped': skipped,
+    }
+    print(json.dumps(report, indent=2))
+    if report_path:
+        with open(report_path, 'w', encoding='utf-8') as output:
+            json.dump(report, output, indent=2)
 
 if __name__ == "__main__":
     import sys as _sys
@@ -217,6 +264,14 @@ if __name__ == "__main__":
     #   python import_parties.py ../BUSY.DAT "../BUSY 25-26.DAT"
     # BUSY.DAT (current year) should come FIRST so its data takes priority.
     # BUSY 25-26.DAT (last year) fills in any parties that were active last year.
-    files = _sys.argv[1:] if len(_sys.argv) > 1 else ["../BUSY.DAT"]
+    parser = argparse.ArgumentParser(description='Import BUSY master parties and supplier addresses.')
+    parser.add_argument('files', nargs='*', default=['../BUSY.DAT'])
+    parser.add_argument('--created-by', type=int, default=1)
+    parser.add_argument('--no-suppliers', action='store_true')
+    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--report', help='Write a JSON import report to this path.')
+    args = parser.parse_args()
+    files = args.files
     for f in files:
-        import_parties(f)
+        import_parties(f, created_by=args.created_by, include_suppliers=not args.no_suppliers,
+                       dry_run=args.dry_run, report_path=args.report)

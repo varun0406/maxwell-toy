@@ -1,5 +1,6 @@
 import os
 import sys
+import argparse
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -27,7 +28,7 @@ def to_decimal(s, default='0'):
         return Decimal(default)
 
 
-def get_or_create_party(session, name):
+def get_or_create_party(session, name, created_by):
     """Find existing party or create a minimal one so no invoice is lost."""
     if not name:
         return None
@@ -37,7 +38,7 @@ def get_or_create_party(session, name):
         party = Party(
             name=name,
             is_active=True,
-            created_by=1
+            created_by=created_by
         )
         session.add(party)
         session.flush()
@@ -87,6 +88,13 @@ def narration(vch_other_node):
     if n2:
         parts.append(n2)
     return " | ".join(parts) if parts else None
+
+
+def source_marker(node, party_name):
+    """Return a stable marker for one BUSY voucher and party row."""
+    source_id = node.findtext('OriginalID', '').strip()
+    voucher_code = node.findtext('tmpVchCode', '').strip()
+    return f"[BUSY:{source_id or voucher_code}:{party_name}]"
 
 
 def build_sale_description(vch_no, sale_node):
@@ -202,7 +210,7 @@ def add_adjustment_item(session, invoice, diff, sale_node):
 # Main Import
 # ─────────────────────────────────────────────
 
-def import_transactions(file_path):
+def import_transactions(file_path, created_by=1):
     print(f"\nParsing {file_path}...")
     try:
         tree = ET.parse(file_path)
@@ -230,7 +238,7 @@ def import_transactions(file_path):
         date_str = sale.findtext('Date', '')
         party_name = sale.findtext('MasterName1', '').strip()
 
-        party = get_or_create_party(session, party_name)
+        party = get_or_create_party(session, party_name, created_by)
         if not party:
             print(f"  SKIP (no party): {vch_no}")
             stats['sales_skipped'] += 1
@@ -249,7 +257,7 @@ def import_transactions(file_path):
         invoice = Invoice(
             invoice_number=vch_no,
             party_id=party.id,
-            created_by=1,
+            created_by=created_by,
             amount=amount,
             balance_due=amount,
             invoice_date=parse_date(date_str),
@@ -276,7 +284,7 @@ def import_transactions(file_path):
         date_str = slrt.findtext('Date', '')
         party_name = slrt.findtext('MasterName1', '').strip()
 
-        party = get_or_create_party(session, party_name)
+        party = get_or_create_party(session, party_name, created_by)
         if not party:
             stats['returns_skipped'] += 1
             continue
@@ -304,7 +312,7 @@ def import_transactions(file_path):
         invoice = Invoice(
             invoice_number=inv_no,
             party_id=party.id,
-            created_by=1,
+            created_by=created_by,
             amount=amount,
             balance_due=amount,
             invoice_date=parse_date(date_str),
@@ -355,7 +363,7 @@ def import_transactions(file_path):
             grp = acc.findtext('tmpGroupName', '')
             if grp == 'Sundry Debtors':
                 party_name = acc.findtext('AccountName', '').strip()
-                party = get_or_create_party(session, party_name if party_name else "UNKNOWN PARTY (SYSTEM)")
+                party = get_or_create_party(session, party_name if party_name else "UNKNOWN PARTY (SYSTEM)", created_by)
                 amount = abs(to_decimal(acc.findtext('AmtMainCur', '0')))
                 sn = acc.findtext('ShortNar', '').strip()
                 
@@ -376,7 +384,7 @@ def import_transactions(file_path):
 
         if not debtors:
             # Handle cancelled or truly blank receipts
-            party = get_or_create_party(session, "UNKNOWN PARTY (SYSTEM)")
+            party = get_or_create_party(session, "UNKNOWN PARTY (SYSTEM)", created_by)
             debtors.append({
                 'party': party,
                 'amount': Decimal('0'),
@@ -387,14 +395,18 @@ def import_transactions(file_path):
         p_date = parse_date(date_str)
 
         for d in debtors:
+            marker = source_marker(rcpt, d['party'].name)
+            if session.query(Payment).filter(Payment.note.like(f"{marker}%")).first():
+                stats['payments_skipped'] += 1
+                continue
             payment = Payment(
                 party_id=d['party'].id,
-                created_by=1,
+                created_by=created_by,
                 amount=d['amount'],
                 unallocated=d['amount'],
                 payment_date=p_date,
                 mode=mode,
-                note=d['note']
+                note=f"{marker} {d['note']}".strip()
             )
             session.add(payment)
             session.flush()
@@ -425,7 +437,15 @@ def import_transactions(file_path):
                 continue
 
             party_name = acc.findtext('AccountName', '').strip()
-            party = get_or_create_party(session, party_name if party_name else "UNKNOWN PARTY (SYSTEM)")
+            party = get_or_create_party(session, party_name if party_name else "UNKNOWN PARTY (SYSTEM)", created_by)
+            marker = source_marker(jrnl, party.name)
+
+            if (
+                session.query(JournalEntry).filter(JournalEntry.description.like(f"{marker}%")).first()
+                or session.query(Payment).filter(Payment.note.like(f"{marker}%")).first()
+            ):
+                stats['journals_skipped'] += 1
+                continue
 
             amt_str = acc.findtext('AmtMainCur', '0')
             amt_type = acc.findtext('AmountType', '1')
@@ -449,12 +469,12 @@ def import_transactions(file_path):
             if je_amt < 0 and has_bill_refs:
                 payment = Payment(
                     party_id=party.id,
-                    created_by=1,
+                    created_by=created_by,
                     amount=abs(je_amt),
                     unallocated=abs(je_amt),
                     payment_date=p_date,
                     mode='adjustment',
-                    note=desc
+                    note=f"{marker} {desc}".strip()
                 )
                 session.add(payment)
                 session.flush()
@@ -464,10 +484,10 @@ def import_transactions(file_path):
             else:
                 session.add(JournalEntry(
                     party_id=party.id,
-                    created_by=1,
+                    created_by=created_by,
                     amount=je_amt,
                     entry_date=p_date,
-                    description=desc
+                    description=f"{marker} {desc}".strip()
                 ))
                 stats['journals_imported'] += 1
 
@@ -482,7 +502,7 @@ def import_transactions(file_path):
             date_str = crnt.findtext('Date', '')
             party_name = crnt.findtext('MasterName1', '').strip()
 
-            party = get_or_create_party(session, party_name)
+            party = get_or_create_party(session, party_name, created_by)
             if not party:
                 stats['crnts_skipped'] += 1
                 continue
@@ -509,7 +529,7 @@ def import_transactions(file_path):
             invoice = Invoice(
                 invoice_number=inv_no,
                 party_id=party.id,
-                created_by=1,
+                created_by=created_by,
                 amount=amount,
                 balance_due=amount,
                 invoice_date=parse_date(date_str),
@@ -562,6 +582,9 @@ if __name__ == "__main__":
     import sys as _sys
     # Support passing multiple files as CLI args, e.g.:
     #   python import_transactions.py "../BUSY 25-26.DAT" ../TR.DAT
-    files = _sys.argv[1:] if len(_sys.argv) > 1 else ["../TR.DAT"]
-    for f in files:
-        import_transactions(f)
+    parser = argparse.ArgumentParser(description='Import BUSY transaction XML exports.')
+    parser.add_argument('files', nargs='*', default=['../TR.DAT'])
+    parser.add_argument('--created-by', type=int, default=1)
+    args = parser.parse_args()
+    for f in args.files:
+        import_transactions(f, created_by=args.created_by)
