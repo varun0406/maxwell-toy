@@ -107,7 +107,7 @@ export function PartiesList() {
         <div className="list-container">
           {parties.filter((p: any) => p && p.name).map((p: any) => (
             <div key={p.id} className="list-item" onClick={() => navigate(`/parties/${p.id}`)}>
-              <div className="list-item-icon" style={{ background: 'linear-gradient(135deg, var(--accent-glow), rgba(108,99,255,0.05))', color: 'var(--accent-light)', fontWeight: 700, fontSize: 16 }}>
+              <div className="list-item-icon" style={{ background: 'var(--accent-glow)', color: 'var(--accent-dark)', fontWeight: 700, fontSize: 16 }}>
                 {p.name.charAt(0).toUpperCase()}
               </div>
               <div className="list-item-body">

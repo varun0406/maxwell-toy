@@ -18,17 +18,22 @@ git pull origin main
 echo "==> Installing/updating backend Python dependencies..."
 backend/venv/bin/pip install -r backend/requirements.txt
 
-echo "==> Restarting backend service (port 9833)..."
+echo "==> Installing backend service definition..."
 cp "$APP_DIR/deploy/maxwell-backend.service" /etc/systemd/system/maxwell-accounting.service
 systemctl daemon-reload
-systemctl restart maxwell-accounting
 
 echo "==> Building frontend..."
 cd "$APP_DIR/frontend"
 npm ci --prefer-offline
 npm run build
 
-echo "==> Reloading nginx..."
+echo "==> Validating and installing nginx config..."
+cp "$APP_DIR/deploy/calculator.rovark.in" /etc/nginx/sites-available/calculator.rovark.in
+ln -sf /etc/nginx/sites-available/calculator.rovark.in /etc/nginx/sites-enabled/calculator.rovark.in
+nginx -t
+
+echo "==> Restarting backend and reloading nginx..."
+systemctl restart maxwell-accounting
 systemctl reload nginx
 
 echo ""

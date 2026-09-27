@@ -34,14 +34,14 @@ npm run build
 cd "$APP_DIR"
 
 echo "==> Updating Nginx config (if changed)..."
-cp "$APP_DIR/deploy/calculator.rovark.in" /etc/nginx/sites-available/
-ln -sf /etc/nginx/sites-available/calculator.rovark.in /etc/nginx/sites-enabled/
+cp "$APP_DIR/deploy/calculator.rovark.in" /etc/nginx/sites-available/calculator.rovark.in
+ln -sf /etc/nginx/sites-available/calculator.rovark.in /etc/nginx/sites-enabled/calculator.rovark.in
 nginx -t
 
 echo "==> Restarting services..."
-cp "$APP_DIR/deploy/maxwell-backend.service" /etc/systemd/system/
+cp "$APP_DIR/deploy/maxwell-backend.service" /etc/systemd/system/maxwell-accounting.service
 systemctl daemon-reload
-systemctl restart maxwell-backend
+systemctl restart maxwell-accounting
 systemctl reload nginx
 
 echo ""
