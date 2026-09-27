@@ -45,15 +45,15 @@ def list_parties(
     rows = db.execute(text(f"""
         WITH i_agg AS (
             SELECT party_id, SUM(amount) AS total_invoiced
-            FROM invoices WHERE is_deleted = false GROUP BY party_id
+            FROM invoices WHERE COALESCE(is_deleted, false) = false GROUP BY party_id
         ),
         p_agg AS (
             SELECT party_id, SUM(amount) AS total_paid
-            FROM payments WHERE is_deleted = false GROUP BY party_id
+            FROM payments WHERE COALESCE(is_deleted, false) = false GROUP BY party_id
         ),
         j_agg AS (
             SELECT party_id, SUM(amount) AS total_journal
-            FROM journal_entries WHERE is_deleted = false GROUP BY party_id
+            FROM journal_entries WHERE COALESCE(is_deleted, false) = false GROUP BY party_id
         ),
         filtered AS (
             SELECT
