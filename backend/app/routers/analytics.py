@@ -127,7 +127,7 @@ def party_summaries(
         SELECT *
         FROM counted
         ORDER BY outstanding DESC
-        OFFSET :skip LIMIT :limit
+        LIMIT :limit OFFSET :skip
     """), {"search": search_filter, "skip": skip, "limit": limit}).fetchall()
 
     total = result[0].total_count if result else 0
@@ -299,7 +299,7 @@ def aging_report(
         )
         SELECT * FROM final
         ORDER BY total_amount DESC
-        OFFSET :skip LIMIT :limit
+        LIMIT :limit OFFSET :skip
     """), {
         "now": now, "date_30": date_30, "date_60": date_60, "date_90": date_90,
         "search": search_filter, "skip": skip, "limit": limit,

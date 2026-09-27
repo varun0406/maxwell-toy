@@ -102,7 +102,7 @@ def list_parties(
         SELECT *, COUNT(*) OVER() AS total_count
         FROM filtered
         ORDER BY {order_sql}
-        OFFSET :skip LIMIT :limit
+        LIMIT :limit OFFSET :skip
     """), {
         "search": search_filter,
         "unpaid_only": unpaid_only,
