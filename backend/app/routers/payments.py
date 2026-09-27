@@ -8,6 +8,7 @@ from sqlalchemy import func
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..paging import clamp_page, ilike_pattern
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -23,6 +24,9 @@ def list_payments(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    skip, limit = clamp_page(skip, limit)
+    search_pattern = ilike_pattern(search)
+
     # Single aggregate query for count + sum, then separate paginated rows query.
     # Removed joinedload(allocations) from the list endpoint — loading the full
     # allocation graph for every payment in a list is extremely wasteful.
@@ -37,9 +41,9 @@ def list_payments(
 
     if party_id:
         agg_query = agg_query.filter(models.Payment.party_id == party_id)
-    if search:
+    if search_pattern:
         agg_query = agg_query.join(models.Party).filter(
-            models.Party.name.ilike(f"%{search}%")
+            models.Party.name.ilike(search_pattern, escape="\\")
         )
     # F17: date filters
     if from_date:
@@ -59,9 +63,9 @@ def list_payments(
 
     if party_id:
         items_query = items_query.filter(models.Payment.party_id == party_id)
-    if search:
+    if search_pattern:
         items_query = items_query.join(models.Party).filter(
-            models.Party.name.ilike(f"%{search}%")
+            models.Party.name.ilike(search_pattern, escape="\\")
         )
     # F17: date filters on items query
     if from_date:

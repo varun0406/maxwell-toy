@@ -18,15 +18,18 @@ export function ItemAutocomplete({ value, onChange, placeholder = 'e.g. Fabric' 
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlighted, setHighlighted] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
 
   // Keep local query in sync if value changes externally
   useEffect(() => { setQuery(value); }, [value]);
 
   const search = (q: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    const requestId = ++requestIdRef.current;
     debounceRef.current = setTimeout(async () => {
       if (q.length > 0) {
         const res = await itemsApi.search(q);
+        if (requestId !== requestIdRef.current) return;
         setSuggestions(res.data);
         setShowDropdown(true);
       } else {

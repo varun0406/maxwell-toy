@@ -6,6 +6,7 @@ from sqlalchemy import func
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..paging import ilike_pattern
 
 router = APIRouter(prefix="/items", tags=["items"])
 
@@ -17,8 +18,9 @@ def list_items(
     db: Session = Depends(get_db),
 ):
     query = db.query(models.ItemMaster)
-    if search:
-        query = query.filter(models.ItemMaster.item_name.like(f"%{search}%"))
+    search_pattern = ilike_pattern(search)
+    if search_pattern:
+        query = query.filter(models.ItemMaster.item_name.ilike(search_pattern, escape="\\"))
     return query.order_by(models.ItemMaster.item_name).all()
 
 

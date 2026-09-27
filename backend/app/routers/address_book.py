@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..paging import clamp_page, ilike_pattern
 
 router = APIRouter(prefix="/address-book", tags=["address-book"])
 
@@ -16,9 +17,16 @@ def list_addresses(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    skip, limit = clamp_page(skip, limit)
+    search_pattern = ilike_pattern(search)
     query = db.query(models.AddressBook)
-    if search:
-        query = query.filter(models.AddressBook.name.ilike(f"%{search}%"))
+    if search_pattern:
+        query = query.filter(
+            models.AddressBook.name.ilike(search_pattern, escape="\\") |
+            models.AddressBook.phone.ilike(search_pattern, escape="\\") |
+            models.AddressBook.city.ilike(search_pattern, escape="\\") |
+            models.AddressBook.address_line1.ilike(search_pattern, escape="\\")
+        )
     return query.order_by(models.AddressBook.name).offset(skip).limit(limit).all()
 
 @router.post("/", response_model=schemas.AddressBookOut, status_code=201)

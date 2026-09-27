@@ -9,6 +9,7 @@ from sqlalchemy import func, text
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..paging import clamp_page, ilike_pattern
 from ..gcs import upload_file_to_gcs
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
@@ -63,6 +64,9 @@ def list_invoices(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    skip, limit = clamp_page(skip, limit)
+    search_pattern = ilike_pattern(search)
+
     # Build base filter — single query for both count+sum using func aggregates,
     # then a second paginated query for the actual rows with eager-loaded relations.
     query = (
@@ -81,13 +85,13 @@ def list_invoices(
     if search or agent_name:
         query = query.join(models.Party)
         
-    if search:
+    if search_pattern:
         query = query.filter(
-            (models.Invoice.invoice_number.ilike(f"%{search}%")) |
-            (models.Party.name.ilike(f"%{search}%"))
+            (models.Invoice.invoice_number.ilike(search_pattern, escape="\\")) |
+            (models.Party.name.ilike(search_pattern, escape="\\"))
         )
     if agent_name:
-        query = query.filter(models.Party.agent == agent_name)
+        query = query.filter(models.Party.agent_name == agent_name)
 
     # F4: date filters
     if from_date:
@@ -122,13 +126,13 @@ def list_invoices(
     if search or agent_name:
         items_query = items_query.join(models.Party)
         
-    if search:
+    if search_pattern:
         items_query = items_query.filter(
-            (models.Invoice.invoice_number.ilike(f"%{search}%")) |
-            (models.Party.name.ilike(f"%{search}%"))
+            (models.Invoice.invoice_number.ilike(search_pattern, escape="\\")) |
+            (models.Party.name.ilike(search_pattern, escape="\\"))
         )
     if agent_name:
-        items_query = items_query.filter(models.Party.agent == agent_name)
+        items_query = items_query.filter(models.Party.agent_name == agent_name)
 
     # F4: date filters on items query
     if from_date:
