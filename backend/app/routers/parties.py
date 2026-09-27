@@ -84,14 +84,17 @@ def list_parties(
             LEFT JOIN i_agg ON i_agg.party_id = p.id
             LEFT JOIN p_agg ON p_agg.party_id = p.id
             LEFT JOIN j_agg ON j_agg.party_id = p.id
-            WHERE p.is_active = true
+                WHERE COALESCE(p.is_active, true) = true
               AND (
                     :search IS NULL
-                 OR LOWER(p.name) LIKE LOWER(:search) ESCAPE '\\'
-                 OR LOWER(COALESCE(p.phone, '')) LIKE LOWER(:search) ESCAPE '\\'
-                 OR LOWER(COALESCE(p.area, '')) LIKE LOWER(:search) ESCAPE '\\'
-                 OR LOWER(COALESCE(p.agent_name, '')) LIKE LOWER(:search) ESCAPE '\\'
-                 OR LOWER(COALESCE(p.billing_city, '')) LIKE LOWER(:search) ESCAPE '\\'
+                      OR p.name ILIKE :search ESCAPE '\\'
+                      OR COALESCE(p.phone, '') ILIKE :search ESCAPE '\\'
+                      OR COALESCE(p.email, '') ILIKE :search ESCAPE '\\'
+                      OR COALESCE(p.area, '') ILIKE :search ESCAPE '\\'
+                      OR COALESCE(p.agent_name, '') ILIKE :search ESCAPE '\\'
+                      OR COALESCE(p.billing_city, '') ILIKE :search ESCAPE '\\'
+                      OR COALESCE(p.shipping_city, '') ILIKE :search ESCAPE '\\'
+                      OR COALESCE(p.gstin, '') ILIKE :search ESCAPE '\\'
               )
               AND (:agent IS NULL OR p.agent_name = :agent)
               AND (
