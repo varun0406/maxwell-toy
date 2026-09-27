@@ -87,11 +87,11 @@ def list_parties(
             WHERE p.is_active = true
               AND (
                     :search IS NULL
-                 OR p.name ILIKE :search ESCAPE E'\\\\'
-                 OR COALESCE(p.phone, '') ILIKE :search ESCAPE E'\\\\'
-                 OR COALESCE(p.area, '') ILIKE :search ESCAPE E'\\\\'
-                 OR COALESCE(p.agent_name, '') ILIKE :search ESCAPE E'\\\\'
-                 OR COALESCE(p.billing_city, '') ILIKE :search ESCAPE E'\\\\'
+                 OR LOWER(p.name) LIKE LOWER(:search) ESCAPE '\\'
+                 OR LOWER(COALESCE(p.phone, '')) LIKE LOWER(:search) ESCAPE '\\'
+                 OR LOWER(COALESCE(p.area, '')) LIKE LOWER(:search) ESCAPE '\\'
+                 OR LOWER(COALESCE(p.agent_name, '')) LIKE LOWER(:search) ESCAPE '\\'
+                 OR LOWER(COALESCE(p.billing_city, '')) LIKE LOWER(:search) ESCAPE '\\'
               )
               AND (:agent IS NULL OR p.agent_name = :agent)
               AND (
