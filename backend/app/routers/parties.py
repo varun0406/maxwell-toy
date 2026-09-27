@@ -1,13 +1,13 @@
-from decimal import Decimal
 from typing import List, Optional
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, text
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..paging import clamp_page, ilike_pattern
 
 router = APIRouter(prefix="/parties", tags=["parties"])
 
@@ -26,20 +26,36 @@ def _get_party_or_404(party_id: int, db: Session) -> models.Party:
 @router.get("/", response_model=schemas.PaginatedResponse[schemas.PartyWithBalance])
 def list_parties(
     skip: int = 0,
-    limit: int = 1000000,
+    limit: int = 50,
     search: str = "",
     unpaid_only: bool = False,
     agent: Optional[str] = None,
+    sort: str = Query("name", pattern="^(name|dues)$"),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Single JOIN+GROUP BY query replaces correlated subqueries per party.
-    # COUNT(*) OVER() window function gives total without a second query.
-    # Also fixes the duplicate-query bug where .all() was called twice.
-    search_filter = f"%{search}%" if search else None
+    skip, limit = clamp_page(skip, limit)
+    search_filter = ilike_pattern(search)
+    order_sql = (
+        "CASE WHEN reminder_date IS NULL THEN 1 ELSE 0 END, reminder_date ASC NULLS LAST, outstanding DESC, name ASC"
+        if (sort == "dues" or unpaid_only)
+        else "name ASC"
+    )
 
-    rows = db.execute(text("""
-        WITH agg AS (
+    rows = db.execute(text(f"""
+        WITH i_agg AS (
+            SELECT party_id, SUM(amount) AS total_invoiced
+            FROM invoices WHERE is_deleted = false GROUP BY party_id
+        ),
+        p_agg AS (
+            SELECT party_id, SUM(amount) AS total_paid
+            FROM payments WHERE is_deleted = false GROUP BY party_id
+        ),
+        j_agg AS (
+            SELECT party_id, SUM(amount) AS total_journal
+            FROM journal_entries WHERE is_deleted = false GROUP BY party_id
+        ),
+        filtered AS (
             SELECT
                 p.id,
                 p.name,
@@ -60,23 +76,32 @@ def list_parties(
                 p.reminder_date,
                 p.is_active,
                 p.created_at,
-                (SELECT COALESCE(SUM(amount), 0) FROM invoices WHERE party_id = p.id AND is_deleted = false) AS total_invoiced,
-                (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE party_id = p.id AND is_deleted = false) AS total_paid,
-                (SELECT COALESCE(SUM(amount), 0) FROM journal_entries WHERE party_id = p.id AND is_deleted = false) AS total_journal
+                COALESCE(i_agg.total_invoiced, 0) AS total_invoiced,
+                COALESCE(p_agg.total_paid, 0) AS total_paid,
+                COALESCE(j_agg.total_journal, 0) AS total_journal,
+                (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) AS outstanding
             FROM parties p
+            LEFT JOIN i_agg ON i_agg.party_id = p.id
+            LEFT JOIN p_agg ON p_agg.party_id = p.id
+            LEFT JOIN j_agg ON j_agg.party_id = p.id
             WHERE p.is_active = true
-              AND (:search IS NULL OR p.name ILIKE :search)
+              AND (
+                    :search IS NULL
+                 OR p.name ILIKE :search ESCAPE E'\\\\'
+                 OR COALESCE(p.phone, '') ILIKE :search ESCAPE E'\\\\'
+                 OR COALESCE(p.area, '') ILIKE :search ESCAPE E'\\\\'
+                 OR COALESCE(p.agent_name, '') ILIKE :search ESCAPE E'\\\\'
+                 OR COALESCE(p.billing_city, '') ILIKE :search ESCAPE E'\\\\'
+              )
               AND (:agent IS NULL OR p.agent_name = :agent)
-        ),
-        filtered AS (
-            SELECT *,
-                   (total_invoiced + total_journal - total_paid) AS outstanding
-            FROM agg
-            WHERE (:unpaid_only = false OR (total_invoiced + total_journal - total_paid) > 0)
+              AND (
+                    :unpaid_only = false
+                 OR (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) > 0
+              )
         )
         SELECT *, COUNT(*) OVER() AS total_count
         FROM filtered
-        ORDER BY name
+        ORDER BY {order_sql}
         OFFSET :skip LIMIT :limit
     """), {
         "search": search_filter,
@@ -165,9 +190,9 @@ def get_party(
             p.reminder_date,
             p.is_active,
             p.created_at,
-            (SELECT COALESCE(SUM(amount), 0) FROM invoices WHERE party_id = p.id AND is_deleted = false) AS total_invoiced,
-            (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE party_id = p.id AND is_deleted = false) AS total_paid,
-            (SELECT COALESCE(SUM(amount), 0) FROM journal_entries WHERE party_id = p.id AND is_deleted = false) AS total_journal
+            COALESCE((SELECT SUM(amount) FROM invoices WHERE party_id = p.id AND is_deleted = false), 0) AS total_invoiced,
+            COALESCE((SELECT SUM(amount) FROM payments WHERE party_id = p.id AND is_deleted = false), 0) AS total_paid,
+            COALESCE((SELECT SUM(amount) FROM journal_entries WHERE party_id = p.id AND is_deleted = false), 0) AS total_journal
         FROM parties p
         WHERE p.id = :party_id
     """), {"party_id": party_id}).fetchone()
@@ -278,27 +303,24 @@ def party_ledger(
                 NULL                    AS balance_due
             FROM journal_entries
             WHERE party_id = :party_id AND is_deleted = false
+        ),
+        with_balance AS (
+            SELECT
+                type,
+                record_id,
+                date,
+                reference,
+                amount,
+                balance_due,
+                SUM(amount) OVER (ORDER BY date, reference ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_balance
+            FROM ledger_raw
         )
-        SELECT
-            type,
-            record_id,
-            date,
-            reference,
-            amount,
-            balance_due,
-            SUM(amount) OVER (ORDER BY date, reference ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_balance
-        FROM ledger_raw
+        SELECT *
+        FROM with_balance
+        WHERE (:from_date IS NULL OR date::date >= :from_date)
+          AND (:to_date IS NULL OR date::date <= :to_date)
         ORDER BY date, reference
-    """), {"party_id": party_id}).fetchall()
-
-    filtered_rows = []
-    for row in rows:
-        r_date = row.date.date() if hasattr(row.date, 'date') else row.date
-        if from_date and r_date < from_date:
-            continue
-        if to_date and r_date > to_date:
-            continue
-        filtered_rows.append(row)
+    """), {"party_id": party_id, "from_date": from_date, "to_date": to_date}).fetchall()
 
     return [
         schemas.LedgerEntry(
@@ -310,7 +332,7 @@ def party_ledger(
             balance_due=row.balance_due,
             running_balance=row.running_balance,
         )
-        for row in filtered_rows
+        for row in rows
     ]
 
 

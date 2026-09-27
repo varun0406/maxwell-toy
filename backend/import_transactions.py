@@ -345,11 +345,8 @@ def import_transactions(file_path):
     for rcpt in root.findall('.//Rcpts/Receipt'):
         stats['payments_found'] += 1
         date_str = rcpt.findtext('Date', '')
-        party = None
-        amount = Decimal('0')
-        note = ""
+        debtors = []
         mode = 'cash'
-        debtor_acc = None
 
         vch_other = rcpt.find('VchOtherInfoDetails')
         nar = narration(vch_other)
@@ -357,13 +354,19 @@ def import_transactions(file_path):
         for acc in rcpt.findall('.//AccEntries/AccDetail'):
             grp = acc.findtext('tmpGroupName', '')
             if grp == 'Sundry Debtors':
-                debtor_acc = acc
                 party_name = acc.findtext('AccountName', '').strip()
-                party = get_or_create_party(session, party_name)
+                party = get_or_create_party(session, party_name if party_name else "UNKNOWN PARTY (SYSTEM)")
                 amount = abs(to_decimal(acc.findtext('AmtMainCur', '0')))
                 sn = acc.findtext('ShortNar', '').strip()
-                if sn:
-                    note = sn
+                
+                note = sn if sn else (nar if nar else "Receipt")
+                
+                debtors.append({
+                    'party': party,
+                    'amount': amount,
+                    'note': note,
+                    'debtor_acc': acc
+                })
             elif grp in ['Bank Accounts', 'Cash-in-hand']:
                 acc_name = acc.findtext('AccountName', '').lower()
                 if any(kw in acc_name for kw in ['bank', 'hdfc', 'sbi', 'icici', 'axis']):
@@ -371,29 +374,33 @@ def import_transactions(file_path):
                 else:
                     mode = 'cash'
 
-        # Narration overrides ShortNar if present
-        if nar:
-            note = nar
-
-        if not party:
+        if not debtors:
+            # Handle cancelled or truly blank receipts
             party = get_or_create_party(session, "UNKNOWN PARTY (SYSTEM)")
+            debtors.append({
+                'party': party,
+                'amount': Decimal('0'),
+                'note': nar if nar else "Cancelled Receipt",
+                'debtor_acc': None
+            })
 
         p_date = parse_date(date_str)
 
-        payment = Payment(
-            party_id=party.id,
-            created_by=1,
-            amount=amount,
-            unallocated=amount,
-            payment_date=p_date,
-            mode=mode,
-            note=note
-        )
-        session.add(payment)
-        session.flush()
+        for d in debtors:
+            payment = Payment(
+                party_id=d['party'].id,
+                created_by=1,
+                amount=d['amount'],
+                unallocated=d['amount'],
+                payment_date=p_date,
+                mode=mode,
+                note=d['note']
+            )
+            session.add(payment)
+            session.flush()
 
-        if debtor_acc is not None:
-            allocate_bill_refs(session, payment, debtor_acc.find('BillRefs'))
+            if d['debtor_acc'] is not None:
+                allocate_bill_refs(session, payment, d['debtor_acc'].find('BillRefs'))
 
         stats['payments_imported'] += 1
 

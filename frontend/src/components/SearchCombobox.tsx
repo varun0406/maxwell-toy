@@ -3,6 +3,7 @@
  * Opens a full-screen search modal when tapped.
  */
 import { useState, useRef, useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { Search, X, ChevronDown } from 'lucide-react';
 
 export interface ComboboxOption {
@@ -19,17 +20,36 @@ interface Props {
   onChange: (opt: ComboboxOption) => void;
   loading?: boolean;
   disabled?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+  selectedOption?: ComboboxOption | null;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function SearchCombobox({ value, placeholder = 'Select…', options, onSearch, onChange, loading, disabled }: Props) {
+export function SearchCombobox({
+  value,
+  placeholder = 'Select…',
+  options,
+  onSearch,
+  onChange,
+  loading,
+  disabled,
+  hasMore,
+  onLoadMore,
+  loadingMore,
+  selectedOption,
+  onOpenChange,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { ref: loadMoreRef, inView } = useInView({ rootMargin: '80px' });
 
-  const selected = options.find(o => o.value === value);
+  const selected = options.find(o => o.value === value)
+    || (selectedOption && selectedOption.value === value ? selectedOption : undefined);
 
-  // If onSearch is provided, the parent handles filtering server-side — just show all returned options.
-  // Only apply client-side filter when options are static (no onSearch).
   const filtered = onSearch
     ? options
     : query
@@ -39,6 +59,11 @@ export function SearchCombobox({ value, placeholder = 'Select…', options, onSe
         )
       : options;
 
+  const setOpenState = (next: boolean) => {
+    setOpen(next);
+    onOpenChange?.(next);
+  };
+
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -47,18 +72,27 @@ export function SearchCombobox({ value, placeholder = 'Select…', options, onSe
     }
   }, [open]);
 
-  // When query changes, call async search if provided
   useEffect(() => {
-    if (open && onSearch) onSearch(query);
-  }, [query, open]);
+    if (!open || !onSearch) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => onSearch(query), query ? 280 : 0);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, open, onSearch]);
+
+  useEffect(() => {
+    if (open && inView && hasMore && !loadingMore && !loading) {
+      onLoadMore?.();
+    }
+  }, [open, inView, hasMore, loadingMore, loading, onLoadMore]);
 
   return (
     <>
-      {/* Trigger button */}
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen(true)}
+        onClick={() => setOpenState(true)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -81,12 +115,11 @@ export function SearchCombobox({ value, placeholder = 'Select…', options, onSe
         <ChevronDown size={16} style={{ flexShrink: 0, color: 'var(--text-muted)', marginLeft: 8 }} />
       </button>
 
-      {/* Full-screen modal */}
       {open && (
         <div
           className="modal-overlay"
           style={{ alignItems: 'flex-start' }}
-          onClick={() => setOpen(false)}
+          onClick={() => setOpenState(false)}
         >
           <div
             className="modal-sheet"
@@ -95,7 +128,6 @@ export function SearchCombobox({ value, placeholder = 'Select…', options, onSe
           >
             <div className="modal-handle" />
 
-            {/* Search input */}
             <div className="search-bar" style={{ margin: '0 0 16px' }}>
               <Search size={16} />
               <input
@@ -111,9 +143,8 @@ export function SearchCombobox({ value, placeholder = 'Select…', options, onSe
               )}
             </div>
 
-            {/* Results */}
             <div style={{ flex: 1, overflowY: 'auto' }}>
-              {loading ? (
+              {loading && filtered.length === 0 ? (
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}><div className="spinner" /></div>
               ) : filtered.length === 0 ? (
                 <div className="empty-state" style={{ padding: '32px 20px' }}>
@@ -124,7 +155,7 @@ export function SearchCombobox({ value, placeholder = 'Select…', options, onSe
                 (Array.isArray(filtered) ? filtered : []).map(opt => (
                   <div
                     key={opt.value}
-                    onClick={() => { onChange(opt); setOpen(false); }}
+                    onClick={() => { onChange(opt); setOpenState(false); }}
                     style={{
                       padding: '14px 4px',
                       borderBottom: '1px solid var(--border)',
@@ -147,9 +178,14 @@ export function SearchCombobox({ value, placeholder = 'Select…', options, onSe
                   </div>
                 ))
               )}
+              {hasMore && (
+                <div ref={loadMoreRef} style={{ padding: '16px 0', display: 'flex', justifyContent: 'center' }}>
+                  {(loadingMore || loading) && <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />}
+                </div>
+              )}
             </div>
 
-            <button className="btn btn-secondary" style={{ marginTop: 12 }} onClick={() => setOpen(false)}>
+            <button className="btn btn-secondary" style={{ marginTop: 12 }} onClick={() => setOpenState(false)}>
               Cancel
             </button>
           </div>

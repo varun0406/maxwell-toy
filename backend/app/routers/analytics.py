@@ -3,12 +3,13 @@ from decimal import Decimal
 from typing import List
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, text
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..paging import clamp_page, ilike_pattern
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 

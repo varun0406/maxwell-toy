@@ -11,6 +11,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     skip: int
     limit: int
     summary_total: Optional[Decimal] = None
+    meta: Optional[dict] = None
 
 
 # ---------------------------------------------------------------------------
