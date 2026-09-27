@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 
 import { useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -55,9 +55,10 @@ export function PartiesList() {
     queryFn: () => analyticsApi.byAgent().then(r => r.data)
   });
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['parties', debouncedSearch, page, agent],
     queryFn: () => partiesApi.list(debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, false, agent || undefined).then(r => r.data),
+    placeholderData: keepPreviousData,
   });
 
   const parties = data?.items || [];
@@ -94,7 +95,7 @@ export function PartiesList() {
         </select>
       </div>
 
-      {isLoading ? (
+      {isLoading && !isFetching ? (
         <div className="loading-screen"><div className="spinner" /></div>
       ) : parties.length === 0 ? (
         <div className="empty-state">

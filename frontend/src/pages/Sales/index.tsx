@@ -3,7 +3,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { invoicesApi, partiesApi, addressBookApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon, Copy, CreditCard, Filter } from 'lucide-react';
@@ -76,7 +76,7 @@ export function InvoicesList() {
     ? (customFrom || customTo ? { from: customFrom, to: customTo } : null)
     : getDateRange(dateFilter);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['invoices', filter, debouncedSearch, dateFilter, customFrom, customTo, debouncedMinAmount, debouncedMaxAmount, page],
     queryFn: () =>
       invoicesApi.list(
@@ -86,6 +86,7 @@ export function InvoicesList() {
         debouncedMinAmount ? parseFloat(debouncedMinAmount) : undefined,
         debouncedMaxAmount ? parseFloat(debouncedMaxAmount) : undefined,
       ).then(r => r.data),
+    placeholderData: keepPreviousData,
   });
 
   const invoices = data?.items || [];
@@ -148,7 +149,7 @@ export function InvoicesList() {
         </div>
       )}
 
-      {isLoading ? (
+      {isLoading && !isFetching ? (
         <div className="loading-screen"><div className="spinner" /></div>
       ) : invoices.length === 0 ? (
         <div className="empty-state">

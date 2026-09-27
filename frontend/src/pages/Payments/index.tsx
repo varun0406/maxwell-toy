@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { paymentsApi, partiesApi, invoicesApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { SearchCombobox } from '../../components/SearchCombobox';
@@ -57,9 +57,10 @@ export function PaymentsList() {
     ? (customFrom || customTo ? { from: customFrom, to: customTo } : null)
     : getDateRange(dateFilter);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['payments', debouncedSearch, dateFilter, customFrom, customTo, page],
     queryFn: () => paymentsApi.list(undefined, debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, dateRange?.from, dateRange?.to ? dateRange.to + 'T23:59:59' : undefined).then(r => r.data),
+    placeholderData: keepPreviousData,
   });
 
   const payments = data?.items || [];
@@ -103,7 +104,7 @@ export function PaymentsList() {
         </div>
       )}
 
-      {isLoading ? (
+      {isLoading && !isFetching ? (
         <div className="loading-screen"><div className="spinner" /></div>
       ) : payments.length === 0 ? (
         <div className="empty-state"><Plus size={48} /><h3>No payments yet</h3><p>Record your first payment to track collections</p></div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { addressBookApi } from '../../api/endpoints';
 import { Plus, Search, X, Phone, MapPin, Pencil, Trash2 } from 'lucide-react';
 
@@ -22,9 +22,10 @@ export default function AddressBook() {
   const [editing, setEditing] = useState<AddressEntry | null>(null);
   const qc = useQueryClient();
 
-  const { data: entries = [], isLoading } = useQuery({
+  const { data: entries = [], isLoading, isFetching } = useQuery({
     queryKey: ['address-book', debouncedSearch],
     queryFn: () => addressBookApi.list(debouncedSearch || undefined).then(r => r.data),
+    placeholderData: keepPreviousData,
   });
 
   const handleDelete = async (id: number) => {
@@ -53,7 +54,7 @@ export default function AddressBook() {
         )}
       </div>
 
-      {isLoading ? (
+      {isLoading && !isFetching ? (
         <div className="loading-screen"><div className="spinner" /></div>
       ) : entries.length === 0 ? (
         <div className="empty-state">
