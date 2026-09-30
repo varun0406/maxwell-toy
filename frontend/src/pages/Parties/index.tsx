@@ -129,6 +129,16 @@ export function PartiesList() {
                   </span>
                 </CalculationEvidence>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginTop: 4, gap: 2 }}>
+                  {p.busy_closing_balance !== undefined && p.busy_closing_balance !== null && (
+                    <div style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ color: 'var(--text-muted)' }}>BUSY: {formatCurrency(p.busy_closing_balance)}</span>
+                      {Math.abs(Number(p.outstanding || 0) - Number(p.busy_closing_balance)) > 0.01 && (
+                        <span style={{ color: 'var(--danger)', fontWeight: 600, background: 'rgba(239,68,68,0.1)', padding: '2px 6px', borderRadius: 4 }}>
+                          Diff: {formatCurrency(Number(p.outstanding || 0) - Number(p.busy_closing_balance))}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {(p.bills_outstanding || 0) > 0 && <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>Bills: {formatCurrency(p.bills_outstanding)}</p>}
                   {(p.unallocated_payments || 0) > 0 && <p style={{ fontSize: 10, color: 'var(--success)' }}>Adv: {formatCurrency(p.unallocated_payments)}</p>}
                 </div>
