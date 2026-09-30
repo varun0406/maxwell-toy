@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/auth';
 import { formatCurrency, formatDate } from '../../utils/format';
 import CalculationEvidence from '../../components/CalculationEvidence';
 import {
-  Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert
+  Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert, BookOpen
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -136,6 +136,10 @@ export default function Dashboard() {
         <button className="quick-action-btn warning" onClick={() => navigate('/analytics')}>
           <BarChart2 size={20} />
           Analytics
+        </button>
+        <button className="quick-action-btn" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15))', border: '1px solid rgba(99,102,241,0.25)' }} onClick={() => navigate('/accounts')}>
+          <BookOpen size={20} />
+          Accounts
         </button>
         {user?.is_superuser && (
           <button className="quick-action-btn" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }} onClick={() => navigate('/users')}>
