@@ -497,11 +497,11 @@ def import_transactions(file_path, session):
             sr_added += 1
             
             # Parse BillRefs for allocating against Invoices
-            for bill_det in sr.findall('.//BillDetails'):
-                method = bill_det.findtext('Method')
+            for bill_ref in sr.findall('.//PendingBillDetails/BillDetail/BillRefs'):
+                method = bill_ref.findtext('Method')
                 if method == '2':
-                    ref_no = clean(bill_det.findtext('RefNo'))
-                    val = Decimal(bill_det.findtext('Value1') or '0')
+                    ref_no = clean(bill_ref.findtext('RefNo'))
+                    val = Decimal(bill_ref.findtext('Value1') or '0')
                     val = abs(val)
                     
                     invoice = session.query(Invoice).filter_by(party_id=party_id, invoice_number=ref_no).first()
@@ -524,25 +524,29 @@ def import_transactions(file_path, session):
 
 def calculate_busy_balances(files, session):
     from app.models import Party
-    print("\n--- Calculating Final BUSY Balances from Transactions ---")
+    import glob
+    print("\n--- Calculating Final BUSY Balances from Master ---")
+    
+    master_files = glob.glob('../*master*.DAT')
     
     party_balances = {}
-    for f in files:
-        tree = ET.parse(f)
-        root = tree.getroot()
-        for acc_det in root.findall('.//AccDetail'):
-            raw_name = acc_det.findtext('AccountName') or ''
-            name = ' '.join(raw_name.split())
-            amt_type = acc_det.findtext('AmountType')
-            amt = abs(float(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or 0))
-            
-            if name not in party_balances:
-                party_balances[name] = 0
-                
-            if amt_type == '1': # Debit
-                party_balances[name] += amt
-            elif amt_type == '2': # Credit
-                party_balances[name] -= amt
+    if master_files:
+        master_file = master_files[0]
+        print(f"Reading closing balances from: {master_file}")
+        try:
+            tree = ET.parse(master_file)
+            root = tree.getroot()
+            for acc in root.findall('.//Accounts/Account'):
+                raw_name = acc.findtext('Name') or ''
+                name = ' '.join(raw_name.split())
+                if name:
+                    # In BUSY, negative OPBal for Sundry Debtors means Debit (Due from customer)
+                    opbal_str = acc.findtext('OPBal')
+                    if opbal_str:
+                        amt = -float(opbal_str)
+                        party_balances[name] = amt
+        except Exception as e:
+            print(f"Failed to parse master file: {e}")
 
     parties = session.query(Party).all()
     updated = 0
