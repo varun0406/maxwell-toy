@@ -119,7 +119,7 @@ def get_account_entries(
                 "id": e.id,
                 "party_id": e.party_id,
                 "party_name": e.party.name if e.party else None,
-                "amount": float(e.amount),
+                "amount": float(e.contra_amount),
                 "entry_date": e.entry_date.isoformat() if e.entry_date else None,
                 "description": e.description,
             }

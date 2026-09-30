@@ -5,7 +5,7 @@ import { useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { partiesApi, paymentsApi, invoicesApi, analyticsApi } from '../../api/endpoints';
+import { partiesApi, paymentsApi, invoicesApi, analyticsApi, accountsApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2 } from 'lucide-react';
 import { generateAndSharePartyStatement, openWhatsApp, generateAndShareLedger } from '../../utils/pdfGenerator';
@@ -926,11 +926,14 @@ function EditPartyModal({ party, onClose, onSuccess }: { party: any; onClose: ()
 
 // ── Journal Entry Modal ──────────────────────────────────────────────────────────
 function JournalModal({ partyId, onClose, onSuccess }: { partyId: number; onClose: () => void; onSuccess: () => void }) {
+  const { data: accounts } = useQuery({ queryKey: ['accounts'], queryFn: () => accountsApi.list(), select: r => r.data });
+
   const [form, setForm] = useState({
     amount: '',
     entry_date: new Date().toISOString().split('T')[0],
     description: '',
-    type: 'charge' // charge = positive, discount = negative
+    type: 'charge', // charge = positive, discount = negative
+    account_id: ''
   });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
@@ -947,6 +950,7 @@ function JournalModal({ partyId, onClose, onSuccess }: { partyId: number; onClos
       await partiesApi.addJournalEntry(partyId, {
         amount: finalAmount,
         entry_date: new Date(form.entry_date).toISOString(),
+        account_id: form.account_id ? Number(form.account_id) : undefined,
         description: form.description
       });
       onSuccess();
@@ -997,6 +1001,16 @@ function JournalModal({ partyId, onClose, onSuccess }: { partyId: number; onClos
               <label className="form-label">Date *</label>
               <input className="form-input" type="date" value={form.entry_date} onChange={set('entry_date')} />
             </div>
+          </div>
+          
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Master Account (Optional)</label>
+            <select className="form-select" value={form.account_id} onChange={set('account_id')}>
+              <option value="">-- None --</option>
+              {accounts?.map((a: any) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
           </div>
           
           <div className="form-group" style={{ marginBottom: 0 }}>

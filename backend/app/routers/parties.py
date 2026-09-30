@@ -363,6 +363,7 @@ def create_journal_entry(
         party_id=party.id,
         created_by=current_user.id,
         amount=entry_in.amount,
+        contra_amount=abs(entry_in.amount),
         account_id=entry_in.account_id,
         entry_date=entry_in.entry_date,
         description=entry_in.description,
