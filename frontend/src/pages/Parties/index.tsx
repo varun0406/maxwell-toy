@@ -245,6 +245,15 @@ export function PartyDetail() {
                 {formatCurrency(party?.outstanding || 0)}
               </CalculationEvidence>
             </div>
+            
+            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+                Unpaid Bills: {formatCurrency(party?.bills_outstanding || 0)}
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
+                On Account: {formatCurrency(party?.unallocated_payments || 0)}
+              </div>
+            </div>
           </div>
           <div style={{
             width: 56, height: 56, borderRadius: 14,
