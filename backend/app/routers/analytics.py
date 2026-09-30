@@ -136,7 +136,7 @@ def party_summaries(
         )
         SELECT *
         FROM counted
-        ORDER BY outstanding DESC
+        ORDER BY party_name ASC
         LIMIT :limit OFFSET :skip
     """), {"search": search_filter, "skip": skip, "limit": limit}).fetchall()
 
