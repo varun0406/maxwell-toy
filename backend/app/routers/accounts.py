@@ -20,7 +20,7 @@ def list_accounts(
             AccountMaster,
             func.coalesce(func.sum(
                 case(
-                    (JournalEntry.is_deleted == False, JournalEntry.amount),
+                    (JournalEntry.is_deleted == False, JournalEntry.contra_amount),
                     else_=0
                 )
             ), 0).label("total_amount"),
@@ -62,7 +62,7 @@ def get_account(account_id: int, db: Session = Depends(get_db)):
 
     stats = (
         db.query(
-            func.coalesce(func.sum(JournalEntry.amount), 0),
+            func.coalesce(func.sum(JournalEntry.contra_amount), 0),
             func.count(JournalEntry.id),
         )
         .filter(JournalEntry.account_id == account_id, JournalEntry.is_deleted == False)
