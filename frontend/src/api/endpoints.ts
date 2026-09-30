@@ -133,3 +133,11 @@ export const itemsApi = {
   delete: (id: number) => api.delete(`/items/${id}`),
 };
 
+// ── Account Masters (Cash Discount, Dalali, etc.) ─────────────────────────────
+export const accountsApi = {
+  list: (q?: string) => api.get('/accounts/', { params: q ? { q } : {} }),
+  get: (id: number) => api.get(`/accounts/${id}`),
+  entries: (id: number, skip: number = 0, limit: number = 50) =>
+    api.get(`/accounts/${id}/entries`, { params: { skip, limit } }),
+  create: (data: { name: string; group_name?: string }) => api.post('/accounts/', data),
+};
