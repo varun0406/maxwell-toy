@@ -5,7 +5,7 @@ from decimal import Decimal
 from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.models import Party, Invoice, InvoiceItem, Payment, PaymentAllocation
+from app.models import Party, Invoice, InvoiceItem, Payment, PaymentAllocation, JournalEntry
 from app.database import SessionLocal
 
 def clean(value):
