@@ -123,9 +123,12 @@ export function PaymentsList() {
                 <p className="list-item-sub">PMT-{String(p.id).padStart(4, '0')} · {formatDate(p.payment_date)} · {(p.mode || 'cash').toUpperCase()}</p>
                 {p.note && <p className="list-item-sub" style={{ fontSize: 11 }}>{p.note}</p>}
               </div>
-              <div className="list-item-right">
+              <div className="list-item-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--success)' }}>{formatCurrency(p.amount)}</p>
-                {Number(p.unallocated) > 0 && <span className="badge badge-accent" style={{ marginTop: 4, fontSize: 10 }}>On Acct {formatCurrency(p.unallocated)}</span>}
+                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                  {Number(p.discount_amount || 0) > 0 && <span className="badge" style={{ fontSize: 10, background: 'rgba(234,179,8,0.15)', color: 'var(--warning)' }}>Disc: {formatCurrency(p.discount_amount)}</span>}
+                  {Number(p.unallocated) > 0 && <span className="badge badge-accent" style={{ fontSize: 10 }}>On Acct {formatCurrency(p.unallocated)}</span>}
+                </div>
               </div>
             </div>
           ))}

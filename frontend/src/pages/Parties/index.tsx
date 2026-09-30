@@ -470,9 +470,10 @@ export function PartyDetail() {
                   <p style={{ fontSize: 14, fontWeight: 600 }}>PMT-{String(pmt.id).padStart(4, '0')}</p>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(pmt.payment_date)}</p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(pmt.amount)}</p>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{pmt.mode?.toUpperCase() || 'CASH'}</p>
+                  {(pmt.discount_amount || 0) > 0 && <span className="badge" style={{ marginTop: 4, fontSize: 10, background: 'rgba(234,179,8,0.15)', color: 'var(--warning)' }}>Disc: {formatCurrency(pmt.discount_amount)}</span>}
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{pmt.mode?.toUpperCase() || 'CASH'}</p>
                 </div>
               </div>
             ))
