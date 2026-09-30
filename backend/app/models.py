@@ -216,7 +216,8 @@ class PaymentAllocation(Base):
     __tablename__ = "payment_allocations"
 
     id = Column(Integer, primary_key=True, index=True)
-    payment_id = Column(Integer, ForeignKey("payments.id", ondelete="CASCADE"), nullable=False)
+    payment_id = Column(Integer, ForeignKey("payments.id", ondelete="CASCADE"), nullable=True)
+    journal_id = Column(Integer, ForeignKey("journal_entries.id", ondelete="CASCADE"), nullable=True)
     invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="CASCADE"), nullable=False)
     allocated_amount = Column(Numeric(12, 2), nullable=False)
     created_at = Column(DateTime(timezone=True), default=utcnow)

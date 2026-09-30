@@ -251,14 +251,47 @@ def import_transactions(file_path, session):
                 party_id=party_id, amount=amt, entry_date=jrnl_date
             ).first()
             if not j_entry:
-                session.add(JournalEntry(
+                j_entry = JournalEntry(
                     party_id=party_id,
                     created_by=1,
                     amount=amt,
                     entry_date=jrnl_date,
                     description="Imported Journal Entry"
-                ))
+                )
+                session.add(j_entry)
+                session.flush()
                 jrnl_added += 1
+
+                # Parse BillRefs for allocating against Invoices
+                bill_refs = acc_det.find('BillRefs')
+                if bill_refs is not None:
+                    for bill_det in bill_refs.findall('BillDetails'):
+                        method = bill_det.findtext('Method')
+                        # Method 2 is Adjustment (allocating against existing bill)
+                        if method == '2':
+                            ref_no = clean(bill_det.findtext('RefNo'))
+                            val = Decimal(bill_det.findtext('Value1') or '0')
+                            val = abs(val)
+                            
+                            invoice = session.query(Invoice).filter_by(party_id=party_id, invoice_number=ref_no).first()
+                            if invoice:
+                                alloc = PaymentAllocation(
+                                    journal_id=j_entry.id,
+                                    invoice_id=invoice.id,
+                                    allocated_amount=val
+                                )
+                                session.add(alloc)
+                                
+                                # If credit (amt_type == 2), decrease due. If debit, increase due.
+                                if amt_type == '2':
+                                    invoice.balance_due -= val
+                                else:
+                                    invoice.balance_due += val
+                                    
+                                if invoice.balance_due <= 0:
+                                    invoice.is_paid = True
+                                else:
+                                    invoice.is_paid = False
 
     print(f"Journals: Added {jrnl_added}")
 
@@ -336,14 +369,38 @@ def import_transactions(file_path, session):
             party_id=party_id, amount=-total_amt, entry_date=sr_date
         ).first()
         if not j_entry:
-            session.add(JournalEntry(
+            j_entry = JournalEntry(
                 party_id=party_id,
                 created_by=1,
                 amount=-total_amt,
                 entry_date=sr_date,
                 description=f"Sale Return: {vch_no}"
-            ))
+            )
+            session.add(j_entry)
+            session.flush()
             sr_added += 1
+            
+            # Parse BillRefs for allocating against Invoices
+            for bill_det in sr.findall('.//BillDetails'):
+                method = bill_det.findtext('Method')
+                if method == '2':
+                    ref_no = clean(bill_det.findtext('RefNo'))
+                    val = Decimal(bill_det.findtext('Value1') or '0')
+                    val = abs(val)
+                    
+                    invoice = session.query(Invoice).filter_by(party_id=party_id, invoice_number=ref_no).first()
+                    if invoice:
+                        alloc = PaymentAllocation(
+                            journal_id=j_entry.id,
+                            invoice_id=invoice.id,
+                            allocated_amount=val
+                        )
+                        session.add(alloc)
+                        invoice.balance_due -= val
+                        if invoice.balance_due <= 0:
+                            invoice.is_paid = True
+                        else:
+                            invoice.is_paid = False
             
     print(f"Sale Returns: Added {sr_added}")
 
