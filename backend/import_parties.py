@@ -15,7 +15,7 @@ def clean(value):
     return ' '.join((value or '').split()) or None
 
 
-def import_parties(file_path, created_by=1, include_suppliers=True, dry_run=False, report_path=None):
+def import_parties(file_path, created_by=1, address_groups=None, dry_run=False, report_path=None):
     print(f"Reading {file_path}...")
     
     # Check if the file starts with a root tag. If it's just a sequence of <Account> tags,
@@ -31,6 +31,7 @@ def import_parties(file_path, created_by=1, include_suppliers=True, dry_run=Fals
         root = ET.fromstring(content)
 
     session = SessionLocal()
+    address_groups = set(address_groups or ('Sundry Creditors', 'KARIGAR'))
     
     added_count = 0
     updated_count = 0
@@ -43,7 +44,7 @@ def import_parties(file_path, created_by=1, include_suppliers=True, dry_run=Fals
         
         # We only want Sundry Debtors
         if parent_group != 'Sundry Debtors':
-            if include_suppliers and parent_group == 'Sundry Creditors':
+            if parent_group in address_groups:
                 name = clean(account.findtext('Name'))
                 address_node = account.find('Address')
                 if not name:
@@ -250,7 +251,8 @@ def import_parties(file_path, created_by=1, include_suppliers=True, dry_run=Fals
     report = {
         'source': file_path, 'dry_run': dry_run,
         'parties_added': added_count, 'parties_updated': updated_count,
-        'supplier_addresses_added': address_added, 'supplier_addresses_updated': address_updated,
+        'address_groups': sorted(address_groups),
+        'address_entries_added': address_added, 'address_entries_updated': address_updated,
         'skipped': skipped,
     }
     print(json.dumps(report, indent=2))
@@ -267,11 +269,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Import BUSY master parties and supplier addresses.')
     parser.add_argument('files', nargs='*', default=['../BUSY.DAT'])
     parser.add_argument('--created-by', type=int, default=1)
-    parser.add_argument('--no-suppliers', action='store_true')
+    parser.add_argument('--address-group', action='append', dest='address_groups',
+                        help='Account ParentGroup to import into address_book. Repeatable; '
+                             'defaults to Sundry Creditors and KARIGAR.')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--report', help='Write a JSON import report to this path.')
     args = parser.parse_args()
     files = args.files
     for f in files:
-        import_parties(f, created_by=args.created_by, include_suppliers=not args.no_suppliers,
+        import_parties(f, created_by=args.created_by, address_groups=args.address_groups,
                        dry_run=args.dry_run, report_path=args.report)

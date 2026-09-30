@@ -1,0 +1,2958 @@
+XML Structure Analysis for BUSY26-27..DAT
+========================================
+
+Tag: <AccDetail> (Count: 2383)
+  Parents: AccEntries
+  Children: AccountName, AmountType, AmtMainCur, BillRefs, CashFlow, Date, SrNo, VchNo, VchType, tmpAccCode, tmpGroupName, tmpVchCode
+  Attributes: None
+
+Tag: <AccEntries> (Count: 1015)
+  Parents: Journal, Receipt, Sale, SaleReturn
+  Children: AccDetail
+  Attributes: None
+
+Tag: <AccMastConfig> (Count: 1)
+  Parents: MasterConfiguration
+  Children: AddnInfo0, AddnInfoBtLines0, AddnInfoBtLines1, AddnInfoBtLines2, AddnInfoBtLines3, AddnInfoBtReq, AddnInfoLen0, tmpMastType, tmpStamp
+  Attributes: None
+
+Tag: <Account> (Count: 95)
+  Parents: Accounts
+  Children: Address, BillByBillBalancing, BrokerAssigned, BrokerName, Brokerage, CostCenterApplicable, DefaultBrokerage, FreezeBroker, FreezeBrokerage, InputType, Name, OPBal, OldIdentity, PYBal, ParentGroup, PriceLevel, PriceLevelForPurc, PrintName, ReverseChargeType, SupplierType, TDSApplicable, TaxType, tmpBrokerCode, tmpCode, tmpParentGrpCode
+  Attributes: None
+
+Tag: <AccountName> (Count: 2383)
+  Parents: AccDetail
+  Children: None
+  Attributes: None
+
+Tag: <AccountingInMatIssue> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AccountingInMatRcpt> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AccountingInStkTfr> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Accounts> (Count: 1)
+  Parents: BusyData
+  Children: Account
+  Attributes: None
+
+Tag: <AddnInfo0> (Count: 2)
+  Parents: AccMastConfig, ItemMastConfig
+  Children: None
+  Attributes: None
+
+Tag: <AddnInfoBtLines0> (Count: 1)
+  Parents: AccMastConfig
+  Children: None
+  Attributes: None
+
+Tag: <AddnInfoBtLines1> (Count: 1)
+  Parents: AccMastConfig
+  Children: None
+  Attributes: None
+
+Tag: <AddnInfoBtLines2> (Count: 1)
+  Parents: AccMastConfig
+  Children: None
+  Attributes: None
+
+Tag: <AddnInfoBtLines3> (Count: 1)
+  Parents: AccMastConfig
+  Children: None
+  Attributes: None
+
+Tag: <AddnInfoBtReq> (Count: 1)
+  Parents: AccMastConfig
+  Children: None
+  Attributes: None
+
+Tag: <AddnInfoLen0> (Count: 2)
+  Parents: AccMastConfig, ItemMastConfig
+  Children: None
+  Attributes: None
+
+Tag: <Address> (Count: 196)
+  Parents: Account, Broker, Item, MaterialCenter
+  Children: Address1, Address2, Address3, Address4, AreaName, Contact, CountryName, Email, ITPAN, Mobile, OF, PINCode, RegionName, StateName, Station, TmpMasterCode, Transport, WhatsAppNo
+  Attributes: None
+
+Tag: <Address1> (Count: 662)
+  Parents: Address, BillingDetails
+  Children: None
+  Attributes: None
+
+Tag: <Address2> (Count: 655)
+  Parents: Address, BillingDetails
+  Children: None
+  Attributes: None
+
+Tag: <Address3> (Count: 626)
+  Parents: Address, BillingDetails
+  Children: None
+  Attributes: None
+
+Tag: <Address4> (Count: 464)
+  Parents: Address, BillingDetails
+  Children: None
+  Attributes: None
+
+Tag: <AdjustInPurcAmt> (Count: 1)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <AdjustInSaleAmt> (Count: 1)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <AdjustPurcInPartyAmt> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <AdjustSaleInPartyAmt> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <AdjustmentOfMaterialInPurc> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AdjustmentOfMaterialInSale> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AffectAccountingInPurc> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <AffectAccountingInSale> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <AllocateExpenses> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AllocateExtraExpensesVchWise> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AltUnit> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <AltUnitName> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <AltUnitReq> (Count: 97)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <AlternateUnit> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Amount> (Count: 45)
+  Parents: OPMCStockDetail
+  Children: None
+  Attributes: None
+
+Tag: <AmountBasis> (Count: 1)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <AmountType> (Count: 2383)
+  Parents: AccDetail
+  Children: None
+  Attributes: None
+
+Tag: <Amt> (Count: 1019)
+  Parents: BSDetail, ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <AmtMainCur> (Count: 2383)
+  Parents: AccDetail
+  Children: None
+  Attributes: None
+
+Tag: <ApplicableGSTIndia> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AreaName> (Count: 92)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <AutoCreateChallanRefInAddMode> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AutoCreateOrderRefInAddMode> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AutoCreatePurchaseQuotationRefInAddMode> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AutoCreateSaleQuotationRefInAddMode> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <AutoRoundOff> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <AutoVchNo> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <BCNAutoNoChar> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BCNDuplication> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BCNFormat> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BCNGenerationMode> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BCNNegativeStock> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BCNPrefix> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BSDetail> (Count: 388)
+  Parents: BillSundries
+  Children: Amt, BSName, Date, PercentOperatedOn, PercentVal, SrNo, VchNo, VchType, tmpBSCode, tmpVchCode
+  Attributes: None
+
+Tag: <BSName> (Count: 388)
+  Parents: BSDetail
+  Children: None
+  Attributes: None
+
+Tag: <BSNature> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <BankReconciliation> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BaseCurrency> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BatchByBatch> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BatchEntries> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <BatchExpDateFormat> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BatchMfgDateFormat> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BatchReferenceMode> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BillByBill> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BillByBillBalancing> (Count: 87)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <BillByBillRefGroup> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BillByBillRefNarration> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BillDetail> (Count: 880)
+  Parents: PendingBillDetails
+  Children: BillRefs, MasterName1, tmpMasterCode1
+  Attributes: None
+
+Tag: <BillDetails> (Count: 510)
+  Parents: BillRefs
+  Children: Date, DueDate, ItemSrNo, Method, RefNo, SrNo, Value1, VchType, tmpMasterCode1, tmpRecType, tmpRefCode, tmpVchCode
+  Attributes: None
+
+Tag: <BillOfMaterials> (Count: 1)
+  Parents: BusyData
+  Children: None
+  Attributes: None
+
+Tag: <BillRefs> (Count: 3479)
+  Parents: AccDetail, BillDetail
+  Children: BillDetails, Date, DueDate, ItemSrNo, Method, MfgDate, RefNo, SrNo, Value1, VchType, tmpBrokerName, tmpMasterCode1, tmpRecType, tmpRefCode, tmpVchCode
+  Attributes: None
+
+Tag: <BillSundries> (Count: 335)
+  Parents: BusyData, Sale, SaleReturn
+  Children: BSDetail, BillSundry
+  Attributes: None
+
+Tag: <BillSundry> (Count: 3)
+  Parents: BillSundries
+  Children: AdjustInPurcAmt, AdjustInSaleAmt, AdjustPurcInPartyAmt, AdjustSaleInPartyAmt, AffectAccountingInPurc, AffectAccountingInSale, AmountBasis, BSNature, IncludeAddCessAmt, IncludeDiscAmt1, IncludeDiscAmt2, IncludeDiscAmt3, IncludeDiscAmt4, IncludeDiscAmt5, IncludeListAmt, IncludeMarkUpAmt1, IncludeMarkUpAmt2, IncludeMarkUpAmt3, IncludeMarkUpAmt4, IncludeMarkUpAmt5, IncludeSTAmt, IncludeTaxAmt, Name, NoOfPBS, PercentOfAmount, PointOfCalculation, PrintName, PurcAccName, RoundOffNearestVal, SalesAccName, SubTotalDesc, Type, tmpAffectBillAmtInPurc, tmpAffectBillAmtInSale, tmpCode, tmpPurcAccCode, tmpSalesAccCode
+  Attributes: None
+
+Tag: <BillingDetails> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: Address1, Address2, Address3, Address4, MobileNo, PartyName, tmpFound, tmpVchCode
+  Attributes: None
+
+Tag: <Broker> (Count: 508)
+  Parents: Brokers, ItemDetail
+  Children: Address, BrokerCreditAccName, Name, PrintName, tmpCode
+  Attributes: None
+
+Tag: <BrokerAssigned> (Count: 53)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <BrokerCreditAccName> (Count: 2)
+  Parents: Broker
+  Children: None
+  Attributes: None
+
+Tag: <BrokerInvolved> (Count: 958)
+  Parents: ItemDetail, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <BrokerName> (Count: 516)
+  Parents: Account, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <Brokerage> (Count: 417)
+  Parents: Account, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <BrokerageAmt> (Count: 308)
+  Parents: Sale
+  Children: None
+  Attributes: None
+
+Tag: <BrokerageLevel> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Brokers> (Count: 2)
+  Parents: BusyData, Config
+  Children: Broker
+  Attributes: None
+
+Tag: <Budgets> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <BusyData> (Count: 1)
+  Parents: ROOT
+  Children: Accounts, BillOfMaterials, BillSundries, Brokers, Config, Contacts, CostCenters, Executive, Items, Jrnls, MasterConfiguration, MastersSummary, MaterialCenter, POSVoucherConfiguration, PurchaseTypes, Rcpts, SaleTypes, Sales, SlRts, Units, VchsSummary, Version, VoucherConfiguration
+  Attributes: FinYear
+
+Tag: <CanChangeNoOfCopyDoc1> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <Cancelled> (Count: 1)
+  Parents: Receipt
+  Children: None
+  Attributes: None
+
+Tag: <CarrySettlement> (Count: 589)
+  Parents: POSVchData
+  Children: None
+  Attributes: None
+
+Tag: <CashFlow> (Count: 440)
+  Parents: AccDetail
+  Children: None
+  Attributes: None
+
+Tag: <CompDep> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <CompoundDiscount> (Count: 3)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <ConFactor> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <ConFactorPU> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <ConFactorType> (Count: 728)
+  Parents: Item, ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <Config> (Count: 1)
+  Parents: BusyData
+  Children: AccountingInMatIssue, AccountingInMatRcpt, AccountingInStkTfr, AdjustmentOfMaterialInPurc, AdjustmentOfMaterialInSale, AllocateExpenses, AllocateExtraExpensesVchWise, AlternateUnit, ApplicableGSTIndia, AutoCreateChallanRefInAddMode, AutoCreateOrderRefInAddMode, AutoCreatePurchaseQuotationRefInAddMode, AutoCreateSaleQuotationRefInAddMode, BCNAutoNoChar, BCNDuplication, BCNFormat, BCNGenerationMode, BCNNegativeStock, BCNPrefix, BankReconciliation, BaseCurrency, BatchByBatch, BatchExpDateFormat, BatchMfgDateFormat, BatchReferenceMode, BillByBill, BillByBillRefGroup, BillByBillRefNarration, BrokerageLevel, Brokers, Budgets, CompDep, ConsignmentLevel, ConsolidateChallanItems, ConsolidateOrderItems, CostCentres, CreditLimits, CurDecimal, DateWiseItemPricing, DisallowCarryNegStockBatch, DoubleEntry, EnableAddCess, EnableChallan, EnableConsignmentSales, EnableExecutiveInIndent, EnableFreeQty, EnableFullAdjustment, EnableItemSizingInfo, EnableJobWork, EnableJobWorkInHouse, EnableJobWorkOutHouse, EnableMRPWiseStock, EnableMultiParamStock, EnablePDC, EnableParamBCNGeneration, EnableParamStockAdjDropdown, EnablePayroll, EnablePayrollDailyWages, EnablePayrollESI, EnablePayrollEmpPassportDet, EnablePayrollMonthlySalary, EnablePayrollPF, EnablePayrollPT, EnablePayrollProduction, EnablePayrollTDS, EnablePurcRetInPurc, EnableSalesRetInSale, EnableScheme, EnableSerialNoTracking, EnforceFullQtyAllocationParam, EnforceFullQtyAllocationSrNo, FullQtyAdjToBatchRef, InputBatchDateInRoman, InputTranPriceForParam, ItemQtyDiscSlab, ItemQtyDiscSlabForPurc, ItemSNDescLines, ItemSNWarranty, ItemWiseDiscountType, ItemWiseMarkUpType, MCAtItemLevel, MaintainAltQtyWithParam, MaintainItemSNAltUnitAlso, MaintainItemSNInstallationDet, MaintainItemSerialNoDescAlso, MaintainMRPWithBatch, MaintainMRPWithParam, MaintainMRPWithSrNo, MaintainMultipleMRPwithBCN, MaintainSalesPriceAlso, MaintainSalesPriceWithBatch, MaintainSalesPriceWithParam, MaintainSalesPriceWithSrNo, MaintainSerialNoImage, MaintainSubLedger, MultiCurrency, MultiGodown, MultiplePriceList, MultiplePriceListForPurc, NoOfStockParam, OrderProcessing, PackagingUnit, ParamStockConfig, Parameter1, Parameter2, Parameter3, Parameter4, Parameter5, PartyItemSalePrices, PartyItemSalePricesForPurc, PickSrNoFromAllMC, PostAccSRPR, PricingMode, PricingModeForPurc, PurchaseIndent, PurchaseQuotation, QtyDecimal, RestrictPRwithoutChallan, RestrictPurcOrderModification, RestrictPurcwithoutChallan, RestrictPurcwithoutOrder, RestrictSRwithoutChallan, RestrictSaleOrderModification, RestrictSalewithoutChallan, RestrictSalewithoutOrder, Royality, STSurcharge, SalePurcAccWith, SaleQuotation, SalesTaxReports, SalesTaxType, SepSVMForItems, SepStockUpdDate, SerialNoImageNameType, SerialNoImagePath, ShowItemLastPrice, ShowItemLastPriceForPurc, ShowPartyPrice, ShowPartyPriceForPurc, ShowPendRefsTillDate, SkipDefaultPriceInPurcChallan, SkipDefaultPriceInSaleChallan, SrNoAdjWithoutSrNoStock, SrNoAdjustmentMode, TDSReports, Targets, TrackFinishedGoodsRecvIssuable
+  Attributes: None
+
+Tag: <ConsignmentLevel> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ConsolidateChallanItems> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ConsolidateOrderItems> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Contact> (Count: 2)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <Contacts> (Count: 1)
+  Parents: BusyData
+  Children: None
+  Attributes: None
+
+Tag: <ConversionFactor> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <CostCenterApplicable> (Count: 2)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <CostCenters> (Count: 1)
+  Parents: BusyData
+  Children: None
+  Attributes: None
+
+Tag: <CostCentres> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <CountryName> (Count: 95)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <CreditLimits> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <CriticalLevels> (Count: 19)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <CurDecimal> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Date> (Count: 6026)
+  Parents: AccDetail, BSDetail, BillDetails, BillRefs, ItemDetail, Journal, Receipt, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <DateWiseItemPricing> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <DefaultBrokerage> (Count: 32)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <DescLine1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <DescLine2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <DescLine3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <DescLine4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <DisallowCarryNegStockBatch> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <DiscStructName> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <DiscountStructure> (Count: 4)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <DocFormatNames1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <DocFormatNames2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <DocFormatNames3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <DocFormatNames4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <DoubleEntry> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <DueDate> (Count: 1606)
+  Parents: BillDetails, BillRefs
+  Children: None
+  Attributes: None
+
+Tag: <EInvAckDate> (Count: 349)
+  Parents: Receipt
+  Children: None
+  Attributes: None
+
+Tag: <Email> (Count: 1)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <EmailFormatName1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <EmailFormatName2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <EmailFormatName3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <EmailFormatName4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <EnableAddCess> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableChallan> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableConsignmentSales> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableExecutiveInIndent> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableFreeQty> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableFullAdjustment> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableItemSizingInfo> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableJobWork> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableJobWorkInHouse> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableJobWorkOutHouse> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableMRPWiseStock> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableMultiParamStock> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePDC> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableParamBCNGeneration> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableParamStockAdjDropdown> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePayroll> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePayrollDailyWages> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePayrollESI> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePayrollEmpPassportDet> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePayrollMonthlySalary> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePayrollPF> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePayrollPT> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePayrollProduction> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePayrollTDS> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnablePurcRetInPurc> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableSalesRetInSale> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableScheme> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnableSerialNoTracking> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnforceFullQtyAllocationParam> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <EnforceFullQtyAllocationSrNo> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Executive> (Count: 1)
+  Parents: BusyData
+  Children: None
+  Attributes: None
+
+Tag: <FAVchFormatName> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <FreezeBroker> (Count: 28)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <FreezeBrokerage> (Count: 14)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <FullQtyAdjToBatchRef> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <GRNo> (Count: 25)
+  Parents: VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <GrDate> (Count: 589)
+  Parents: VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <ITPAN> (Count: 1)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <IncludeAddCessAmt> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeDiscAmt1> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeDiscAmt2> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeDiscAmt3> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeDiscAmt4> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeDiscAmt5> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeListAmt> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeMarkUpAmt1> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeMarkUpAmt2> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeMarkUpAmt3> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeMarkUpAmt4> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeMarkUpAmt5> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeSTAmt> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <IncludeTaxAmt> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <InputBatchDateInRoman> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <InputTranPriceForParam> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <InputType> (Count: 684)
+  Parents: Account, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <Item> (Count: 99)
+  Parents: Items
+  Children: Address, AltUnit, AltUnitReq, ConFactorPU, ConFactorType, ConversionFactor, CriticalLevels, ItemBatchNoType, ItemSrNoType, MainUnit, Name, OPAmount, OPStockDetails, OPStockInAltUnit, OPStockInMainUnit, PackingUnitName, ParentGroup, PrintName, PurchaseAccount, SalesAccount, SpecifyPurcAcc, SpecifySalesAcc, StockValMethod, tmpAltUnitCode, tmpCode, tmpGroupCode, tmpMainUnitCode, tmpPackingUnitCode, tmpPurcAccCode, tmpSaleAccCode
+  Attributes: None
+
+Tag: <ItemBatchNoType> (Count: 85)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <ItemDescInfo> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <ItemDetail> (Count: 633)
+  Parents: ItemEntries
+  Children: AltUnitName, Amt, BatchEntries, Broker, BrokerInvolved, CompoundDiscount, ConFactor, ConFactorType, Date, DiscountStructure, ItemDescInfo, ItemName, ItemSerialNoEntries, ListPrice, MC, NettAmount, ParamStockEntries, Price, PriceAltUnit, Qty, QtyAltUnit, QtyMainUnit, RecType, SrNo, UnitName, VchNo, VchType, tmpAltUnitName, tmpConFactorType, tmpDiscountBasis, tmpGroupName, tmpItemCode, tmpItemMastConFactor, tmpItemMastPUConFactor, tmpMCCode, tmpMainUCFactor, tmpMainUnitCode, tmpMainUnitName, tmpNettPrice, tmpNettPriceAfterDisc, tmpPackingUnitName, tmpPartyCode, tmpUnitCode, tmpVchCode, tmpVchSeriesCode
+  Attributes: None
+
+Tag: <ItemEntries> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: ItemDetail
+  Attributes: None
+
+Tag: <ItemMastConfig> (Count: 1)
+  Parents: MasterConfiguration
+  Children: AddnInfo0, AddnInfoLen0, tmpMastType, tmpStamp
+  Attributes: None
+
+Tag: <ItemName> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <ItemQtyDiscSlab> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ItemQtyDiscSlabForPurc> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ItemSNDescLines> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ItemSNWarranty> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ItemSerialNoEntries> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <ItemSrNo> (Count: 1020)
+  Parents: BillDetails, BillRefs
+  Children: None
+  Attributes: None
+
+Tag: <ItemSrNoType> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <ItemWiseDiscountType> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ItemWiseMarkUpType> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Items> (Count: 1)
+  Parents: BusyData
+  Children: Item
+  Attributes: None
+
+Tag: <ItemwiseDiscount> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <Journal> (Count: 11)
+  Parents: Jrnls
+  Children: AccEntries, Date, OriginalID, PendingBillDetails, TranCurName, VchOtherInfoDetails, VchSeriesName, VchType, tmpOldVchSeriesCode, tmpTotalAmt, tmpTranCurString, tmpTranCurSubString, tmpVchCode, tmpVchSeriesCode
+  Attributes: None
+
+Tag: <Jrnls> (Count: 1)
+  Parents: BusyData
+  Children: Journal
+  Attributes: None
+
+Tag: <ListPrice> (Count: 631)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <MC> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <MCAtItemLevel> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MCMastConfig> (Count: 1)
+  Parents: MasterConfiguration
+  Children: tmpMastType
+  Attributes: None
+
+Tag: <MCName> (Count: 45)
+  Parents: OPMCStockDetail
+  Children: None
+  Attributes: None
+
+Tag: <MainUnit> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <MaintainAltQtyWithParam> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainItemSNAltUnitAlso> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainItemSNInstallationDet> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainItemSerialNoDescAlso> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainMRPWithBatch> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainMRPWithParam> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainMRPWithSrNo> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainMultipleMRPwithBCN> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainSalesPriceAlso> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainSalesPriceWithBatch> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainSalesPriceWithParam> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainSalesPriceWithSrNo> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainSerialNoImage> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainSubLedger> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MaintainVchImageForSeries> (Count: 8)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <MajorVer> (Count: 1)
+  Parents: Version
+  Children: None
+  Attributes: None
+
+Tag: <MarkupStructName> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <MasterConfiguration> (Count: 1)
+  Parents: BusyData
+  Children: AccMastConfig, ItemMastConfig, MCMastConfig
+  Attributes: None
+
+Tag: <MasterName1> (Count: 1469)
+  Parents: BillDetail, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <MasterName2> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <MasterType> (Count: 12)
+  Parents: MastersDet
+  Children: None
+  Attributes: None
+
+Tag: <MastersDet> (Count: 12)
+  Parents: MastersSummary
+  Children: MasterType, NoOfMasters
+  Attributes: None
+
+Tag: <MastersSummary> (Count: 1)
+  Parents: BusyData
+  Children: MastersDet
+  Attributes: None
+
+Tag: <MaterialCenter> (Count: 2)
+  Parents: BusyData, MaterialCenter
+  Children: Address, MaterialCenter, Name, ParentGroup, PrintName, PurchaseAccount, SalesAccount, StockAccount, StockBelongsToYou, tmpCode, tmpParentGrpCode, tmpPurcAccCode, tmpSaleAccCode, tmpStockAccCode
+  Attributes: None
+
+Tag: <Method> (Count: 1606)
+  Parents: BillDetails, BillRefs
+  Children: None
+  Attributes: None
+
+Tag: <MfgDate> (Count: 1096)
+  Parents: BillRefs
+  Children: None
+  Attributes: None
+
+Tag: <MinorVer> (Count: 1)
+  Parents: Version
+  Children: None
+  Attributes: None
+
+Tag: <Mobile> (Count: 71)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <MobileNo> (Count: 576)
+  Parents: BillingDetails
+  Children: None
+  Attributes: None
+
+Tag: <MultiCurrency> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MultiGodown> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MultiplePriceList> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <MultiplePriceListForPurc> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Name> (Count: 213)
+  Parents: Account, BillSundry, Broker, Item, MaterialCenter, Unit
+  Children: None
+  Attributes: None
+
+Tag: <Narration1> (Count: 62)
+  Parents: VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <Narration2> (Count: 2)
+  Parents: VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <NettAmount> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <NoOfCopyDoc1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfCopyDoc2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfCopyDoc3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfCopyDoc4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfCopyForFaVch> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfCopyForInvVch> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfDescLines> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfEMailFormats> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfFld> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfFormats> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfMasters> (Count: 12)
+  Parents: MastersDet
+  Children: None
+  Attributes: None
+
+Tag: <NoOfNotificationFormat> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfPBS> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <NoOfSMSFormats> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NoOfStockParam> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <NoOfVch> (Count: 9)
+  Parents: VchDet
+  Children: None
+  Attributes: None
+
+Tag: <NotificationFormatName1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NotificationFormatName2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NotificationFormatName3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <NotificationFormatName4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <OF> (Count: 195)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <OF1> (Count: 585)
+  Parents: OFInfo, SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <OFInfo> (Count: 647)
+  Parents: VchOtherInfoDetails
+  Children: OF1
+  Attributes: None
+
+Tag: <OFType1> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <OPAmount> (Count: 45)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <OPBal> (Count: 63)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <OPMCStockDetail> (Count: 45)
+  Parents: OPStockDetails
+  Children: Amount, MCName, OPStockAltUnit, OPStockMainUnit, SrNo
+  Attributes: None
+
+Tag: <OPStockAltUnit> (Count: 45)
+  Parents: OPMCStockDetail
+  Children: None
+  Attributes: None
+
+Tag: <OPStockDetails> (Count: 45)
+  Parents: Item
+  Children: OPMCStockDetail
+  Attributes: None
+
+Tag: <OPStockInAltUnit> (Count: 45)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <OPStockInMainUnit> (Count: 45)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <OPStockMainUnit> (Count: 45)
+  Parents: OPMCStockDetail
+  Children: None
+  Attributes: None
+
+Tag: <OldIdentity> (Count: 594)
+  Parents: Account, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <OrderProcessing> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <OrgSalePurcDet> (Count: 4)
+  Parents: SaleReturn
+  Children: VchDate, VchNo, tmpFound, tmpVchCode
+  Attributes: None
+
+Tag: <OrgSalePurcDetProvided> (Count: 4)
+  Parents: SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <OriginalID> (Count: 1016)
+  Parents: Journal, Receipt, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <PINCode> (Count: 25)
+  Parents: Address, VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <POSSeriesConfiguration> (Count: 9)
+  Parents: POSVoucherConfiguration
+  Children: SeriesName, VchType
+  Attributes: None
+
+Tag: <POSVchData> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: CarrySettlement
+  Attributes: None
+
+Tag: <POSVoucherConfiguration> (Count: 1)
+  Parents: BusyData
+  Children: POSSeriesConfiguration
+  Attributes: None
+
+Tag: <PYBal> (Count: 69)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <PackagingUnit> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <PackingUnitName> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <ParamStockConfig> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ParamStockEntries> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <Parameter1> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Parameter2> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Parameter3> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Parameter4> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Parameter5> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ParentGroup> (Count: 195)
+  Parents: Account, Item, MaterialCenter
+  Children: None
+  Attributes: None
+
+Tag: <PartyItemSalePrices> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <PartyItemSalePricesForPurc> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <PartyName> (Count: 589)
+  Parents: BillingDetails
+  Children: None
+  Attributes: None
+
+Tag: <PendingBillDetails> (Count: 880)
+  Parents: Journal, Receipt, Sale, SaleReturn
+  Children: BillDetail
+  Attributes: None
+
+Tag: <PercentOfAmount> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <PercentOperatedOn> (Count: 58)
+  Parents: BSDetail
+  Children: None
+  Attributes: None
+
+Tag: <PercentVal> (Count: 58)
+  Parents: BSDetail
+  Children: None
+  Attributes: None
+
+Tag: <PickSrNoFromAllMC> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <PointOfCalculation> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <PostAccSRPR> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Price> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <PriceAltUnit> (Count: 4)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <PriceLevel> (Count: 95)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <PriceLevelForPurc> (Count: 95)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <PricingMode> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <PricingModeForPurc> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <PrintDocument> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDoc> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: PrintInDocValue1, PrintInDocValue10, PrintInDocValue11, PrintInDocValue12, PrintInDocValue13, PrintInDocValue14, PrintInDocValue15, PrintInDocValue16, PrintInDocValue17, PrintInDocValue18, PrintInDocValue19, PrintInDocValue2, PrintInDocValue20, PrintInDocValue3, PrintInDocValue4, PrintInDocValue5, PrintInDocValue6, PrintInDocValue7, PrintInDocValue8, PrintInDocValue9
+  Attributes: None
+
+Tag: <PrintInDocValue1> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue10> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue11> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue12> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue13> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue14> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue15> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue16> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue17> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue18> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue19> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue2> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue20> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue3> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue4> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue5> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue6> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue7> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue8> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInDocValue9> (Count: 9)
+  Parents: PrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRep> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: PrintInRepValue1, PrintInRepValue10, PrintInRepValue11, PrintInRepValue12, PrintInRepValue13, PrintInRepValue14, PrintInRepValue15, PrintInRepValue16, PrintInRepValue17, PrintInRepValue18, PrintInRepValue19, PrintInRepValue2, PrintInRepValue20, PrintInRepValue3, PrintInRepValue4, PrintInRepValue5, PrintInRepValue6, PrintInRepValue7, PrintInRepValue8, PrintInRepValue9
+  Attributes: None
+
+Tag: <PrintInRepValue1> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue10> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue11> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue12> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue13> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue14> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue15> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue16> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue17> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue18> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue19> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue2> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue20> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue3> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue4> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue5> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue6> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue7> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue8> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInRepValue9> (Count: 9)
+  Parents: PrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVch> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: PrintInVchValue1, PrintInVchValue10, PrintInVchValue11, PrintInVchValue12, PrintInVchValue13, PrintInVchValue14, PrintInVchValue15, PrintInVchValue16, PrintInVchValue17, PrintInVchValue18, PrintInVchValue19, PrintInVchValue2, PrintInVchValue20, PrintInVchValue3, PrintInVchValue4, PrintInVchValue5, PrintInVchValue6, PrintInVchValue7, PrintInVchValue8, PrintInVchValue9
+  Attributes: None
+
+Tag: <PrintInVchValue1> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue10> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue11> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue12> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue13> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue14> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue15> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue16> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue17> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue18> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue19> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue2> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue20> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue3> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue4> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue5> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue6> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue7> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue8> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintInVchValue9> (Count: 9)
+  Parents: PrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <PrintName> (Count: 213)
+  Parents: Account, BillSundry, Broker, Item, MaterialCenter, Unit
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintDoc1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintDoc2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintDoc3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintDoc4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintEMail1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintEMail2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintEMail3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintEMail4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintFaVch> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintInvVch> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintSMS1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintSMS2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintSMS3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToPrintSMS4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToSendNotification1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToSendNotification2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToSendNotification3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PromptToSendNotification4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <PurcAccName> (Count: 2)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <PurchaseAccount> (Count: 100)
+  Parents: Item, MaterialCenter
+  Children: None
+  Attributes: None
+
+Tag: <PurchaseBillDate> (Count: 589)
+  Parents: VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <PurchaseBillNo> (Count: 589)
+  Parents: VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <PurchaseIndent> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <PurchaseQuotation> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <PurchaseTypes> (Count: 1)
+  Parents: BusyData
+  Children: None
+  Attributes: None
+
+Tag: <Qty> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <QtyAltUnit> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <QtyDecimal> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <QtyMainUnit> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <Rcpts> (Count: 1)
+  Parents: BusyData
+  Children: Receipt
+  Attributes: None
+
+Tag: <RecType> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <Receipt> (Count: 416)
+  Parents: Rcpts
+  Children: AccEntries, Cancelled, Date, EInvAckDate, OriginalID, PendingBillDetails, TranCurName, VchOtherInfoDetails, VchSeriesName, VchType, tmpOldVchSeriesCode, tmpTotalAmt, tmpTranCurString, tmpTranCurSubString, tmpVchCode, tmpVchSeriesCode
+  Attributes: None
+
+Tag: <RefNo> (Count: 1606)
+  Parents: BillDetails, BillRefs
+  Children: None
+  Attributes: None
+
+Tag: <RegionName> (Count: 24)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <RestrictPRwithoutChallan> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <RestrictPurcOrderModification> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <RestrictPurcwithoutChallan> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <RestrictPurcwithoutOrder> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <RestrictSRwithoutChallan> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <RestrictSaleOrderModification> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <RestrictSalewithoutChallan> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <RestrictSalewithoutOrder> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ReverseChargeType> (Count: 95)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <RevisionNo> (Count: 1)
+  Parents: Version
+  Children: None
+  Attributes: None
+
+Tag: <RoundOffBSCodeLower> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <RoundOffBSCodeUpper> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <RoundOffLimit> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <RoundOffNearestVal> (Count: 10)
+  Parents: BillSundry, SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <Royality> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <STSurcharge> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Sale> (Count: 585)
+  Parents: Sales
+  Children: AccEntries, AutoVchNo, BillSundries, BillingDetails, BrokerInvolved, BrokerName, Brokerage, BrokerageAmt, Date, InputType, ItemEntries, MasterName1, MasterName2, OldIdentity, OriginalID, POSVchData, PendingBillDetails, StockUpdationDate, TranCurName, VchNo, VchOtherInfoDetails, VchSeriesName, VchType, tmpBillDateStr, tmpBillNoStr, tmpBrokerCode, tmpCostOfGoods, tmpMasterCode1, tmpMasterCode2, tmpSalePurcAmt, tmpTotalAltQty, tmpTotalAmt, tmpTotalQty, tmpVchCode, tmpVchSeriesCode
+  Attributes: None
+
+Tag: <SalePurcAccWith> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SaleQuotation> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SaleReturn> (Count: 4)
+  Parents: SlRts
+  Children: AccEntries, AutoVchNo, BillSundries, BillingDetails, BrokerInvolved, BrokerName, Brokerage, Date, InputType, ItemEntries, MasterName1, MasterName2, OldIdentity, OrgSalePurcDet, OrgSalePurcDetProvided, OriginalID, POSVchData, PendingBillDetails, StockUpdationDate, TranCurName, VchNo, VchOtherInfoDetails, VchSeriesName, VchType, tmpBillDateStr, tmpBillNoStr, tmpBrokerCode, tmpCostOfGoods, tmpMasterCode1, tmpMasterCode2, tmpSalePurcAmt, tmpTotalAltQty, tmpTotalAmt, tmpTotalQty, tmpVchCode, tmpVchSeriesCode
+  Attributes: None
+
+Tag: <SaleTypes> (Count: 1)
+  Parents: BusyData
+  Children: None
+  Attributes: None
+
+Tag: <Sales> (Count: 1)
+  Parents: BusyData
+  Children: Sale
+  Attributes: None
+
+Tag: <SalesAccName> (Count: 2)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <SalesAccount> (Count: 100)
+  Parents: Item, MaterialCenter
+  Children: None
+  Attributes: None
+
+Tag: <SalesTaxReports> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SalesTaxType> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SendAttachment1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SendAttachment2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SendAttachment3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SendAttachment4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SendNotificationToParty1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SendNotificationToParty2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SendNotificationToParty3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SendNotificationToParty4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SepSVMForItems> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SepStockUpdDate> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SeperateBillingDetails> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SerialNoImageNameType> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SerialNoImagePath> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Series> (Count: 9)
+  Parents: VchDet
+  Children: SeriesName
+  Attributes: None
+
+Tag: <SeriesConfiguration> (Count: 9)
+  Parents: VoucherConfiguration
+  Children: AutoRoundOff, CanChangeNoOfCopyDoc1, DescLine1, DescLine2, DescLine3, DescLine4, DiscStructName, DocFormatNames1, DocFormatNames2, DocFormatNames3, DocFormatNames4, EmailFormatName1, EmailFormatName2, EmailFormatName3, EmailFormatName4, FAVchFormatName, ItemwiseDiscount, MaintainVchImageForSeries, MarkupStructName, NoOfCopyDoc1, NoOfCopyDoc2, NoOfCopyDoc3, NoOfCopyDoc4, NoOfCopyForFaVch, NoOfCopyForInvVch, NoOfDescLines, NoOfEMailFormats, NoOfFld, NoOfFormats, NoOfNotificationFormat, NoOfSMSFormats, NotificationFormatName1, NotificationFormatName2, NotificationFormatName3, NotificationFormatName4, OF1, OFType1, PrintDocument, PrintInDoc, PrintInRep, PrintInVch, PromptToPrintDoc1, PromptToPrintDoc2, PromptToPrintDoc3, PromptToPrintDoc4, PromptToPrintEMail1, PromptToPrintEMail2, PromptToPrintEMail3, PromptToPrintEMail4, PromptToPrintFaVch, PromptToPrintInvVch, PromptToPrintSMS1, PromptToPrintSMS2, PromptToPrintSMS3, PromptToPrintSMS4, PromptToSendNotification1, PromptToSendNotification2, PromptToSendNotification3, PromptToSendNotification4, RoundOffBSCodeLower, RoundOffBSCodeUpper, RoundOffLimit, RoundOffNearestVal, SendAttachment1, SendAttachment2, SendAttachment3, SendAttachment4, SendNotificationToParty1, SendNotificationToParty2, SendNotificationToParty3, SendNotificationToParty4, SeperateBillingDetails, SeriesName, ShowOptionToSendNotification1, ShowOptionToSendNotification2, ShowOptionToSendNotification3, ShowOptionToSendNotification4, ShowPrintOptionsForDoc1, ShowPrintOptionsForDoc2, ShowPrintOptionsForDoc3, ShowPrintOptionsForDoc4, ShowPrintOptionsForEMail1, ShowPrintOptionsForEMail2, ShowPrintOptionsForEMail3, ShowPrintOptionsForEMail4, ShowPrintOptionsForFaVch, ShowPrintOptionsForInvVch, ShowPrintOptionsForSMS1, ShowPrintOptionsForSMS2, ShowPrintOptionsForSMS3, ShowPrintOptionsForSMS4, ShowTaxSummary, SpecifyNoOfCopyDoc1, SpecifyNoOfCopyForFaVch, TDPrintInDoc, TDPrintInRep, TDPrintInVch, TransportDetails, VSCode, VchImageFolderPath, VchSubDetails1, VchType, tmpDSCode, tmpMSCode, tmpStamp, tmpVSName
+  Attributes: None
+
+Tag: <SeriesName> (Count: 27)
+  Parents: POSSeriesConfiguration, Series, SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowItemLastPrice> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ShowItemLastPriceForPurc> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ShowOptionToSendNotification1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowOptionToSendNotification2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowOptionToSendNotification3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowOptionToSendNotification4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPartyPrice> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ShowPartyPriceForPurc> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ShowPendRefsTillDate> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForDoc1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForDoc2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForDoc3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForDoc4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForEMail1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForEMail2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForEMail3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForEMail4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForFaVch> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForInvVch> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForSMS1> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForSMS2> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForSMS3> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowPrintOptionsForSMS4> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <ShowTaxSummary> (Count: 8)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SkipDefaultPriceInPurcChallan> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SkipDefaultPriceInSaleChallan> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SlRts> (Count: 1)
+  Parents: BusyData
+  Children: SaleReturn
+  Attributes: None
+
+Tag: <SpecifyNoOfCopyDoc1> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SpecifyNoOfCopyForFaVch> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <SpecifyPurcAcc> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <SpecifySalesAcc> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <SrNo> (Count: 5055)
+  Parents: AccDetail, BSDetail, BillDetails, BillRefs, ItemDetail, OPMCStockDetail
+  Children: None
+  Attributes: None
+
+Tag: <SrNoAdjWithoutSrNoStock> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <SrNoAdjustmentMode> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <StateName> (Count: 93)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <Station> (Count: 12)
+  Parents: Address, VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <StockAccount> (Count: 1)
+  Parents: MaterialCenter
+  Children: None
+  Attributes: None
+
+Tag: <StockBelongsToYou> (Count: 1)
+  Parents: MaterialCenter
+  Children: None
+  Attributes: None
+
+Tag: <StockUpdationDate> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <StockValMethod> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <SubRevisionNo> (Count: 1)
+  Parents: Version
+  Children: None
+  Attributes: None
+
+Tag: <SubTotalDesc> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <SupplierType> (Count: 95)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <TDPrintInDoc> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: TDPrintInDocValue
+  Attributes: None
+
+Tag: <TDPrintInDocValue> (Count: 45)
+  Parents: TDPrintInDoc
+  Children: None
+  Attributes: None
+
+Tag: <TDPrintInRep> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: TDPrintInRepValue
+  Attributes: None
+
+Tag: <TDPrintInRepValue> (Count: 45)
+  Parents: TDPrintInRep
+  Children: None
+  Attributes: None
+
+Tag: <TDPrintInVch> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: TDPrintInVchValue
+  Attributes: None
+
+Tag: <TDPrintInVchValue> (Count: 45)
+  Parents: TDPrintInVch
+  Children: None
+  Attributes: None
+
+Tag: <TDSApplicable> (Count: 1)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <TDSReports> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <Targets> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <TaxType> (Count: 95)
+  Parents: Account
+  Children: None
+  Attributes: None
+
+Tag: <TmpMasterCode> (Count: 195)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <TotalQty> (Count: 589)
+  Parents: VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <TrackFinishedGoodsRecvIssuable> (Count: 1)
+  Parents: Config
+  Children: None
+  Attributes: None
+
+Tag: <TranCurName> (Count: 1016)
+  Parents: Journal, Receipt, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <Transport> (Count: 590)
+  Parents: Address, VchOtherInfoDetails
+  Children: None
+  Attributes: None
+
+Tag: <TransportDetails> (Count: 3)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <Type> (Count: 2)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <UQC> (Count: 2)
+  Parents: Unit
+  Children: None
+  Attributes: None
+
+Tag: <UQCEInvoice> (Count: 2)
+  Parents: Unit
+  Children: None
+  Attributes: None
+
+Tag: <UQCEWayBill> (Count: 2)
+  Parents: Unit
+  Children: None
+  Attributes: None
+
+Tag: <Unit> (Count: 2)
+  Parents: Units
+  Children: Name, PrintName, UQC, UQCEInvoice, UQCEWayBill, tmpCode
+  Attributes: None
+
+Tag: <UnitName> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <Units> (Count: 1)
+  Parents: BusyData
+  Children: Unit
+  Attributes: None
+
+Tag: <VSCode> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <Value1> (Count: 1606)
+  Parents: BillDetails, BillRefs
+  Children: None
+  Attributes: None
+
+Tag: <VchDate> (Count: 4)
+  Parents: OrgSalePurcDet
+  Children: None
+  Attributes: None
+
+Tag: <VchDet> (Count: 9)
+  Parents: VchsSummary
+  Children: NoOfVch, Series, VchType
+  Attributes: None
+
+Tag: <VchImageFolderPath> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <VchNo> (Count: 3117)
+  Parents: AccDetail, BSDetail, ItemDetail, OrgSalePurcDet, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <VchOtherInfoDetails> (Count: 647)
+  Parents: Journal, Receipt, Sale, SaleReturn
+  Children: GRNo, GrDate, Narration1, Narration2, OFInfo, PINCode, PurchaseBillDate, PurchaseBillNo, Station, TotalQty, Transport
+  Attributes: None
+
+Tag: <VchSeriesName> (Count: 1016)
+  Parents: Journal, Receipt, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <VchSubDetails1> (Count: 1)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <VchType> (Count: 6053)
+  Parents: AccDetail, BSDetail, BillDetails, BillRefs, ItemDetail, Journal, POSSeriesConfiguration, Receipt, Sale, SaleReturn, SeriesConfiguration, VchDet
+  Children: None
+  Attributes: None
+
+Tag: <VchsSummary> (Count: 1)
+  Parents: BusyData
+  Children: VchDet
+  Attributes: None
+
+Tag: <Version> (Count: 1)
+  Parents: BusyData
+  Children: MajorVer, MinorVer, RevisionNo, SubRevisionNo
+  Attributes: None
+
+Tag: <VoucherConfiguration> (Count: 1)
+  Parents: BusyData
+  Children: SeriesConfiguration
+  Attributes: None
+
+Tag: <WhatsAppNo> (Count: 71)
+  Parents: Address
+  Children: None
+  Attributes: None
+
+Tag: <tmpAccCode> (Count: 2383)
+  Parents: AccDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpAffectBillAmtInPurc> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <tmpAffectBillAmtInSale> (Count: 3)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <tmpAltUnitCode> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <tmpAltUnitName> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpBSCode> (Count: 388)
+  Parents: BSDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpBillDateStr> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpBillNoStr> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpBrokerCode> (Count: 516)
+  Parents: Account, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpBrokerName> (Count: 463)
+  Parents: BillRefs
+  Children: None
+  Attributes: None
+
+Tag: <tmpCode> (Count: 213)
+  Parents: Account, BillSundry, Broker, Item, MaterialCenter, Unit
+  Children: None
+  Attributes: None
+
+Tag: <tmpConFactorType> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpCostOfGoods> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpDSCode> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <tmpDiscountBasis> (Count: 4)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpFound> (Count: 589)
+  Parents: BillingDetails, OrgSalePurcDet
+  Children: None
+  Attributes: None
+
+Tag: <tmpGroupCode> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <tmpGroupName> (Count: 3016)
+  Parents: AccDetail, ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpItemCode> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpItemMastConFactor> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpItemMastPUConFactor> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpMCCode> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpMSCode> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <tmpMainUCFactor> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpMainUnitCode> (Count: 732)
+  Parents: Item, ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpMainUnitName> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpMastType> (Count: 3)
+  Parents: AccMastConfig, ItemMastConfig, MCMastConfig
+  Children: None
+  Attributes: None
+
+Tag: <tmpMasterCode1> (Count: 3075)
+  Parents: BillDetail, BillDetails, BillRefs, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpMasterCode2> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpNettPrice> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpNettPriceAfterDisc> (Count: 631)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpOldVchSeriesCode> (Count: 427)
+  Parents: Journal, Receipt
+  Children: None
+  Attributes: None
+
+Tag: <tmpPackingUnitCode> (Count: 99)
+  Parents: Item
+  Children: None
+  Attributes: None
+
+Tag: <tmpPackingUnitName> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpParentGrpCode> (Count: 96)
+  Parents: Account, MaterialCenter
+  Children: None
+  Attributes: None
+
+Tag: <tmpPartyCode> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpPurcAccCode> (Count: 102)
+  Parents: BillSundry, Item, MaterialCenter
+  Children: None
+  Attributes: None
+
+Tag: <tmpRecType> (Count: 1606)
+  Parents: BillDetails, BillRefs
+  Children: None
+  Attributes: None
+
+Tag: <tmpRefCode> (Count: 1606)
+  Parents: BillDetails, BillRefs
+  Children: None
+  Attributes: None
+
+Tag: <tmpSaleAccCode> (Count: 100)
+  Parents: Item, MaterialCenter
+  Children: None
+  Attributes: None
+
+Tag: <tmpSalePurcAmt> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpSalesAccCode> (Count: 2)
+  Parents: BillSundry
+  Children: None
+  Attributes: None
+
+Tag: <tmpStamp> (Count: 11)
+  Parents: AccMastConfig, ItemMastConfig, SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <tmpStockAccCode> (Count: 1)
+  Parents: MaterialCenter
+  Children: None
+  Attributes: None
+
+Tag: <tmpTotalAltQty> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpTotalAmt> (Count: 1015)
+  Parents: Journal, Receipt, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpTotalQty> (Count: 589)
+  Parents: Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpTranCurString> (Count: 427)
+  Parents: Journal, Receipt
+  Children: None
+  Attributes: None
+
+Tag: <tmpTranCurSubString> (Count: 427)
+  Parents: Journal, Receipt
+  Children: None
+  Attributes: None
+
+Tag: <tmpUnitCode> (Count: 633)
+  Parents: ItemDetail
+  Children: None
+  Attributes: None
+
+Tag: <tmpVSName> (Count: 9)
+  Parents: SeriesConfiguration
+  Children: None
+  Attributes: None
+
+Tag: <tmpVchCode> (Count: 6619)
+  Parents: AccDetail, BSDetail, BillDetails, BillRefs, BillingDetails, ItemDetail, Journal, OrgSalePurcDet, Receipt, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
+Tag: <tmpVchSeriesCode> (Count: 1649)
+  Parents: ItemDetail, Journal, Receipt, Sale, SaleReturn
+  Children: None
+  Attributes: None
+
