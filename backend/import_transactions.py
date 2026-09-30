@@ -207,11 +207,12 @@ def import_transactions(file_path, session):
     print(f"Receipts: Added {rcpts_added}")
     
     # ---------------------------------------------------------
-    # Import Journals (Manual Adjustments)
+    # Import Journals (Manual Adjustments), CrNotes, DbNotes
     # ---------------------------------------------------------
-    print("4. Importing Journals...")
+    print("4. Importing Journals & Notes...")
     jrnl_added = 0
-    for jrnl in root.findall('.//Journal'):
+    from itertools import chain
+    for jrnl in chain(root.findall('.//Journal'), root.findall('.//CrNote'), root.findall('.//DbNote')):
         date_str = clean(jrnl.findtext('Date'))
         jrnl_date = parse_date(date_str)
         
@@ -254,6 +255,54 @@ def import_transactions(file_path, session):
                 jrnl_added += 1
 
     print(f"Journals: Added {jrnl_added}")
+
+    # ---------------------------------------------------------
+    # Import Payments (Outgoing cash / Debits) as Journals
+    # ---------------------------------------------------------
+    print("4b. Importing Payments (Outgoing)...")
+    pay_added = 0
+    for out_pay in root.findall('.//Payment'):
+        date_str = clean(out_pay.findtext('Date'))
+        pay_date = parse_date(date_str)
+        
+        acc_entries = out_pay.find('AccEntries')
+        if acc_entries is None:
+            continue
+            
+        for acc_det in acc_entries.findall('AccDetail'):
+            acc_code = acc_det.findtext('tmpAccCode')
+            party_name = account_map.get(acc_code)
+            if not party_name:
+                party_name = clean(acc_det.findtext('AccountName'))
+                
+            if not party_name or party_name not in db_parties:
+                continue
+                
+            party_id = db_parties[party_name]
+            amt_type = acc_det.findtext('AmountType')
+            amt = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
+            
+            if amt <= 0:
+                continue
+                
+            # Payment AmountType 1 = Debit (Increase Due)
+            if amt_type == '2':
+                amt = -amt
+                
+            j_entry = session.query(JournalEntry).filter_by(
+                party_id=party_id, amount=amt, entry_date=pay_date
+            ).first()
+            if not j_entry:
+                session.add(JournalEntry(
+                    party_id=party_id,
+                    created_by=1,
+                    amount=amt,
+                    entry_date=pay_date,
+                    description="Imported Outgoing Payment"
+                ))
+                pay_added += 1
+
+    print(f"Payments (Outgoing): Added {pay_added}")
 
     # ---------------------------------------------------------
     # Import Sale Returns
