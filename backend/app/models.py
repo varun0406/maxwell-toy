@@ -8,6 +8,22 @@ from sqlalchemy.orm import relationship
 from .database import Base
 
 
+# ---------------------------------------------------------------------------
+# Account Masters (Cash Discount, Rate Difference, Dalali, etc.)
+# ---------------------------------------------------------------------------
+
+class AccountMaster(Base):
+    __tablename__ = "account_masters"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), unique=True, nullable=False, index=True)
+    group_name = Column(String(200), nullable=True)  # e.g. 'Expenses (Indirect/Admn.)'
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    journal_entries = relationship("JournalEntry", back_populates="account_master")
+
+
 def utcnow():
     return datetime.now(timezone.utc)
 
@@ -223,6 +239,7 @@ class PaymentAllocation(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     payment = relationship("Payment", back_populates="allocations")
+    journal = relationship("JournalEntry", back_populates="allocations")
     invoice = relationship("Invoice", back_populates="allocations")
 
     @property
@@ -246,6 +263,7 @@ class JournalEntry(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     party_id = Column(Integer, ForeignKey("parties.id", ondelete="CASCADE"), nullable=False)
+    account_id = Column(Integer, ForeignKey("account_masters.id", ondelete="SET NULL"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     amount = Column(Numeric(12, 2), nullable=False)  # Positive = Increase Due (Debit), Negative = Decrease Due (Credit)
@@ -256,11 +274,14 @@ class JournalEntry(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     party = relationship("Party", back_populates="journal_entries")
+    account_master = relationship("AccountMaster", back_populates="journal_entries")
     created_by_user = relationship("User")
+    allocations = relationship("PaymentAllocation", back_populates="journal", cascade="all, delete-orphan")
 
     __table_args__ = (
         # Critical for per-party journal aggregation
         Index("ix_journal_entries_party_deleted", "party_id", "is_deleted"),
+        Index("ix_journal_entries_account_id", "account_id"),
     )
 
 

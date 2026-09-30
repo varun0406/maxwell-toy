@@ -275,15 +275,38 @@ class PaymentUpdate(BaseModel):
 class JournalEntryCreate(BaseModel):
     amount: Decimal
     entry_date: datetime
+    account_id: Optional[int] = None
     description: Optional[str] = None
 
 class JournalEntryOut(BaseModel):
     id: int
     party_id: int
+    account_id: Optional[int] = None
+    account_name: Optional[str] = None
     amount: Decimal
     entry_date: datetime
     description: Optional[str]
     is_deleted: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
+# Account Masters
+# ---------------------------------------------------------------------------
+
+class AccountMasterCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    group_name: Optional[str] = None
+
+class AccountMasterOut(BaseModel):
+    id: int
+    name: str
+    group_name: Optional[str]
+    is_active: bool
+    total_amount: Decimal = Decimal("0")
+    entry_count: int = 0
     created_at: datetime
 
     model_config = {"from_attributes": True}

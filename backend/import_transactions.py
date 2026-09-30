@@ -3,9 +3,10 @@ import sys
 import xml.etree.ElementTree as ET
 from decimal import Decimal
 from datetime import datetime
+from itertools import chain
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.models import Party, Invoice, InvoiceItem, Payment, PaymentAllocation, JournalEntry
+from app.models import Party, Invoice, InvoiceItem, Payment, PaymentAllocation, JournalEntry, AccountMaster
 from app.database import SessionLocal
 
 def clean(value):
@@ -19,6 +20,29 @@ def parse_date(date_str):
     except:
         return datetime.utcnow()
 
+# ============================================================================
+# MASTER ACCOUNT CACHE
+# ============================================================================
+account_master_cache = {}
+
+def get_or_create_account_master(session, name, group_name=None):
+    """Get or create an AccountMaster (Cash Discount, Rate Difference, etc.)"""
+    if not name:
+        return None
+    name = clean(name)
+    if name in account_master_cache:
+        return account_master_cache[name]
+    existing = session.query(AccountMaster).filter(AccountMaster.name == name).first()
+    if existing:
+        account_master_cache[name] = existing.id
+        return existing.id
+    acct = AccountMaster(name=name, group_name=group_name)
+    session.add(acct)
+    session.flush()
+    account_master_cache[name] = acct.id
+    return acct.id
+
+
 def import_transactions(file_path, session):
     print(f"\n--- Reading {file_path} ---")
     try:
@@ -30,11 +54,15 @@ def import_transactions(file_path, session):
 
     print("1. Building Mappings...")
     account_map = {}
+    account_group_map = {}  # code -> group name
     for acc in root.findall('.//Account'):
         code = acc.findtext('tmpCode')
         name = clean(acc.findtext('Name'))
+        grp = clean(acc.findtext('tmpGroupName'))
         if code and name:
             account_map[code] = name
+            if grp:
+                account_group_map[code] = grp
 
     item_map = {}
     for it in root.findall('.//Item'):
@@ -50,7 +78,6 @@ def import_transactions(file_path, session):
             return None
         if name in db_parties:
             return db_parties[name]
-        # Create missing party on the fly
         new_party = Party(name=name, is_active=True, created_by=1)
         session.add(new_party)
         session.flush()
@@ -79,7 +106,6 @@ def import_transactions(file_path, session):
             
         inv_date = parse_date(date_str)
         
-        # Check if already exists in DB (just in case)
         existing = session.query(Invoice).filter_by(invoice_number=vch_no, party_id=party_id).first()
         if existing:
             continue
@@ -89,7 +115,7 @@ def import_transactions(file_path, session):
             party_id=party_id,
             created_by=1,
             amount=total_amt,
-            balance_due=total_amt, # Will be decremented by manual allocations
+            balance_due=total_amt,
             invoice_date=inv_date,
             is_paid=False,
             is_deleted=False
@@ -126,9 +152,13 @@ def import_transactions(file_path, session):
 
     # ---------------------------------------------------------
     # Import Receipts (Payments) with Bill-by-Bill Allocation
+    # Now also captures ALL contra accounts (Cash Discount, 
+    # Rate Difference, Dalali, Diwali Bonus, etc.) as 
+    # Journal Entries linked to the master account
     # ---------------------------------------------------------
     print("3. Importing Receipts...")
     rcpts_added = 0
+    contra_journals_added = 0
     
     for rcpt in root.findall('.//Receipt'):
         date_str = clean(rcpt.findtext('Date'))
@@ -137,46 +167,70 @@ def import_transactions(file_path, session):
         acc_entries = rcpt.find('AccEntries')
         if acc_entries is None:
             continue
-            
-        # Find the customer ledger entry (usually credit, AmountType 2)
+        
+        # Collect all entries categorized
+        debtor_entries = []
+        contra_entries = []
+        
         for acc_det in acc_entries.findall('AccDetail'):
+            grp = acc_det.findtext('tmpGroupName') or ''
             amt_type = acc_det.findtext('AmountType')
-            # 2 = Credit (Customer paying us)
-            # Or if group is Sundry Debtors
-            if amt_type != '2':
-                continue
-                
+            amt = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
             acc_code = acc_det.findtext('tmpAccCode')
-            party_name = account_map.get(acc_code)
-            if not party_name:
-                party_name = clean(acc_det.findtext('AccountName'))
+            acc_name = account_map.get(acc_code) or clean(acc_det.findtext('AccountName'))
+            
+            if grp == 'Sundry Debtors':
+                debtor_entries.append({
+                    'acc_det': acc_det,
+                    'name': acc_name,
+                    'amt_type': amt_type,
+                    'amt': amt,
+                    'code': acc_code,
+                })
+            elif grp not in ('Cash-in-hand', 'Bank Accounts', 'Bank (OD/CC)'):
+                # This is a contra account (expense/income like Cash Discount, Dalali, etc.)
+                contra_entries.append({
+                    'name': acc_name,
+                    'group': grp,
+                    'amt_type': amt_type,
+                    'amt': amt,
+                    'code': acc_code,
+                })
+        
+        if not debtor_entries:
+            continue
+            
+        # Process each debtor entry in this receipt
+        for deb in debtor_entries:
+            acc_det = deb['acc_det']
+            party_name = deb['name']
+            pay_amount = deb['amt']
+            
+            if pay_amount <= 0:
+                continue
                 
             party_id = get_or_create_party(party_name)
             if not party_id:
                 continue
-                
-            pay_amount = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
-            if pay_amount <= 0:
-                continue
 
+            # Calculate total discount (all contra entries in this receipt)
             discount = Decimal('0')
-            for other_det in acc_entries.findall('AccDetail'):
-                if 'DISCOUNT' in (other_det.findtext('AccountName') or '').upper():
-                    discount += Decimal(other_det.findtext('AmtMainCur') or other_det.findtext('Amount') or '0')
-                
+            for c in contra_entries:
+                discount += c['amt']
+            
             payment = Payment(
                 party_id=party_id,
                 created_by=1,
                 amount=pay_amount,
-                discount_amount=discount,
-                unallocated=pay_amount, # Default to fully unallocated
+                discount_amount=abs(discount) if len(debtor_entries) == 1 else Decimal('0'),
+                unallocated=pay_amount,
                 payment_date=pay_date,
                 mode='cash'
             )
             session.add(payment)
             session.flush()
             
-            # Exact Bill-by-Bill manual allocation
+            # Bill-by-Bill allocation from BillRefs
             bill_refs = acc_det.find('BillRefs')
             if bill_refs is not None:
                 for bill_det in bill_refs.findall('BillDetails'):
@@ -189,7 +243,6 @@ def import_transactions(file_path, session):
                     if alloc_amt <= 0:
                         continue
                         
-                    # Find exact invoice
                     inv = session.query(Invoice).filter_by(invoice_number=ref_no, party_id=party_id).first()
                     if inv:
                         alloc = PaymentAllocation(
@@ -199,25 +252,46 @@ def import_transactions(file_path, session):
                         )
                         session.add(alloc)
                         
-                        # Decrease invoice balance_due
                         inv.balance_due -= alloc_amt
                         if inv.balance_due <= 0:
                             inv.balance_due = 0
                             inv.is_paid = True
                             
-                        # Decrease payment unallocated
                         payment.unallocated -= alloc_amt
 
             rcpts_added += 1
+        
+        # Create Journal Entries for each contra account (Cash Discount, Dalali, etc.)
+        # These represent the expense/adjustment portion of the receipt
+        if contra_entries and len(debtor_entries) == 1:
+            party_id = get_or_create_party(debtor_entries[0]['name'])
+            if party_id:
+                for c in contra_entries:
+                    acct_id = get_or_create_account_master(session, c['name'], c['group'])
+                    
+                    # Contra entry is typically a debit (expense), which means the customer's due decreased
+                    # So from customer's perspective this is a credit (negative journal)
+                    j_amt = -Decimal(str(abs(c['amt'])))
+                    
+                    j_entry = JournalEntry(
+                        party_id=party_id,
+                        account_id=acct_id,
+                        created_by=1,
+                        amount=j_amt,
+                        entry_date=pay_date,
+                        description=f"Receipt Adjustment: {c['name']}"
+                    )
+                    session.add(j_entry)
+                    contra_journals_added += 1
 
     print(f"Receipts: Added {rcpts_added}")
+    print(f"  Contra Journals (Discount/Dalali/etc.): Added {contra_journals_added}")
     
     # ---------------------------------------------------------
-    # Import Journals (Manual Adjustments), CrNotes, DbNotes
+    # Import Journals, CrNotes, DbNotes
     # ---------------------------------------------------------
     print("4. Importing Journals & Notes...")
     jrnl_added = 0
-    from itertools import chain
     for jrnl in chain(root.findall('.//Journal'), root.findall('.//CrNote'), root.findall('.//DbNote')):
         date_str = clean(jrnl.findtext('Date'))
         jrnl_date = parse_date(date_str)
@@ -225,20 +299,48 @@ def import_transactions(file_path, session):
         acc_entries = jrnl.find('AccEntries')
         if acc_entries is None:
             continue
-            
+        
+        # Identify debtor and contra entries
+        debtor_entries = []
+        contra_entries = []
+        
         for acc_det in acc_entries.findall('AccDetail'):
+            grp = acc_det.findtext('tmpGroupName') or ''
             acc_code = acc_det.findtext('tmpAccCode')
-            party_name = account_map.get(acc_code)
-            if not party_name:
-                party_name = clean(acc_det.findtext('AccountName'))
-                
-            # Try to map only if it's a Sundry Debtor / Party in DB
+            acc_name = account_map.get(acc_code) or clean(acc_det.findtext('AccountName'))
+            amt_type = acc_det.findtext('AmountType')
+            amt = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
+            
+            if grp == 'Sundry Debtors':
+                debtor_entries.append({
+                    'acc_det': acc_det,
+                    'name': acc_name,
+                    'amt_type': amt_type,
+                    'amt': amt,
+                    'code': acc_code,
+                })
+            else:
+                contra_entries.append({
+                    'name': acc_name,
+                    'group': grp,
+                    'amt_type': amt_type,
+                    'amt': amt,
+                    'code': acc_code,
+                })
+        
+        if not debtor_entries:
+            continue
+            
+        for deb in debtor_entries:
+            acc_det = deb['acc_det']
+            party_name = deb['name']
+            
             if not party_name or party_name not in db_parties:
                 continue
                 
             party_id = db_parties[party_name]
-            amt_type = acc_det.findtext('AmountType')
-            amt = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
+            amt_type = deb['amt_type']
+            amt = deb['amt']
             
             if amt <= 0:
                 continue
@@ -246,6 +348,15 @@ def import_transactions(file_path, session):
             # AmountType 1 = Debit (Increase Due), AmountType 2 = Credit (Decrease Due)
             if amt_type == '2':
                 amt = -amt
+            
+            # Determine contra account
+            acct_id = None
+            contra_desc = "Imported Journal Entry"
+            if contra_entries:
+                # Use the first contra account as the master account for this journal
+                c = contra_entries[0]
+                acct_id = get_or_create_account_master(session, c['name'], c['group'])
+                contra_desc = f"Journal: {c['name']}"
                 
             j_entry = session.query(JournalEntry).filter_by(
                 party_id=party_id, amount=amt, entry_date=jrnl_date
@@ -253,10 +364,11 @@ def import_transactions(file_path, session):
             if not j_entry:
                 j_entry = JournalEntry(
                     party_id=party_id,
+                    account_id=acct_id,
                     created_by=1,
                     amount=amt,
                     entry_date=jrnl_date,
-                    description="Imported Journal Entry"
+                    description=contra_desc
                 )
                 session.add(j_entry)
                 session.flush()
@@ -267,7 +379,6 @@ def import_transactions(file_path, session):
                 if bill_refs is not None:
                     for bill_det in bill_refs.findall('BillDetails'):
                         method = bill_det.findtext('Method')
-                        # Method 2 is Adjustment (allocating against existing bill)
                         if method == '2':
                             ref_no = clean(bill_det.findtext('RefNo'))
                             val = Decimal(bill_det.findtext('Value1') or '0')
@@ -282,7 +393,6 @@ def import_transactions(file_path, session):
                                 )
                                 session.add(alloc)
                                 
-                                # If credit (amt_type == 2), decrease due. If debit, increase due.
                                 if amt_type == '2':
                                     invoice.balance_due -= val
                                 else:
@@ -309,6 +419,10 @@ def import_transactions(file_path, session):
             continue
             
         for acc_det in acc_entries.findall('AccDetail'):
+            grp = acc_det.findtext('tmpGroupName') or ''
+            if grp != 'Sundry Debtors':
+                continue
+                
             acc_code = acc_det.findtext('tmpAccCode')
             party_name = account_map.get(acc_code)
             if not party_name:
@@ -324,7 +438,6 @@ def import_transactions(file_path, session):
             if amt <= 0:
                 continue
                 
-            # Payment AmountType 1 = Debit (Increase Due)
             if amt_type == '2':
                 amt = -amt
                 
@@ -364,7 +477,6 @@ def import_transactions(file_path, session):
             
         sr_date = parse_date(date_str)
         
-        # Add as negative Journal Entry
         j_entry = session.query(JournalEntry).filter_by(
             party_id=party_id, amount=-total_amt, entry_date=sr_date
         ).first()

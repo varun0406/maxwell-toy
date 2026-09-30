@@ -363,13 +363,18 @@ def create_journal_entry(
         party_id=party.id,
         created_by=current_user.id,
         amount=entry_in.amount,
+        account_id=entry_in.account_id,
         entry_date=entry_in.entry_date,
         description=entry_in.description,
     )
     db.add(db_entry)
     db.commit()
     db.refresh(db_entry)
-    return db_entry
+    
+    result = schemas.JournalEntryOut.model_validate(db_entry)
+    if db_entry.account_master:
+        result.account_name = db_entry.account_master.name
+    return result
 
 
 @router.delete("/journal/{journal_id}", status_code=204)
