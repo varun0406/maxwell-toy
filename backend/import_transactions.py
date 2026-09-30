@@ -521,6 +521,41 @@ def import_transactions(file_path, session):
 
     session.commit()
 
+def calculate_busy_balances(files, session):
+    from app.models import Party
+    print("\n--- Calculating Final BUSY Balances ---")
+    
+    party_balances = {}
+    for f in files:
+        tree = ET.parse(f)
+        root = tree.getroot()
+        for acc_det in root.findall('.//AccDetail'):
+            name = ' '.join((acc_det.findtext('AccountName') or '').split())
+            amt_type = acc_det.findtext('AmountType')
+            amt = abs(float(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or 0))
+            
+            if name not in party_balances:
+                party_balances[name] = 0
+                
+            if amt_type == '1': # Debit
+                party_balances[name] += amt
+            elif amt_type == '2': # Credit
+                party_balances[name] -= amt
+
+    parties = session.query(Party).all()
+    updated = 0
+    for p in parties:
+        bname = p.name
+        # The stored name in DB is upper cased in import, but AccDetail might be mixed.
+        # But wait, in DB they are stored exactly as `party_name` which is normalized.
+        # Let's normalize the same way.
+        found_amt = party_balances.get(bname, 0)
+        p.busy_closing_balance = found_amt
+        updated += 1
+
+    session.commit()
+    print(f"Updated busy_closing_balance for {updated} parties.")
+
 if __name__ == "__main__":
     files = sys.argv[1:]
     if not files:
@@ -530,4 +565,6 @@ if __name__ == "__main__":
     session = SessionLocal()
     for f in files:
         import_transactions(f, session)
+        
+    calculate_busy_balances(files, session)
     session.close()

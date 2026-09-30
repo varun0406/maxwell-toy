@@ -80,6 +80,7 @@ def list_parties(
                 p.reminder_date,
                 p.is_active,
                 p.created_at,
+                p.busy_closing_balance,
                 COALESCE(i_agg.total_invoiced, 0) AS total_invoiced,
                 COALESCE(p_agg.total_paid, 0) AS total_paid,
                 COALESCE(j_agg.total_journal, 0) AS total_journal,

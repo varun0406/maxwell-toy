@@ -118,6 +118,7 @@ class PartyOut(BaseModel):
     gstin: Optional[str]
     notes: Optional[str]
     reminder_date: Optional[datetime]
+    busy_closing_balance: Optional[Decimal] = None
     is_active: bool
     created_at: datetime
 

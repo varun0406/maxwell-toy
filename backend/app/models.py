@@ -91,6 +91,7 @@ class Party(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    busy_closing_balance = Column(Numeric(12, 2), nullable=True)
     is_active = Column(Boolean, default=True)
 
     created_by_user = relationship("User", back_populates="parties")
