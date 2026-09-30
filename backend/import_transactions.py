@@ -262,24 +262,27 @@ def import_transactions(file_path, session):
             rcpts_added += 1
         
         # Create Journal Entries for each contra account (Cash Discount, Dalali, etc.)
-        # These represent the expense/adjustment portion of the receipt
+        # These are TRACKING entries only — the customer's balance is already fully 
+        # handled by the Receipt above. The contra journal records which master account 
+        # absorbed the difference, without affecting the customer's outstanding.
         if contra_entries and len(debtor_entries) == 1:
             party_id = get_or_create_party(debtor_entries[0]['name'])
             if party_id:
                 for c in contra_entries:
                     acct_id = get_or_create_account_master(session, c['name'], c['group'])
                     
-                    # Contra entry is typically a debit (expense), which means the customer's due decreased
-                    # So from customer's perspective this is a credit (negative journal)
-                    j_amt = -Decimal(str(abs(c['amt'])))
+                    # Amount = 0 (doesn't affect customer outstanding)
+                    # The actual contra amount is stored for reporting via account_master aggregation
+                    contra_amt = abs(c['amt'])
                     
                     j_entry = JournalEntry(
                         party_id=party_id,
                         account_id=acct_id,
                         created_by=1,
-                        amount=j_amt,
+                        amount=Decimal('0'),  # Zero impact on customer balance
+                        contra_amount=Decimal(str(contra_amt)),  # For master account reporting
                         entry_date=pay_date,
-                        description=f"Receipt Adjustment: {c['name']}"
+                        description=f"Receipt Adj: {c['name']}"
                     )
                     session.add(j_entry)
                     contra_journals_added += 1

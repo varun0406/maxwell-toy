@@ -267,6 +267,7 @@ class JournalEntry(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     amount = Column(Numeric(12, 2), nullable=False)  # Positive = Increase Due (Debit), Negative = Decrease Due (Credit)
+    contra_amount = Column(Numeric(12, 2), nullable=False, default=Decimal("0"))  # Tracking amount for master account reports (doesn't affect balance)
     entry_date = Column(DateTime(timezone=True), nullable=False)
     description = Column(Text, nullable=True)
     is_deleted = Column(Boolean, default=False)
