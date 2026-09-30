@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { partiesApi, paymentsApi, invoicesApi, analyticsApi, accountsApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2 } from 'lucide-react';
+import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2, ArrowLeft, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { generateAndSharePartyStatement, openWhatsApp, generateAndShareLedger } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import CalculationEvidence from '../../components/CalculationEvidence';
@@ -204,6 +204,8 @@ export function PartyDetail() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [invFilter, setInvFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
+  const [invSort, setInvSort] = useState<{ col: 'date' | 'amount' | 'balance_due', dir: 'asc' | 'desc' }>({ col: 'date', dir: 'desc' });
   const qc = useQueryClient();
 
   if (id === 'new') {
@@ -239,8 +241,18 @@ export function PartyDetail() {
 
   return (
     <div className="page-content">
+      {/* Back button */}
+      <div style={{ padding: '12px 20px 0' }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: '4px 0' }}
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
+      </div>
+
       {/* Party Hero */}
-      <div className="hero-card" style={{ marginTop: 16 }}>
+      <div className="hero-card" style={{ marginTop: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <p className="hero-label">Outstanding Balance</p>
@@ -389,45 +401,86 @@ export function PartyDetail() {
       {/* Ledger */}
       {tab === 'ledger' && (
         <div style={{ padding: '0 20px', marginTop: 8 }}>
-          {/* Date Filters */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          {/* Date Filters + Export */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>From:</label>
             <input type="date" className="form-input" style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} value={fromDate} onChange={e => setFromDate(e.target.value)} />
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>To:</label>
             <input type="date" className="form-input" style={{ flex: 1, padding: '6px 12px', fontSize: 13 }} value={toDate} onChange={e => setToDate(e.target.value)} />
             {(fromDate || toDate) && (
-              <button className="btn-icon" onClick={() => { setFromDate(''); setToDate(''); }}><X size={16} /></button>
+              <button className="btn-icon" title="Clear dates" onClick={() => { setFromDate(''); setToDate(''); }}><X size={16} /></button>
             )}
-            <button className="btn btn-sm" style={{ background: 'var(--accent)', color: 'white' }} onClick={() => generateAndShareLedger(party, ledger, fromDate, toDate)}>
-              Export Ledger
+            <button className="btn btn-sm" style={{ background: 'var(--accent)', color: 'white', whiteSpace: 'nowrap' }} onClick={() => generateAndShareLedger(party, ledger, fromDate, toDate)}>
+              Export PDF
             </button>
           </div>
+
           {ledger.length === 0 ? (
             <div className="empty-state"><p>No transactions in this period</p></div>
           ) : (
-            ledger.map((entry: any, i: number) => (
-              <div 
-                key={i} 
-                className="ledger-row" 
-                style={{ cursor: entry.type === 'invoice' || entry.type === 'payment' ? 'pointer' : 'default' }}
-                onClick={() => {
-                  if (entry.type === 'invoice') navigate(`/invoices/new?view=${entry.record_id}`);
-                  if (entry.type === 'payment') navigate(`/payments/${entry.record_id}`);
-                }}
-              >
-                <div className={`ledger-dot ${entry.type}`} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600 }}>{entry.reference}</p>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(entry.date)}</p>
-                </div>
-                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: Number(entry.amount) < 0 ? 'var(--success)' : 'var(--text-primary)' }}>
-                      {Number(entry.amount) < 0 ? '-' : '+'}{formatCurrency(Math.abs(Number(entry.amount)))}
-                    </p>
-                  </div>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Bal: {formatCurrency(entry.running_balance)}</p>
-                </div>
-              </div>
-            ))
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border)' }}>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left', minWidth: 90 }}>Date</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left' }}>Bill / Ref No.</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right', minWidth: 110 }}>Debit (Dr)</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right', minWidth: 110 }}>Credit (Cr)</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right', minWidth: 110 }}>Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ledger.map((entry: any, i: number) => {
+                    const amt = Number(entry.amount);
+                    const isDebit = amt > 0;   // invoice / journal debit = party owes more
+                    const isCr   = amt < 0;    // payment / credit note = party owes less
+                    return (
+                      <tr
+                        key={i}
+                        onClick={() => {
+                          if (entry.type === 'invoice') navigate(`/invoices/new?view=${entry.record_id}`);
+                          if (entry.type === 'payment') navigate(`/payments/${entry.record_id}`);
+                        }}
+                        style={{
+                          cursor: entry.type === 'invoice' || entry.type === 'payment' ? 'pointer' : 'default',
+                          borderBottom: '1px solid var(--border)',
+                          transition: 'background 0.15s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <td style={{ padding: '9px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatDate(entry.date)}</td>
+                        <td style={{ padding: '9px 14px' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{entry.reference}</span>
+                          <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 6px', borderRadius: 4,
+                            background: entry.type === 'invoice' ? 'rgba(99,102,241,0.12)' : entry.type === 'payment' ? 'rgba(34,197,94,0.12)' : 'rgba(234,179,8,0.12)',
+                            color: entry.type === 'invoice' ? 'var(--accent)' : entry.type === 'payment' ? 'var(--success)' : 'var(--warning)'
+                          }}>{entry.type}</span>
+                        </td>
+                        <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: isDebit ? 'var(--text-primary)' : 'transparent' }}>
+                          {isDebit ? formatCurrency(Math.abs(amt)) : '—'}
+                        </td>
+                        <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: isCr ? 'var(--success)' : 'transparent' }}>
+                          {isCr ? formatCurrency(Math.abs(amt)) : '—'}
+                        </td>
+                        <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: Number(entry.running_balance) > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                          {formatCurrency(Number(entry.running_balance))}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: 'var(--bg-elevated)', borderTop: '2px solid var(--border)' }}>
+                    <td colSpan={2} style={{ padding: '10px 14px', fontWeight: 700, fontSize: 12, color: 'var(--text-secondary)' }}>CLOSING BALANCE</td>
+                    <td colSpan={2} />
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 800, fontSize: 14, color: 'var(--warning)' }}>
+                      {formatCurrency(ledger[ledger.length - 1]?.running_balance || 0)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -435,30 +488,103 @@ export function PartyDetail() {
       {/* Invoices */}
       {tab === 'invoices' && (
         <div style={{ padding: '0 20px', marginTop: 8 }}>
-          {invoicesTab.length === 0 ? (
-            <div className="empty-state"><p>No invoices for this party</p></div>
-          ) : (
-            invoicesTab.map((inv: any) => (
-              <div
-                key={inv.id}
-                className="ledger-row"
-                style={{ cursor: 'pointer' }}
-                onClick={() => navigate(`/invoices/new?view=${inv.id}`)}
-              >
-                <div className="ledger-dot invoice" />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600 }}>{inv.invoice_number}</p>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(inv.invoice_date)}</p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontSize: 14, fontWeight: 700 }}>{formatCurrency(inv.amount)}</p>
-                  <p style={{ fontSize: 12, color: inv.is_paid ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>
-                    {inv.is_paid ? 'Paid' : `Due: ${formatCurrency(inv.balance_due)}`}
-                  </p>
-                </div>
+          {/* Filter + Sort toolbar */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="chips" style={{ margin: 0 }}>
+              {(['all', 'unpaid', 'paid'] as const).map(f => (
+                <button key={f} className={`chip ${invFilter === f ? 'active' : ''}`} onClick={() => setInvFilter(f)} style={{ fontSize: 12, padding: '4px 10px' }}>
+                  {f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div style={{ flex: 1 }} />
+            <button
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}
+              onClick={() => setInvSort(s => s.col === 'date' ? { col: 'date', dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col: 'date', dir: 'desc' })}
+            >
+              Date {invSort.col === 'date' ? (invSort.dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ArrowUpDown size={12} />}
+            </button>
+            <button
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}
+              onClick={() => setInvSort(s => s.col === 'amount' ? { col: 'amount', dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col: 'amount', dir: 'desc' })}
+            >
+              Amount {invSort.col === 'amount' ? (invSort.dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ArrowUpDown size={12} />}
+            </button>
+            <button
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: 'var(--text-secondary)' }}
+              onClick={() => setInvSort(s => s.col === 'balance_due' ? { col: 'balance_due', dir: s.dir === 'asc' ? 'desc' : 'asc' } : { col: 'balance_due', dir: 'desc' })}
+            >
+              Balance {invSort.col === 'balance_due' ? (invSort.dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />) : <ArrowUpDown size={12} />}
+            </button>
+          </div>
+
+          {(() => {
+            let rows = [...invoicesTab];
+            if (invFilter === 'unpaid') rows = rows.filter((i: any) => !i.is_paid);
+            if (invFilter === 'paid') rows = rows.filter((i: any) => i.is_paid);
+            rows.sort((a: any, b: any) => {
+              const col = invSort.col;
+              const va = col === 'date' ? new Date(a.invoice_date).getTime() : Number(a[col]);
+              const vb = col === 'date' ? new Date(b.invoice_date).getTime() : Number(b[col]);
+              return invSort.dir === 'asc' ? va - vb : vb - va;
+            });
+
+            if (rows.length === 0) return <div className="empty-state"><p>No invoices match this filter</p></div>;
+
+            const totalAmt = rows.reduce((s: number, i: any) => s + Number(i.amount), 0);
+            const totalDue = rows.reduce((s: number, i: any) => s + Number(i.balance_due), 0);
+
+            return (
+              <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border)' }}>
+                      <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left' }}>Date</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'left' }}>Invoice No.</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Amount</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Balance Due</th>
+                      <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'center' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((inv: any) => (
+                      <tr
+                        key={inv.id}
+                        onClick={() => navigate(`/invoices/new?view=${inv.id}`)}
+                        style={{ cursor: 'pointer', borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <td style={{ padding: '9px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatDate(inv.invoice_date)}</td>
+                        <td style={{ padding: '9px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                        <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(inv.amount)}</td>
+                        <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: Number(inv.balance_due) > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                          {Number(inv.balance_due) > 0 ? formatCurrency(inv.balance_due) : '—'}
+                        </td>
+                        <td style={{ padding: '9px 14px', textAlign: 'center' }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6,
+                            background: inv.is_paid ? 'rgba(34,197,94,0.12)' : 'rgba(234,179,8,0.12)',
+                            color: inv.is_paid ? 'var(--success)' : 'var(--warning)'
+                          }}>
+                            {inv.is_paid ? 'PAID' : 'UNPAID'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: 'var(--bg-elevated)', borderTop: '2px solid var(--border)' }}>
+                      <td colSpan={2} style={{ padding: '10px 14px', fontWeight: 700, fontSize: 12, color: 'var(--text-secondary)' }}>TOTAL ({rows.length} bills)</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 800 }}>{formatCurrency(totalAmt)}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 800, color: 'var(--warning)' }}>{formatCurrency(totalDue)}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
-            ))
-          )}
+            );
+          })()}
         </div>
       )}
 
