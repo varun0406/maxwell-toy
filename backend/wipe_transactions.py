@@ -2,7 +2,7 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from app.models import Invoice, InvoiceItem, Payment, PaymentAllocation, Party
+from app.models import Invoice, InvoiceItem, Payment, PaymentAllocation, Party, JournalEntry
 from app.database import SessionLocal
 
 def wipe_transactions():
@@ -13,6 +13,8 @@ def wipe_transactions():
     session.query(Payment).delete()
     print("Deleting InvoiceItems...")
     session.query(InvoiceItem).delete()
+    print("Deleting JournalEntries...")
+    session.query(JournalEntry).delete()
     print("Deleting Invoices...")
     session.query(Invoice).delete()
     session.commit()

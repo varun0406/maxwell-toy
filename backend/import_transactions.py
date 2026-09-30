@@ -204,8 +204,95 @@ def import_transactions(file_path, session):
 
             rcpts_added += 1
 
-    session.commit()
     print(f"Receipts: Added {rcpts_added}")
+    
+    # ---------------------------------------------------------
+    # Import Journals (Manual Adjustments)
+    # ---------------------------------------------------------
+    print("4. Importing Journals...")
+    jrnl_added = 0
+    for jrnl in root.findall('.//Journal'):
+        date_str = clean(jrnl.findtext('Date'))
+        jrnl_date = parse_date(date_str)
+        
+        acc_entries = jrnl.find('AccEntries')
+        if acc_entries is None:
+            continue
+            
+        for acc_det in acc_entries.findall('AccDetail'):
+            acc_code = acc_det.findtext('tmpAccCode')
+            party_name = account_map.get(acc_code)
+            if not party_name:
+                party_name = clean(acc_det.findtext('AccountName'))
+                
+            # Try to map only if it's a Sundry Debtor / Party in DB
+            if not party_name or party_name not in db_parties:
+                continue
+                
+            party_id = db_parties[party_name]
+            amt_type = acc_det.findtext('AmountType')
+            amt = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
+            
+            if amt <= 0:
+                continue
+                
+            # AmountType 1 = Debit (Increase Due), AmountType 2 = Credit (Decrease Due)
+            if amt_type == '2':
+                amt = -amt
+                
+            j_entry = session.query(JournalEntry).filter_by(
+                party_id=party_id, amount=amt, entry_date=jrnl_date
+            ).first()
+            if not j_entry:
+                session.add(JournalEntry(
+                    party_id=party_id,
+                    created_by=1,
+                    amount=amt,
+                    entry_date=jrnl_date,
+                    description="Imported Journal Entry"
+                ))
+                jrnl_added += 1
+
+    print(f"Journals: Added {jrnl_added}")
+
+    # ---------------------------------------------------------
+    # Import Sale Returns
+    # ---------------------------------------------------------
+    print("5. Importing Sale Returns...")
+    sr_added = 0
+    for sr in root.findall('.//SaleReturn'):
+        vch_no = clean(sr.findtext('VchNo'))
+        date_str = clean(sr.findtext('Date'))
+        party_tmpcode = sr.findtext('tmpMasterCode1')
+        total_amt = Decimal(sr.findtext('tmpTotalAmt') or '0')
+        
+        party_name = account_map.get(party_tmpcode)
+        if not party_name:
+            party_name = clean(sr.findtext('MasterName1'))
+            
+        party_id = get_or_create_party(party_name)
+        if not party_id or total_amt <= 0:
+            continue
+            
+        sr_date = parse_date(date_str)
+        
+        # Add as negative Journal Entry
+        j_entry = session.query(JournalEntry).filter_by(
+            party_id=party_id, amount=-total_amt, entry_date=sr_date
+        ).first()
+        if not j_entry:
+            session.add(JournalEntry(
+                party_id=party_id,
+                created_by=1,
+                amount=-total_amt,
+                entry_date=sr_date,
+                description=f"Sale Return: {vch_no}"
+            ))
+            sr_added += 1
+            
+    print(f"Sale Returns: Added {sr_added}")
+
+    session.commit()
 
 if __name__ == "__main__":
     files = sys.argv[1:]
