@@ -129,6 +129,8 @@ class PartyWithBalance(PartyOut):
     total_paid: Decimal
     total_journal: Decimal = Field(default=Decimal("0"))
     outstanding: Decimal
+    bills_outstanding: Decimal = Field(default=Decimal("0"))
+    unallocated_payments: Decimal = Field(default=Decimal("0"))
 
 
 # ---------------------------------------------------------------------------

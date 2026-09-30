@@ -44,11 +44,15 @@ def list_parties(
 
     rows = db.execute(text(f"""
         WITH i_agg AS (
-            SELECT party_id, SUM(amount) AS total_invoiced
+            SELECT party_id, 
+                   SUM(amount) AS total_invoiced,
+                   SUM(balance_due) AS bills_outstanding
             FROM invoices WHERE COALESCE(is_deleted, false) = false GROUP BY party_id
         ),
         p_agg AS (
-            SELECT party_id, SUM(amount) AS total_paid
+            SELECT party_id, 
+                   SUM(amount) AS total_paid,
+                   SUM(unallocated) AS unallocated_payments
             FROM payments WHERE COALESCE(is_deleted, false) = false GROUP BY party_id
         ),
         j_agg AS (
@@ -79,7 +83,9 @@ def list_parties(
                 COALESCE(i_agg.total_invoiced, 0) AS total_invoiced,
                 COALESCE(p_agg.total_paid, 0) AS total_paid,
                 COALESCE(j_agg.total_journal, 0) AS total_journal,
-                (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) AS outstanding
+                (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) AS outstanding,
+                COALESCE(i_agg.bills_outstanding, 0) AS bills_outstanding,
+                COALESCE(p_agg.unallocated_payments, 0) AS unallocated_payments
             FROM parties p
             LEFT JOIN i_agg ON i_agg.party_id = p.id
             LEFT JOIN p_agg ON p_agg.party_id = p.id
@@ -193,9 +199,12 @@ def get_party(
             p.reminder_date,
             p.is_active,
             p.created_at,
-            COALESCE((SELECT SUM(amount) FROM invoices WHERE party_id = p.id AND is_deleted = false), 0) AS total_invoiced,
-            COALESCE((SELECT SUM(amount) FROM payments WHERE party_id = p.id AND is_deleted = false), 0) AS total_paid,
-            COALESCE((SELECT SUM(amount) FROM journal_entries WHERE party_id = p.id AND is_deleted = false), 0) AS total_journal
+            COALESCE((SELECT SUM(amount) FROM invoices WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS total_invoiced,
+            COALESCE((SELECT SUM(amount) FROM payments WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS total_paid,
+            COALESCE((SELECT SUM(amount) FROM journal_entries WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS total_journal,
+            
+            COALESCE((SELECT SUM(balance_due) FROM invoices WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS bills_outstanding,
+            COALESCE((SELECT SUM(unallocated) FROM payments WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS unallocated_payments
         FROM parties p
         WHERE p.id = :party_id
     """), {"party_id": party_id}).fetchone()
@@ -228,6 +237,8 @@ def get_party(
         total_paid=row.total_paid,
         total_journal=row.total_journal,
         outstanding=outstanding,
+        bills_outstanding=row.bills_outstanding,
+        unallocated_payments=row.unallocated_payments,
     )
 
 
