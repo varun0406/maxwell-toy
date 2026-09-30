@@ -128,8 +128,11 @@ export function PartiesList() {
                     {formatCurrency(p.outstanding || 0)}
                   </span>
                 </CalculationEvidence>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginTop: 4, gap: 2 }}>
+                  {(p.bills_outstanding || 0) > 0 && <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>Bills: {formatCurrency(p.bills_outstanding)}</p>}
+                  {(p.unallocated_payments || 0) > 0 && <p style={{ fontSize: 10, color: 'var(--success)' }}>Adv: {formatCurrency(p.unallocated_payments)}</p>}
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                  <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>due</p>
                   <button 
                     className="btn-icon" 
                     style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}
