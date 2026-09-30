@@ -180,6 +180,7 @@ class Payment(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     amount = Column(Numeric(12, 2), nullable=False)
+    discount_amount = Column(Numeric(12, 2), nullable=False, default=Decimal("0"))
     unallocated = Column(Numeric(12, 2), nullable=False, default=Decimal("0"))  # Overpayment / advance
     payment_date = Column(DateTime(timezone=True), nullable=False)
     note = Column(Text, nullable=True)

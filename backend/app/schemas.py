@@ -243,6 +243,7 @@ class PaymentOut(BaseModel):
     party_id: int
     party_name: Optional[str] = None
     amount: Decimal
+    discount_amount: Decimal = Decimal("0")
     unallocated: Decimal
     payment_date: datetime
     note: Optional[str]

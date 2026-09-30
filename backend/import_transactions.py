@@ -158,11 +158,17 @@ def import_transactions(file_path, session):
             pay_amount = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
             if pay_amount <= 0:
                 continue
+
+            discount = Decimal('0')
+            for other_det in acc_entries.findall('AccDetail'):
+                if 'DISCOUNT' in (other_det.findtext('AccountName') or '').upper():
+                    discount += Decimal(other_det.findtext('AmtMainCur') or other_det.findtext('Amount') or '0')
                 
             payment = Payment(
                 party_id=party_id,
                 created_by=1,
                 amount=pay_amount,
+                discount_amount=discount,
                 unallocated=pay_amount, # Default to fully unallocated
                 payment_date=pay_date,
                 mode='cash'
