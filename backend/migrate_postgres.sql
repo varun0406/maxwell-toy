@@ -24,7 +24,14 @@ EXCEPTION
 END $$;
 CREATE INDEX IF NOT EXISTS ix_journal_entries_account_id ON journal_entries(account_id);
 
--- 3. Make payment_allocations.payment_id nullable (if not already)
+-- 3. Add busy_closing_balance to parties (if not exists)
+DO $$ BEGIN
+    ALTER TABLE parties ADD COLUMN busy_closing_balance NUMERIC(12, 2);
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+-- 4. Make payment_allocations.payment_id nullable (if not already)
 ALTER TABLE payment_allocations ALTER COLUMN payment_id DROP NOT NULL;
 
 -- 4. Add journal_id to payment_allocations (if not exists)
