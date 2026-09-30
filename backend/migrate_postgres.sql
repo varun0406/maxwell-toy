@@ -10,9 +10,15 @@ CREATE TABLE IF NOT EXISTS account_masters (
 );
 CREATE INDEX IF NOT EXISTS ix_account_masters_name ON account_masters(name);
 
--- 2. Add account_id to journal_entries (if not exists)
+-- 2. Add account_id and contra_amount to journal_entries (if not exists)
 DO $$ BEGIN
     ALTER TABLE journal_entries ADD COLUMN account_id INTEGER REFERENCES account_masters(id) ON DELETE SET NULL;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE journal_entries ADD COLUMN contra_amount NUMERIC(12, 2) NOT NULL DEFAULT 0;
 EXCEPTION
     WHEN duplicate_column THEN NULL;
 END $$;
