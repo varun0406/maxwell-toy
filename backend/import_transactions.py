@@ -523,24 +523,46 @@ def import_transactions(file_path, session):
 
 def calculate_busy_balances(files, session):
     from app.models import Party
-    print("\n--- Calculating Final BUSY Balances ---")
+    import glob
+    print("\n--- Calculating Final BUSY Balances from Master ---")
+    
+    # Try to find a master file in the parent directory
+    master_files = glob.glob('../*master*.DAT')
     
     party_balances = {}
-    for f in files:
-        tree = ET.parse(f)
-        root = tree.getroot()
-        for acc_det in root.findall('.//AccDetail'):
-            name = ' '.join((acc_det.findtext('AccountName') or '').split())
-            amt_type = acc_det.findtext('AmountType')
-            amt = abs(float(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or 0))
-            
-            if name not in party_balances:
-                party_balances[name] = 0
+    if master_files:
+        master_file = master_files[0]
+        print(f"Reading closing balances from: {master_file}")
+        try:
+            tree = ET.parse(master_file)
+            root = tree.getroot()
+            for acc in root.findall('.//Accounts/Account'):
+                name = acc.findtext('Name')
+                if name:
+                    # In BUSY, negative OPBal for Sundry Debtors means Debit (Due from customer)
+                    opbal_str = acc.findtext('OPBal')
+                    if opbal_str:
+                        amt = -float(opbal_str)
+                        party_balances[name.strip()] = amt
+        except Exception as e:
+            print(f"Failed to parse master file: {e}")
+    else:
+        print("No master.DAT found. Falling back to summing AccDetail.")
+        for f in files:
+            tree = ET.parse(f)
+            root = tree.getroot()
+            for acc_det in root.findall('.//AccDetail'):
+                name = ' '.join((acc_det.findtext('AccountName') or '').split())
+                amt_type = acc_det.findtext('AmountType')
+                amt = abs(float(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or 0))
                 
-            if amt_type == '1': # Debit
-                party_balances[name] += amt
-            elif amt_type == '2': # Credit
-                party_balances[name] -= amt
+                if name not in party_balances:
+                    party_balances[name] = 0
+                    
+                if amt_type == '1': # Debit
+                    party_balances[name] += amt
+                elif amt_type == '2': # Credit
+                    party_balances[name] -= amt
 
     parties = session.query(Party).all()
     updated = 0
