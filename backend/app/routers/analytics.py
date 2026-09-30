@@ -44,6 +44,14 @@ def dashboard_summary(
               (SELECT SUM(amount) FROM journal_entries WHERE is_deleted = false),
             0)                                                               AS total_journal,
 
+            COALESCE(
+              (SELECT SUM(balance_due) FROM invoices WHERE is_deleted = false),
+            0)                                                               AS total_bills_outstanding,
+
+            COALESCE(
+              (SELECT SUM(unallocated) FROM payments WHERE is_deleted = false),
+            0)                                                               AS total_unallocated_payments,
+
             (SELECT COUNT(*)
              FROM invoices
              WHERE is_deleted = false
@@ -67,6 +75,8 @@ def dashboard_summary(
         total_collected=row.total_collected,
         total_journal=row.total_journal,
         total_outstanding=total_outstanding,
+        total_bills_outstanding=row.total_bills_outstanding,
+        total_unallocated_payments=row.total_unallocated_payments,
         invoices_count=row.invoices_count,
         overdue_count=row.overdue_count,
         recent_payments=payments,

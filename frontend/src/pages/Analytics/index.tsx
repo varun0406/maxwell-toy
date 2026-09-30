@@ -225,8 +225,12 @@ export default function Analytics() {
               <p className="stat-value mono" style={{ fontSize: 16 }}>{formatCurrency(summary?.total_collected || 0)}</p>
             </div>
             <div className="stat-card warning">
-              <p className="stat-label">Outstanding</p>
+              <p className="stat-label">Net Outstanding</p>
               <p className="stat-value mono" style={{ fontSize: 16 }}>{formatCurrency(summary?.total_outstanding || 0)}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', marginTop: 4, gap: 2 }}>
+                {(summary?.total_bills_outstanding || 0) > 0 && <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>Bills: {formatCurrency(summary?.total_bills_outstanding)}</p>}
+                {(summary?.total_unallocated_payments || 0) > 0 && <p style={{ fontSize: 10, color: 'var(--success)' }}>On Acc: {formatCurrency(summary?.total_unallocated_payments)}</p>}
+              </div>
             </div>
             <div className="stat-card danger">
               <p className="stat-label">Overdue</p>

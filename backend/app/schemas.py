@@ -375,6 +375,8 @@ class DashboardSummary(BaseModel):
     total_collected: Decimal
     total_journal: Decimal = Field(default=Decimal("0"))
     total_outstanding: Decimal
+    total_bills_outstanding: Decimal = Field(default=Decimal("0"))
+    total_unallocated_payments: Decimal = Field(default=Decimal("0"))
     invoices_count: int
     overdue_count: int
     recent_payments: List[PaymentOut]
