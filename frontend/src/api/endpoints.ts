@@ -27,7 +27,7 @@ export const partiesApi = {
   delete: (id: number) => api.delete(`/parties/${id}`),
   ledger: (id: number, fromDate?: string, toDate?: string) => 
     api.get(`/parties/${id}/ledger`, { params: { ...(fromDate ? { from_date: fromDate } : {}), ...(toDate ? { to_date: toDate } : {}) } }),
-  addJournalEntry: (id: number, data: { amount: number; entry_date: string; description: string }) =>
+  addJournalEntry: (id: number, data: { amount: number; entry_date: string; description: string; account_id?: number }) =>
     api.post(`/parties/${id}/journal`, data),
   deleteJournalEntry: (journalId: number) => api.delete(`/journal/${journalId}`),
 };
