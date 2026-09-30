@@ -2,7 +2,10 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from typing import List
 
+import csv
+import io
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -161,6 +164,64 @@ def party_summaries(
         total=total,
         skip=skip,
         limit=limit,
+    )
+
+
+@router.get("/ar-report/csv")
+def download_ar_csv(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    # Fetch all parties with their balances
+    result = db.execute(text("""
+        WITH i_agg AS (
+            SELECT party_id, SUM(amount) AS total_invoiced, COUNT(id) AS invoice_count
+            FROM invoices WHERE is_deleted = false GROUP BY party_id
+        ),
+        p_agg AS (
+            SELECT party_id, SUM(amount) AS total_paid, COUNT(id) AS payment_count
+            FROM payments WHERE is_deleted = false GROUP BY party_id
+        ),
+        j_agg AS (
+            SELECT party_id, SUM(amount) AS total_journal
+            FROM journal_entries WHERE is_deleted = false GROUP BY party_id
+        ),
+        agg AS (
+            SELECT
+                p.name AS party_name,
+                COALESCE(i_agg.total_invoiced, 0) AS total_invoiced,
+                COALESCE(p_agg.total_paid, 0) AS total_paid,
+                COALESCE(j_agg.total_journal, 0) AS total_journal,
+                (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) AS outstanding
+            FROM parties p
+            LEFT JOIN i_agg ON i_agg.party_id = p.id
+            LEFT JOIN p_agg ON p_agg.party_id = p.id
+            LEFT JOIN j_agg ON j_agg.party_id = p.id
+            WHERE p.is_active = true
+        )
+        SELECT * FROM agg
+        WHERE outstanding > 0
+        ORDER BY party_name ASC
+    """)).fetchall()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Party Name", "Total Invoiced", "Total Paid", "Total Journal", "Net Pending (Outstanding)"])
+
+    for row in result:
+        writer.writerow([
+            row.party_name,
+            f"{row.total_invoiced:.2f}",
+            f"{row.total_paid:.2f}",
+            f"{row.total_journal:.2f}",
+            f"{row.outstanding:.2f}"
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=ar_report_{datetime.now().strftime('%Y%m%d')}.csv"}
     )
 
 
