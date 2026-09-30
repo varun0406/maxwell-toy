@@ -543,7 +543,8 @@ def calculate_busy_balances(files, session):
                     opbal_str = acc.findtext('OPBal')
                     if opbal_str:
                         amt = -float(opbal_str)
-                        party_balances[name.strip()] = amt
+                        normalized_name = ' '.join(name.split())
+                        party_balances[normalized_name] = amt
         except Exception as e:
             print(f"Failed to parse master file: {e}")
     else:
