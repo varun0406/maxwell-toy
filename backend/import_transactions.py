@@ -76,6 +76,7 @@ def import_transactions(file_path, session):
     def get_or_create_party(name):
         if not name:
             return None
+        name = ' '.join(name.split())
         if name in db_parties:
             return db_parties[name]
         new_party = Party(name=name, is_active=True, created_by=1)
@@ -523,55 +524,30 @@ def import_transactions(file_path, session):
 
 def calculate_busy_balances(files, session):
     from app.models import Party
-    import glob
-    print("\n--- Calculating Final BUSY Balances from Master ---")
-    
-    # Try to find a master file in the parent directory
-    master_files = glob.glob('../*master*.DAT')
+    print("\n--- Calculating Final BUSY Balances from Transactions ---")
     
     party_balances = {}
-    if master_files:
-        master_file = master_files[0]
-        print(f"Reading closing balances from: {master_file}")
-        try:
-            tree = ET.parse(master_file)
-            root = tree.getroot()
-            for acc in root.findall('.//Accounts/Account'):
-                name = acc.findtext('Name')
-                if name:
-                    # In BUSY, negative OPBal for Sundry Debtors means Debit (Due from customer)
-                    opbal_str = acc.findtext('OPBal')
-                    if opbal_str:
-                        amt = -float(opbal_str)
-                        normalized_name = ' '.join(name.split())
-                        party_balances[normalized_name] = amt
-        except Exception as e:
-            print(f"Failed to parse master file: {e}")
-    else:
-        print("No master.DAT found. Falling back to summing AccDetail.")
-        for f in files:
-            tree = ET.parse(f)
-            root = tree.getroot()
-            for acc_det in root.findall('.//AccDetail'):
-                name = ' '.join((acc_det.findtext('AccountName') or '').split())
-                amt_type = acc_det.findtext('AmountType')
-                amt = abs(float(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or 0))
+    for f in files:
+        tree = ET.parse(f)
+        root = tree.getroot()
+        for acc_det in root.findall('.//AccDetail'):
+            raw_name = acc_det.findtext('AccountName') or ''
+            name = ' '.join(raw_name.split())
+            amt_type = acc_det.findtext('AmountType')
+            amt = abs(float(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or 0))
+            
+            if name not in party_balances:
+                party_balances[name] = 0
                 
-                if name not in party_balances:
-                    party_balances[name] = 0
-                    
-                if amt_type == '1': # Debit
-                    party_balances[name] += amt
-                elif amt_type == '2': # Credit
-                    party_balances[name] -= amt
+            if amt_type == '1': # Debit
+                party_balances[name] += amt
+            elif amt_type == '2': # Credit
+                party_balances[name] -= amt
 
     parties = session.query(Party).all()
     updated = 0
     for p in parties:
-        bname = p.name
-        # The stored name in DB is upper cased in import, but AccDetail might be mixed.
-        # But wait, in DB they are stored exactly as `party_name` which is normalized.
-        # Let's normalize the same way.
+        bname = ' '.join(p.name.split())
         found_amt = party_balances.get(bname, 0)
         p.busy_closing_balance = found_amt
         updated += 1

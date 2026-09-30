@@ -19,6 +19,8 @@ def wipe_transactions():
     session.query(Invoice).delete()
     print("Deleting AccountMasters...")
     session.query(AccountMaster).delete()
+    print("Deleting Parties...")
+    session.query(Party).delete()
     session.commit()
     print("Wipe complete.")
 
