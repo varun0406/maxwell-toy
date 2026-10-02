@@ -60,6 +60,12 @@ def list_parties(
             SELECT party_id, SUM(amount) AS total_journal
             FROM journal_entries WHERE COALESCE(is_deleted, false) = false GROUP BY party_id
         ),
+        j_unalloc AS (
+            SELECT party_id, 
+                   SUM(ABS(amount) - COALESCE((SELECT SUM(allocated_amount) FROM payment_allocations WHERE journal_id = j.id), 0)) AS unallocated_journals
+            FROM journal_entries j
+            WHERE amount < 0 AND COALESCE(is_deleted, false) = false GROUP BY party_id
+        ),
         filtered AS (
             SELECT
                 p.id,
@@ -87,12 +93,13 @@ def list_parties(
                 COALESCE(j_agg.total_journal, 0) AS total_journal,
                 (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) AS outstanding,
                 COALESCE(i_agg.bills_outstanding, 0) AS bills_outstanding,
-                COALESCE(p_agg.unallocated_payments, 0) AS unallocated_payments,
+                COALESCE(p_agg.unallocated_payments, 0) + COALESCE(j_unalloc.unallocated_journals, 0) AS unallocated_payments,
                 EXTRACT(DAY FROM (CURRENT_TIMESTAMP - i_agg.oldest_due)) AS overdue_days
             FROM parties p
             LEFT JOIN i_agg ON i_agg.party_id = p.id
             LEFT JOIN p_agg ON p_agg.party_id = p.id
             LEFT JOIN j_agg ON j_agg.party_id = p.id
+            LEFT JOIN j_unalloc ON j_unalloc.party_id = p.id
                 WHERE COALESCE(p.is_active, true) = true
               AND (
                     :search IS NULL
@@ -212,7 +219,8 @@ def get_party(
             COALESCE((SELECT SUM(amount) FROM journal_entries WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS total_journal,
             
             COALESCE((SELECT SUM(balance_due) FROM invoices WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS bills_outstanding,
-            COALESCE((SELECT SUM(unallocated) FROM payments WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS unallocated_payments
+            COALESCE((SELECT SUM(unallocated) FROM payments WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) +
+            COALESCE((SELECT SUM(ABS(amount) - COALESCE((SELECT SUM(allocated_amount) FROM payment_allocations WHERE journal_id = j.id), 0)) FROM journal_entries j WHERE party_id = p.id AND amount < 0 AND COALESCE(is_deleted, false) = false), 0) AS unallocated_payments
         FROM parties p
         WHERE p.id = :party_id
     """), {"party_id": party_id}).fetchone()

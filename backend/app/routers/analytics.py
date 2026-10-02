@@ -53,6 +53,9 @@ def dashboard_summary(
 
             COALESCE(
               (SELECT SUM(unallocated) FROM payments WHERE is_deleted = false),
+            0) +
+            COALESCE(
+              (SELECT SUM(ABS(amount) - COALESCE((SELECT SUM(allocated_amount) FROM payment_allocations WHERE journal_id = j.id), 0)) FROM journal_entries j WHERE amount < 0 AND is_deleted = false),
             0)                                                               AS total_unallocated_payments,
 
                         COALESCE(
