@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
 
 import csv
 import io
