@@ -57,7 +57,7 @@ export function PartiesList() {
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['parties', debouncedSearch, page, agent],
-    queryFn: () => partiesApi.list(debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, false, agent || undefined).then(r => r.data),
+    queryFn: () => partiesApi.list(debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, true, agent || undefined).then(r => r.data),
     placeholderData: keepPreviousData,
   });
 

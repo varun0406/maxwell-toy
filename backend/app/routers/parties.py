@@ -108,7 +108,9 @@ def list_parties(
               AND (:agent IS NULL OR p.agent_name = :agent)
               AND (
                     :unpaid_only = false
-                 OR (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) > 0
+                      OR ABS(COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) > 0.01
+                      OR ABS(COALESCE(i_agg.bills_outstanding, 0)) > 0.01
+                      OR ABS(COALESCE(p_agg.unallocated_payments, 0)) > 0.01
               )
         )
         SELECT *, COUNT(*) OVER() AS total_count
