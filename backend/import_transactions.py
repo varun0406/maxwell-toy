@@ -106,7 +106,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
         name = ' '.join(name.split())
         if name in db_parties:
             return db_parties[name]
-        new_party = Party(name=name, is_active=True, created_by=1)
+        new_party = Party(name=name, is_active=True, created_by=created_by)
         session.add(new_party)
         session.flush()
         db_parties[name] = new_party.id
