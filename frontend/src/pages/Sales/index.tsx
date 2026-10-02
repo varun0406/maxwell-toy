@@ -461,7 +461,7 @@ export function NewInvoice() {
           {viewId && targetInvoice && (
             <div style={{ marginTop: 24 }}>
               <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1, color: 'var(--accent)' }} onClick={() => generateAndShareInvoice(targetInvoice)}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1, color: 'var(--accent)' }} onClick={() => generateAndShareInvoice(targetInvoice, parties.find((p: any) => p.id === targetInvoice.party_id) || { name: targetInvoice.party_name || 'Unknown Party' })}>
                   <FileText size={16} /> Print Invoice
                 </button>
               </div>

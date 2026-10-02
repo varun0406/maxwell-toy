@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import { Plus, Package, Search } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { api } from '../../api/client';
@@ -15,7 +14,7 @@ async function fetchVendors(search = '', tag?: string) {
   return r.data as Vendor[];
 }
 async function fetchBills(vendorId?: number, unpaidOnly = false) {
-  const params: Record<string, string | boolean> = { unpaid_only: unpaidOnly };
+  const params: Record<string, string | boolean | number> = { unpaid_only: unpaidOnly };
   if (vendorId) params.vendor_id = vendorId;
   const r = await api.get(`${API}/bills`, { params });
   return r.data as PurchaseBill[];
@@ -45,7 +44,6 @@ interface VendorPaymentRecord {
 
 // ── Purchases Page ───────────────────────────────────────────────────────────
 export default function Purchases() {
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const [tab, setTab] = useState<'vendors' | 'bills' | 'payments'>('vendors');
   const [search, setSearch] = useState('');

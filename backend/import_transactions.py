@@ -1,5 +1,8 @@
 import os
 import sys
+import argparse
+import hashlib
+import json
 import xml.etree.ElementTree as ET
 from decimal import Decimal
 from datetime import datetime
@@ -14,11 +17,25 @@ def clean(value):
 
 def parse_date(date_str):
     if not date_str:
-        return datetime.utcnow()
+        raise ValueError("missing date")
     try:
         return datetime.strptime(date_str, "%d-%m-%Y")
-    except:
-        return datetime.utcnow()
+    except ValueError as exc:
+        raise ValueError(f"invalid date {date_str!r}; expected DD-MM-YYYY") from exc
+
+
+def parse_decimal(value, field_name):
+    try:
+        return Decimal(value or "0")
+    except Exception as exc:
+        raise ValueError(f"invalid {field_name}: {value!r}") from exc
+
+
+def source_identity(element, voucher_type, file_path):
+    """Return a stable identity for one source XML voucher."""
+    payload = ET.tostring(element, encoding="utf-8")
+    digest = hashlib.sha256(payload).hexdigest()[:24]
+    return f"BUSY:{os.path.basename(file_path)}:{voucher_type}:{digest}"
 
 # ============================================================================
 # MASTER ACCOUNT CACHE
@@ -43,14 +60,24 @@ def get_or_create_account_master(session, name, group_name=None):
     return acct.id
 
 
-def import_transactions(file_path, session):
+def import_transactions(file_path, session, created_by=1, report_path=None):
     print(f"\n--- Reading {file_path} ---")
     try:
         tree = ET.parse(file_path)
         root = tree.getroot()
     except Exception as e:
         print(f"Error parsing XML: {e}")
-        return
+        return {"source": file_path, "imported": {}, "rejected": [{"type": "file", "reason": str(e)}]}
+
+    report = {"source": file_path, "imported": {}, "rejected": []}
+
+    def reject(voucher_type, voucher, reason):
+        report["rejected"].append({
+            "type": voucher_type,
+            "voucher": clean(voucher.findtext("VchNo")) if voucher is not None else None,
+            "date": clean(voucher.findtext("Date")) if voucher is not None else None,
+            "reason": reason,
+        })
 
     print("1. Building Mappings...")
     account_map = {}
@@ -95,7 +122,12 @@ def import_transactions(file_path, session):
         vch_no = clean(sale.findtext('VchNo'))
         date_str = clean(sale.findtext('Date'))
         party_tmpcode = sale.findtext('tmpMasterCode1')
-        total_amt = Decimal(sale.findtext('tmpTotalAmt') or '0')
+        try:
+            total_amt = parse_decimal(sale.findtext('tmpTotalAmt'), 'sale amount')
+            inv_date = parse_date(date_str)
+        except ValueError as exc:
+            reject("Sale", sale, str(exc))
+            continue
         
         party_name = account_map.get(party_tmpcode)
         if not party_name:
@@ -103,21 +135,22 @@ def import_transactions(file_path, session):
             
         party_id = get_or_create_party(party_name)
         if not party_id:
+            reject("Sale", sale, "missing debtor party")
             continue
-            
-        inv_date = parse_date(date_str)
-        
-        existing = session.query(Invoice).filter_by(invoice_number=vch_no, party_id=party_id).first()
+
+        identity = source_identity(sale, "Sale", file_path)
+        existing = session.query(Invoice).filter_by(description=identity).first()
         if existing:
             continue
         
         invoice = Invoice(
             invoice_number=vch_no,
             party_id=party_id,
-            created_by=1,
+            created_by=created_by,
             amount=total_amt,
             balance_due=total_amt,
             invoice_date=inv_date,
+            description=identity,
             is_paid=False,
             is_deleted=False
         )
@@ -133,9 +166,15 @@ def import_transactions(file_path, session):
                 if not i_name:
                     i_name = clean(item_det.findtext('ItemName')) or "Unknown Item"
                 
-                qty = Decimal(item_det.findtext('Qty') or '1')
-                price = Decimal(item_det.findtext('Price') or '0')
-                amt = Decimal(item_det.findtext('Amt') or item_det.findtext('Amount') or '0')
+                try:
+                    qty = parse_decimal(item_det.findtext('Qty') or '1', 'item quantity')
+                    price = parse_decimal(item_det.findtext('Price'), 'item price')
+                    amt = parse_decimal(item_det.findtext('Amt') or item_det.findtext('Amount'), 'item amount')
+                except ValueError as exc:
+                    reject("Sale", sale, str(exc))
+                    session.delete(invoice)
+                    session.flush()
+                    break
                 
                 inv_item = InvoiceItem(
                     invoice_id=invoice.id,
@@ -148,7 +187,7 @@ def import_transactions(file_path, session):
                 
         sales_added += 1
 
-    session.commit()
+    report["imported"]["sales"] = sales_added
     print(f"Sales: Added {sales_added}")
 
     # ---------------------------------------------------------
@@ -176,7 +215,12 @@ def import_transactions(file_path, session):
         for acc_det in acc_entries.findall('AccDetail'):
             grp = acc_det.findtext('tmpGroupName') or ''
             amt_type = acc_det.findtext('AmountType')
-            amt = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
+            try:
+                amt = parse_decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount'), 'receipt amount')
+            except ValueError as exc:
+                reject("Receipt", rcpt, str(exc))
+                debtor_entries = []
+                break
             acc_code = acc_det.findtext('tmpAccCode')
             acc_name = account_map.get(acc_code) or clean(acc_det.findtext('AccountName'))
             
@@ -199,7 +243,20 @@ def import_transactions(file_path, session):
                 })
         
         if not debtor_entries:
+            if not acc_entries.findall('AccDetail'):
+                reject("Receipt", rcpt, "missing account entries")
             continue
+
+        identity = source_identity(rcpt, "Receipt", file_path)
+        if session.query(Payment).filter(Payment.note == identity).first():
+            continue
+
+        payment_mode = 'cash'
+        for acc_det in acc_entries.findall('AccDetail'):
+            group = acc_det.findtext('tmpGroupName') or ''
+            if group in ('Bank Accounts', 'Bank (OD/CC)'):
+                payment_mode = 'bank'
+                break
             
         # Process each debtor entry in this receipt
         for deb in debtor_entries:
@@ -212,6 +269,7 @@ def import_transactions(file_path, session):
                 
             party_id = get_or_create_party(party_name)
             if not party_id:
+                reject("Receipt", rcpt, "missing debtor party")
                 continue
 
             # Calculate total discount (all contra entries in this receipt)
@@ -221,12 +279,13 @@ def import_transactions(file_path, session):
             
             payment = Payment(
                 party_id=party_id,
-                created_by=1,
+                created_by=created_by,
                 amount=pay_amount,
                 discount_amount=abs(discount) if len(debtor_entries) == 1 else Decimal('0'),
                 unallocated=pay_amount,
                 payment_date=pay_date,
-                mode='cash'
+                mode=payment_mode,
+                note=identity,
             )
             session.add(payment)
             session.flush()
@@ -240,12 +299,19 @@ def import_transactions(file_path, session):
                     if not ref_no or not val_str:
                         continue
                         
-                    alloc_amt = Decimal(val_str)
+                    try:
+                        alloc_amt = parse_decimal(val_str, 'receipt allocation')
+                    except ValueError as exc:
+                        reject("Receipt", rcpt, str(exc))
+                        continue
                     if alloc_amt <= 0:
                         continue
                         
                     inv = session.query(Invoice).filter_by(invoice_number=ref_no, party_id=party_id).first()
                     if inv:
+                        if alloc_amt > payment.unallocated or alloc_amt > inv.balance_due:
+                            reject("Receipt", rcpt, f"allocation exceeds available balance for invoice {ref_no}")
+                            continue
                         alloc = PaymentAllocation(
                             payment_id=payment.id,
                             invoice_id=inv.id,
@@ -272,6 +338,8 @@ def import_transactions(file_path, session):
                 for c in contra_entries:
                     acct_id = get_or_create_account_master(session, c['name'], c['group'])
                     
+                    else:
+                        reject("Receipt", rcpt, f"invoice not found: {ref_no}")
                     # Amount = 0 (doesn't affect customer outstanding)
                     # The actual contra amount is stored for reporting via account_master aggregation
                     contra_amt = abs(c['amt'])
@@ -279,7 +347,7 @@ def import_transactions(file_path, session):
                     j_entry = JournalEntry(
                         party_id=party_id,
                         account_id=acct_id,
-                        created_by=1,
+                        created_by=created_by,
                         amount=Decimal('0'),  # Zero impact on customer balance
                         contra_amount=Decimal(str(contra_amt)),  # For master account reporting
                         entry_date=pay_date,
@@ -288,6 +356,7 @@ def import_transactions(file_path, session):
                     session.add(j_entry)
                     contra_journals_added += 1
 
+    report["imported"]["receipts"] = rcpts_added
     print(f"Receipts: Added {rcpts_added}")
     print(f"  Contra Journals (Discount/Dalali/etc.): Added {contra_journals_added}")
     
