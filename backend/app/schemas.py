@@ -132,6 +132,7 @@ class PartyWithBalance(PartyOut):
     outstanding: Decimal
     bills_outstanding: Decimal = Field(default=Decimal("0"))
     unallocated_payments: Decimal = Field(default=Decimal("0"))
+    overdue_days: int = Field(default=0)
 
 
 # ---------------------------------------------------------------------------
@@ -192,6 +193,19 @@ class InvoiceUpdate(BaseModel):
     items: Optional[List[InvoiceItemCreate]] = None
 
 
+class AllocationOutForInvoice(BaseModel):
+    id: int
+    payment_id: Optional[int]
+    journal_id: Optional[int]
+    allocated_amount: Decimal
+    created_at: datetime
+    payment_mode: Optional[str]
+    payment_date: Optional[datetime]
+    note: Optional[str]
+
+    model_config = {"from_attributes": True}
+
+
 class InvoiceOut(BaseModel):
     id: int
     invoice_number: str
@@ -209,6 +223,7 @@ class InvoiceOut(BaseModel):
     is_deleted: bool
     created_at: datetime
     items: List[InvoiceItemOut]
+    allocations: List[AllocationOutForInvoice] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

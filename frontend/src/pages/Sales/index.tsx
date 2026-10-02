@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { invoicesApi, partiesApi, addressBookApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon, Copy, CreditCard, Filter } from 'lucide-react';
+import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon, Copy, CreditCard, Filter, FileText } from 'lucide-react';
 import { generateAndShareInvoice } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import { SearchCombobox } from '../../components/SearchCombobox';
@@ -457,6 +457,43 @@ export function NewInvoice() {
             <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 8 }}>
               {loading ? 'Processing…' : 'Review & Save Invoice'}
             </button>
+          )}
+          {viewId && targetInvoice && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+                <button type="button" className="btn btn-secondary" style={{ flex: 1, color: 'var(--accent)' }} onClick={() => generateAndShareInvoice(targetInvoice)}>
+                  <FileText size={16} /> Print Invoice
+                </button>
+              </div>
+
+              {targetInvoice.allocations && targetInvoice.allocations.length > 0 && (
+                <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Payment History</h3>
+                  </div>
+                  <div style={{ padding: '16px 20px' }}>
+                    {targetInvoice.allocations.map((alloc: any) => (
+                      <div key={alloc.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                        <div>
+                          <p style={{ fontWeight: 600, fontSize: 14 }}>{formatCurrency(alloc.allocated_amount)}</p>
+                          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                            {formatDate(alloc.payment_date || alloc.created_at)}
+                            {alloc.payment_mode ? ` • ${alloc.payment_mode}` : (alloc.journal_id ? ' • Journal Adj' : '')}
+                          </p>
+                        </div>
+                        {alloc.note && <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'right', maxWidth: '40%' }}>{alloc.note}</div>}
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, fontWeight: 700 }}>
+                      <span>Balance Due</span>
+                      <span style={{ color: targetInvoice.balance_due > 0 ? 'var(--danger)' : 'var(--success)' }}>
+                        {formatCurrency(targetInvoice.balance_due)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </form>
       </div>

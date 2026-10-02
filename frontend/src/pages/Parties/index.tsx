@@ -124,7 +124,12 @@ export function PartiesList() {
                     { label: 'Outstanding Due', value: p.outstanding || 0, operator: '=' }
                   ]}
                 >
-                  <span style={{ fontWeight: 700, fontSize: 14, color: (p.outstanding || 0) > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                  <span style={{ 
+                    fontWeight: 700, fontSize: 14, 
+                    color: (p.outstanding || 0) <= 0 ? 'var(--success)' : 
+                           (p.overdue_days || 0) > 60 ? 'var(--danger)' : 
+                           (p.overdue_days || 0) > 0 ? 'var(--warning)' : 'var(--text)'
+                  }}>
                     {formatCurrency(p.outstanding || 0)}
                   </span>
                 </CalculationEvidence>
@@ -143,6 +148,19 @@ export function PartiesList() {
                   {(p.unallocated_payments || 0) > 0 && <p style={{ fontSize: 10, color: 'var(--success)' }}>Adv: {formatCurrency(p.unallocated_payments)}</p>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                  {p.phone && (
+                    <button 
+                      className="btn-icon" 
+                      style={{ padding: 4, background: 'rgba(37,211,102,0.1)', color: '#25d366' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openWhatsApp(p.phone, `Hi ${p.name}, this is a gentle reminder regarding your outstanding balance of ${formatCurrency(p.outstanding)}.`);
+                      }}
+                      title="WhatsApp Reminder"
+                    >
+                      <Phone size={12} />
+                    </button>
+                  )}
                   <button 
                     className="btn-icon" 
                     style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}

@@ -46,7 +46,8 @@ def list_parties(
         WITH i_agg AS (
             SELECT party_id, 
                    SUM(amount) AS total_invoiced,
-                   SUM(balance_due) AS bills_outstanding
+                   SUM(balance_due) AS bills_outstanding,
+                   MIN(COALESCE(due_date, invoice_date)) FILTER (WHERE is_paid = false AND balance_due > 0) AS oldest_due
             FROM invoices WHERE COALESCE(is_deleted, false) = false GROUP BY party_id
         ),
         p_agg AS (
@@ -86,7 +87,8 @@ def list_parties(
                 COALESCE(j_agg.total_journal, 0) AS total_journal,
                 (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) AS outstanding,
                 COALESCE(i_agg.bills_outstanding, 0) AS bills_outstanding,
-                COALESCE(p_agg.unallocated_payments, 0) AS unallocated_payments
+                COALESCE(p_agg.unallocated_payments, 0) AS unallocated_payments,
+                EXTRACT(DAY FROM (CURRENT_TIMESTAMP - i_agg.oldest_due)) AS overdue_days
             FROM parties p
             LEFT JOIN i_agg ON i_agg.party_id = p.id
             LEFT JOIN p_agg ON p_agg.party_id = p.id
@@ -148,6 +150,9 @@ def list_parties(
             total_paid=row.total_paid,
             total_journal=row.total_journal,
             outstanding=row.outstanding,
+            bills_outstanding=row.bills_outstanding,
+            unallocated_payments=row.unallocated_payments,
+            overdue_days=int(row.overdue_days) if row.overdue_days is not None else 0,
         )
         for row in rows
     ]

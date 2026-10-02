@@ -226,7 +226,12 @@ def get_invoice(
 ):
     inv = (
         db.query(models.Invoice)
-        .options(joinedload(models.Invoice.party), joinedload(models.Invoice.items))
+        .options(
+            joinedload(models.Invoice.party), 
+            joinedload(models.Invoice.items),
+            joinedload(models.Invoice.allocations).joinedload(models.PaymentAllocation.payment),
+            joinedload(models.Invoice.allocations).joinedload(models.PaymentAllocation.journal)
+        )
         .filter(models.Invoice.id == invoice_id, models.Invoice.is_deleted == False)
         .first()
     )

@@ -247,6 +247,18 @@ class PaymentAllocation(Base):
     def invoice_number(self):
         return self.invoice.invoice_number if self.invoice else None
 
+    @property
+    def payment_mode(self):
+        return self.payment.mode if self.payment else None
+
+    @property
+    def payment_date(self):
+        return self.payment.payment_date if self.payment else (self.journal.entry_date if self.journal else self.created_at)
+
+    @property
+    def note(self):
+        return self.payment.note if self.payment else (self.journal.description if self.journal else None)
+
     __table_args__ = (
         # Speeds up finding allocations for a payment (delete payment)
         Index("ix_payment_allocations_payment_id", "payment_id"),
