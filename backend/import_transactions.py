@@ -669,9 +669,20 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                             party_id=party_id, invoice_number=ref_no
                         ).first()
                         if not invoice:
-                            unresolved_allocation(
-                                'Payment', out_pay, ref_no, ref_amount
-                            )
+                            ref_key = reference_key(acc_code, ref_no, ref_amount)
+                            if ref_key in settlement_references:
+                                report['settlement_references'].append({
+                                    'type': 'Payment',
+                                    'voucher': clean(out_pay.findtext('VchNo')),
+                                    'date': clean(out_pay.findtext('Date')),
+                                    'reference': ref_no,
+                                    'amount': str(ref_amount),
+                                    'reason': 'matched Journal or Receipt settlement reference',
+                                })
+                            else:
+                                unresolved_allocation(
+                                    'Payment', out_pay, ref_no, ref_amount
+                                )
         if not found_debtor:
             reject("Payment", out_pay, "missing debtor entry")
 
@@ -758,6 +769,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
         session.commit()
     print(f"Rejected: {len(report['rejected'])}")
     print(f"Skipped cancelled: {len(report['skipped'])}")
+    print(f"Matched settlement references: {len(report['settlement_references'])}")
     print(f"Unresolved allocations: {len(report['unresolved_allocations'])}")
     unresolved_total = sum(
         Decimal(item['amount']) for item in report['unresolved_allocations']
@@ -890,6 +902,9 @@ if __name__ == "__main__":
                 'sources': reports,
                 'rejected_count': sum(len(report.get('rejected', [])) for report in reports),
                 'skipped_cancelled_count': sum(len(report.get('skipped', [])) for report in reports),
+                'settlement_reference_count': sum(
+                    len(report.get('settlement_references', [])) for report in reports
+                ),
                 'unresolved_allocation_count': sum(
                     len(report.get('unresolved_allocations', [])) for report in reports
                 ),
