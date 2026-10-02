@@ -59,7 +59,11 @@ def dashboard_summary(
              FROM invoices
              WHERE is_deleted = false
                AND is_paid = false
-               AND due_date < :now)                                          AS overdue_count
+               AND due_date < :now)                                          AS overdue_count,
+
+            COALESCE(
+              (SELECT SUM(amount) FROM payments WHERE is_deleted = false AND DATE(payment_date) = CURRENT_DATE),
+            0)                                                               AS today_receipts
     """), {"now": now}).fetchone()
 
     total_outstanding = row.total_invoiced + row.total_journal - row.total_collected
@@ -72,6 +76,61 @@ def dashboard_summary(
         .all()
     )
 
+    # Top overdue parties
+    overdue_rows = db.execute(text("""
+        WITH p_agg AS (
+            SELECT party_id, COUNT(id) AS bills_count, SUM(balance_due) AS outstanding, MIN(due_date) AS oldest_due
+            FROM invoices WHERE is_deleted = false AND is_paid = false AND due_date < :now
+            GROUP BY party_id
+        )
+        SELECT p.id, p.name, p_agg.outstanding, p_agg.bills_count,
+               EXTRACT(DAY FROM (:now - p_agg.oldest_due)) AS overdue_days
+        FROM p_agg
+        JOIN parties p ON p.id = p_agg.party_id
+        ORDER BY p_agg.outstanding DESC
+        LIMIT 5
+    """), {"now": now}).fetchall()
+
+    top_overdue_parties = [
+        schemas.OverduePartyOut(
+            id=r.id, name=r.name, outstanding=r.outstanding,
+            bills_count=r.bills_count, overdue_days=int(r.overdue_days)
+        ) for r in overdue_rows
+    ]
+
+    # Monthly trend
+    trend_rows = db.execute(text("""
+        WITH months AS (
+            SELECT date_trunc('month', d)::date AS month_date
+            FROM generate_series(
+                date_trunc('month', CURRENT_DATE - INTERVAL '5 months'),
+                date_trunc('month', CURRENT_DATE),
+                '1 month'::interval
+            ) d
+        ),
+        inv_agg AS (
+            SELECT date_trunc('month', invoice_date)::date AS month_date, SUM(amount) AS total_invoiced
+            FROM invoices WHERE is_deleted = false GROUP BY 1
+        ),
+        pay_agg AS (
+            SELECT date_trunc('month', payment_date)::date AS month_date, SUM(amount) AS total_collected
+            FROM payments WHERE is_deleted = false GROUP BY 1
+        )
+        SELECT 
+            TO_CHAR(m.month_date, 'Mon') AS month_name,
+            COALESCE(i.total_invoiced, 0) AS invoiced,
+            COALESCE(p.total_collected, 0) AS collected
+        FROM months m
+        LEFT JOIN inv_agg i ON m.month_date = i.month_date
+        LEFT JOIN pay_agg p ON m.month_date = p.month_date
+        ORDER BY m.month_date ASC
+    """)).fetchall()
+
+    monthly_trend = [
+        schemas.CashFlowMonth(month=r.month_name, invoiced=r.invoiced, collected=r.collected)
+        for r in trend_rows
+    ]
+
     return schemas.DashboardSummary(
         total_parties=row.total_parties,
         total_invoiced=row.total_invoiced,
@@ -82,6 +141,9 @@ def dashboard_summary(
         total_unallocated_payments=row.total_unallocated_payments,
         invoices_count=row.invoices_count,
         overdue_count=row.overdue_count,
+        today_receipts=row.today_receipts,
+        top_overdue_parties=top_overdue_parties,
+        monthly_trend=monthly_trend,
         recent_payments=payments,
     )
 

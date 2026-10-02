@@ -9,7 +9,9 @@ import {
   ComposedChart, Line
 } from 'recharts';
 
-import { Download, X } from 'lucide-react';
+import { Download, X, FileText } from 'lucide-react';
+import { generateAndShareAgingReport } from '../../utils/pdfGenerator';
+import { api } from '../../api/client';
 
 const COLORS = ['#eab308', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#84cc16'];
 const MODE_COLORS: Record<string, string> = { cash: '#10b981', upi: '#eab308', bank: '#3b82f6', cheque: '#f59e0b' };
@@ -328,7 +330,17 @@ export default function Analytics() {
           {/* Aging Report */}
           {aging.length > 0 && (
             <>
-              <p className="section-label">Receivable Aging</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>
+                <p className="section-label" style={{ padding: 0, margin: 0 }}>Receivable Aging</p>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-sm" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }} onClick={() => window.open(api.defaults.baseURL + '/analytics/ar-report/csv', '_blank')}>
+                    <Download size={14} /> CSV
+                  </button>
+                  <button className="btn btn-sm" style={{ background: 'var(--danger)', color: 'white' }} onClick={() => generateAndShareAgingReport(aging)}>
+                    <FileText size={14} /> PDF
+                  </button>
+                </div>
+              </div>
               <div style={{ padding: '0 20px', marginBottom: 20 }}>
                 {(Array.isArray(aging) ? aging : []).map((row: any) => (
                   <div key={row.party_id} style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', padding: 14, marginBottom: 10 }}>

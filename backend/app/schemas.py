@@ -395,6 +395,13 @@ class AgingBucket(BaseModel):
     total: Decimal
 
 
+class OverduePartyOut(BaseModel):
+    id: int
+    name: str
+    outstanding: Decimal
+    overdue_days: int
+    bills_count: int
+
 class DashboardSummary(BaseModel):
     total_parties: int
     total_invoiced: Decimal
@@ -405,6 +412,9 @@ class DashboardSummary(BaseModel):
     total_unallocated_payments: Decimal = Field(default=Decimal("0"))
     invoices_count: int
     overdue_count: int
+    today_receipts: Decimal = Field(default=Decimal("0"))
+    top_overdue_parties: List[OverduePartyOut] = []
+    monthly_trend: List[CashFlowMonth] = []
     recent_payments: List[PaymentOut]
 
 class PinReset(BaseModel):

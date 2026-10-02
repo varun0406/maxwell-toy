@@ -95,6 +95,9 @@ export default function Dashboard() {
               </CalculationEvidence>
             )}
           </div>
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', marginTop: 4 }}>
+            Today: {formatCurrency(summary?.today_receipts || 0)}
+          </p>
         </div>
         <div className="stat-card warning">
           <p className="stat-label">Parties</p>
@@ -148,6 +151,55 @@ export default function Dashboard() {
           </button>
         )}
       </div>
+
+      {/* Monthly Trend */}
+      {summary?.monthly_trend?.length > 0 && (
+        <>
+          <p className="section-label">Last 6 Months Trend</p>
+          <div className="card" style={{ margin: '0 20px 12px', padding: '16px 20px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, height: 160 }}>
+            {summary.monthly_trend.map((m: any, idx: number) => {
+              const maxVal = Math.max(...summary.monthly_trend.map((x: any) => Math.max(x.invoiced, x.collected)));
+              const invHeight = maxVal > 0 ? (m.invoiced / maxVal) * 100 : 0;
+              const colHeight = maxVal > 0 ? (m.collected / maxVal) * 100 : 0;
+              return (
+                <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 4, height: 100, alignItems: 'flex-end', width: '100%', justifyContent: 'center' }}>
+                    <div style={{ width: 14, height: `${invHeight}%`, background: 'var(--accent)', borderRadius: '4px 4px 0 0', opacity: 0.8 }} title={`Invoiced: ${formatCurrency(m.invoiced)}`} />
+                    <div style={{ width: 14, height: `${colHeight}%`, background: 'var(--success)', borderRadius: '4px 4px 0 0', opacity: 0.8 }} title={`Collected: ${formatCurrency(m.collected)}`} />
+                  </div>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{m.month}</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Top Overdue Parties */}
+      {summary?.top_overdue_parties?.length > 0 && (
+        <>
+          <p className="section-label">Top Overdue Parties</p>
+          <div className="list-container">
+            {summary.top_overdue_parties.map((p: any) => (
+              <div key={p.id} className="list-item" onClick={() => navigate(`/parties/${p.id}`)}>
+                <div className="list-item-icon" style={{ background: 'var(--danger-bg)' }}>
+                  ⚠️
+                </div>
+                <div className="list-item-body">
+                  <p className="list-item-title">{p.name}</p>
+                  <p className="list-item-sub" style={{ color: 'var(--danger)' }}>{p.overdue_days} days overdue · {p.bills_count} bills</p>
+                </div>
+                <div className="list-item-right">
+                  <p style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 14 }}>
+                    {formatCurrency(p.outstanding)}
+                  </p>
+                  <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Recent Payments */}
       {summary?.recent_payments?.length > 0 && (

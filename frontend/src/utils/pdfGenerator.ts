@@ -336,7 +336,7 @@ export async function generateAndShareLedger(party: any, ledger: any[], fromDate
     
     // Add notes/narration to reference if available
     let refWithNote = entry.reference;
-    if (entry.note) refWithNote += `\n(${entry.note})`;
+    if (entry.description) refWithNote += `\n(${entry.description})`;
 
     return [
       new Date(entry.date).toLocaleDateString('en-IN'),
@@ -346,6 +346,9 @@ export async function generateAndShareLedger(party: any, ledger: any[], fromDate
       Number(entry.running_balance).toFixed(2)
     ];
   });
+
+  const closingBalance = ledger.length > 0 ? Number(ledger[ledger.length - 1].running_balance).toFixed(2) : '0.00';
+  tableData.push(['', 'CLOSING BALANCE', '', '', closingBalance]);
 
   autoTable(doc, {
     startY: 55,
@@ -381,6 +384,98 @@ export async function generateAndShareLedger(party: any, ledger: any[], fromDate
     }
   } else {
     // Web fallback: Open preview in new tab
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, `_blank_${Date.now()}`);
+  }
+}
+
+export async function generateAndShareAgingReport(agingData: any[]) {
+  const doc = new jsPDF('landscape');
+  const today = new Date().toLocaleDateString('en-IN');
+
+  doc.setFontSize(18);
+  doc.text('OUTSTANDING AGING REPORT', 148, 18, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.text('Maxwell Accounting', 14, 28);
+  doc.text(`Generated On: ${today}`, 280, 28, { align: 'right' });
+
+  const tableData = agingData.map((row: any) => [
+    row.party_name,
+    Number(row.current).toFixed(2),
+    Number(row.days_31_60).toFixed(2),
+    Number(row.days_61_90).toFixed(2),
+    Number(row.over_90).toFixed(2),
+    Number(row.total).toFixed(2)
+  ]);
+
+  // Calculate totals
+  const totals = agingData.reduce((acc: any, row: any) => {
+    acc[0] += Number(row.current);
+    acc[1] += Number(row.days_31_60);
+    acc[2] += Number(row.days_61_90);
+    acc[3] += Number(row.over_90);
+    acc[4] += Number(row.total);
+    return acc;
+  }, [0, 0, 0, 0, 0]);
+
+  tableData.push([
+    'TOTAL',
+    totals[0].toFixed(2),
+    totals[1].toFixed(2),
+    totals[2].toFixed(2),
+    totals[3].toFixed(2),
+    totals[4].toFixed(2)
+  ]);
+
+  autoTable(doc, {
+    startY: 35,
+    head: [['Party Name', '0-30 Days', '31-60 Days', '61-90 Days', '>90 Days', 'Total Balance']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: { fillColor: [220, 38, 38] },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+    styles: { cellPadding: 4, fontSize: 10 },
+    columnStyles: {
+      0: { cellWidth: 'auto' },
+      1: { halign: 'right' },
+      2: { halign: 'right' },
+      3: { halign: 'right' },
+      4: { halign: 'right' },
+      5: { halign: 'right', fontStyle: 'bold' },
+    },
+    didParseCell: function(data: any) {
+      if (data.row.index === tableData.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [240, 240, 240];
+      }
+    }
+  });
+
+  const fileName = `Aging_Report_${today.replace(/\//g, '-')}.pdf`;
+  const pdfOutput = doc.output('datauristring');
+  const base64Data = pdfOutput.split(',')[1];
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const savedFile = await Filesystem.writeFile({
+        path: fileName,
+        data: base64Data,
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title: 'Outstanding Aging Report',
+        text: 'Please find attached the aging report.',
+        url: savedFile.uri,
+        dialogTitle: 'Share Aging Report',
+      });
+    } catch (err) {
+      console.error('Error sharing aging report', err);
+      alert('Error sharing PDF on device');
+    }
+  } else {
     const blob = doc.output('blob');
     const blobUrl = URL.createObjectURL(blob);
     window.open(blobUrl, `_blank_${Date.now()}`);
