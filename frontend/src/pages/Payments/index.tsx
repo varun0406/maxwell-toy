@@ -250,14 +250,14 @@ export function NewPayment() {
         {err && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{err}</div>}
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="form-group">
-            <label className="form-label">Party *</label>
-            <SearchCombobox value={selectedParty || null} placeholder="Select party…" options={partyOptions} onChange={opt => setValue('party_id', Number(opt.value))} onSearch={setPartySearch} />
-            {errors.party_id && <span className="form-error">{errors.party_id.message}</span>}
-          </div>
-          <div className="form-group">
-            <label className="form-label">Amount Received (₹) *</label>
+            <label className="form-label">1. Amount Received (₹) *</label>
             <input className="form-input" type="number" step="0.01" placeholder="0.00" {...register('amount')} />
             {errors.amount && <span className="form-error">{errors.amount.message}</span>}
+          </div>
+          <div className="form-group">
+            <label className="form-label">2. Party *</label>
+            <SearchCombobox value={selectedParty || null} placeholder="Select party…" options={partyOptions} onChange={opt => setValue('party_id', Number(opt.value))} onSearch={setPartySearch} />
+            {errors.party_id && <span className="form-error">{errors.party_id.message}</span>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div className="form-group"><label className="form-label">Date *</label><input className="form-input" type="date" {...register('payment_date')} /></div>
@@ -288,6 +288,7 @@ export function NewPayment() {
                 <div style={{ fontSize: 12, textAlign: 'right' }}>
                   <p style={{ color: 'var(--text-secondary)' }}>Remaining to Allocate:</p>
                   <p style={{ color: (enteredAmount - totalAllocated) < 0 ? 'var(--danger)' : 'var(--success)', fontWeight: 700, fontSize: 14 }}>{formatCurrency(enteredAmount - totalAllocated)}</p>
+                  <p style={{ color: 'var(--accent)', fontSize: 11 }}>This remainder is saved on account</p>
                 </div>
               </div>
               {unpaidInvoices.length === 0 ? (

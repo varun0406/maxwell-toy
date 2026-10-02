@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, FileText, CreditCard, BookOpen, Plus, ShoppingCart, BookMarked } from 'lucide-react';
+import { Home, Users, FileText, CreditCard, BookOpen, Plus, ShoppingCart, BookMarked, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 
 const TABS = [
   { path: '/home',           icon: Home,         label: 'Home'      },
@@ -49,6 +49,14 @@ export default function BottomNav() {
       <button className={`nav-item ${isActive('/journals') ? 'active' : ''}`} onClick={() => navigate('/journals')} title="Create journal entry">
         <BookMarked />
         <span>Journals</span>
+      </button>
+      <button className="nav-item" onClick={() => navigate('/payments/new')} title="New customer receipt">
+        <ArrowDownToLine />
+        <span>New Receipt</span>
+      </button>
+      <button className="nav-item" onClick={() => navigate('/purchases')} title="New vendor payment">
+        <ArrowUpFromLine />
+        <span>New Payment</span>
       </button>
     </nav>
   );

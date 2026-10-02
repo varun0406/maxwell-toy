@@ -561,6 +561,12 @@ export default function Analytics() {
               >
                 Download A/R Report (CSV)
               </button>
+              <button
+                onClick={() => window.print()}
+                style={{ marginLeft: 8, background: 'var(--bg-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+              >
+                Print
+              </button>
             </div>
             {arParties.length === 0 ? (
               <div className="empty-state"><p>No outstanding balances</p></div>
