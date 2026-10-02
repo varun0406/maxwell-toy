@@ -325,6 +325,8 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                             inv.is_paid = True
                             
                         payment.unallocated -= alloc_amt
+                    else:
+                        reject("Receipt", rcpt, f"invoice not found: {ref_no}")
 
             rcpts_added += 1
         
@@ -338,8 +340,6 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                 for c in contra_entries:
                     acct_id = get_or_create_account_master(session, c['name'], c['group'])
                     
-                    else:
-                        reject("Receipt", rcpt, f"invoice not found: {ref_no}")
                     # Amount = 0 (doesn't affect customer outstanding)
                     # The actual contra amount is stored for reporting via account_master aggregation
                     contra_amt = abs(c['amt'])
@@ -367,7 +367,12 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
     jrnl_added = 0
     for jrnl in chain(root.findall('.//Journal'), root.findall('.//CrNote'), root.findall('.//DbNote')):
         date_str = clean(jrnl.findtext('Date'))
-        jrnl_date = parse_date(date_str)
+        voucher_type = jrnl.tag
+        try:
+            jrnl_date = parse_date(date_str)
+        except ValueError as exc:
+            reject(voucher_type, jrnl, str(exc))
+            continue
         
         acc_entries = jrnl.find('AccEntries')
         if acc_entries is None:
@@ -382,7 +387,12 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
             acc_code = acc_det.findtext('tmpAccCode')
             acc_name = account_map.get(acc_code) or clean(acc_det.findtext('AccountName'))
             amt_type = acc_det.findtext('AmountType')
-            amt = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
+            try:
+                amt = parse_decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount'), f'{voucher_type} amount')
+            except ValueError as exc:
+                reject(voucher_type, jrnl, str(exc))
+                debtor_entries = []
+                break
             
             if grp == 'Sundry Debtors':
                 debtor_entries.append({
@@ -402,6 +412,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                 })
         
         if not debtor_entries:
+            reject(voucher_type, jrnl, "missing debtor entry")
             continue
             
         for deb in debtor_entries:
@@ -409,6 +420,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
             party_name = deb['name']
             
             if not party_name or party_name not in db_parties:
+                reject(voucher_type, jrnl, "unknown debtor party")
                 continue
                 
             party_id = db_parties[party_name]
@@ -432,16 +444,16 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                 contra_desc = f"Journal: {c['name']}"
                 
             j_entry = session.query(JournalEntry).filter_by(
-                party_id=party_id, amount=amt, entry_date=jrnl_date
+                description=f"{source_identity(jrnl, voucher_type, file_path)}:{deb['code']}"
             ).first()
             if not j_entry:
                 j_entry = JournalEntry(
                     party_id=party_id,
                     account_id=acct_id,
-                    created_by=1,
+                    created_by=created_by,
                     amount=amt,
                     entry_date=jrnl_date,
-                    description=contra_desc
+                    description=f"{source_identity(jrnl, voucher_type, file_path)}:{deb['code']} | {contra_desc}"
                 )
                 session.add(j_entry)
                 session.flush()
@@ -454,11 +466,18 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                         method = bill_det.findtext('Method')
                         if method == '2':
                             ref_no = clean(bill_det.findtext('RefNo'))
-                            val = Decimal(bill_det.findtext('Value1') or '0')
+                            try:
+                                val = parse_decimal(bill_det.findtext('Value1'), f'{voucher_type} allocation')
+                            except ValueError as exc:
+                                reject(voucher_type, jrnl, str(exc))
+                                continue
                             val = abs(val)
                             
                             invoice = session.query(Invoice).filter_by(party_id=party_id, invoice_number=ref_no).first()
                             if invoice:
+                                if val > invoice.balance_due and amt_type == '2':
+                                    reject(voucher_type, jrnl, f"allocation exceeds invoice balance: {ref_no}")
+                                    continue
                                 alloc = PaymentAllocation(
                                     journal_id=j_entry.id,
                                     invoice_id=invoice.id,
@@ -476,6 +495,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                                 else:
                                     invoice.is_paid = False
 
+    report["imported"]["journals"] = jrnl_added
     print(f"Journals: Added {jrnl_added}")
 
     # ---------------------------------------------------------
@@ -485,10 +505,15 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
     pay_added = 0
     for out_pay in root.findall('.//Payment'):
         date_str = clean(out_pay.findtext('Date'))
-        pay_date = parse_date(date_str)
+        try:
+            pay_date = parse_date(date_str)
+        except ValueError as exc:
+            reject("Payment", out_pay, str(exc))
+            continue
         
         acc_entries = out_pay.find('AccEntries')
         if acc_entries is None:
+            reject("Payment", out_pay, "missing account entries")
             continue
             
         for acc_det in acc_entries.findall('AccDetail'):
@@ -502,11 +527,16 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                 party_name = clean(acc_det.findtext('AccountName'))
                 
             if not party_name or party_name not in db_parties:
+                reject("Payment", out_pay, "unknown debtor party")
                 continue
                 
             party_id = db_parties[party_name]
             amt_type = acc_det.findtext('AmountType')
-            amt = Decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount') or '0')
+            try:
+                amt = parse_decimal(acc_det.findtext('AmtMainCur') or acc_det.findtext('Amount'), 'payment amount')
+            except ValueError as exc:
+                reject("Payment", out_pay, str(exc))
+                continue
             
             if amt <= 0:
                 continue
@@ -515,18 +545,19 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                 amt = -amt
                 
             j_entry = session.query(JournalEntry).filter_by(
-                party_id=party_id, amount=amt, entry_date=pay_date
+                description=f"{source_identity(out_pay, 'Payment', file_path)}:{acc_code}"
             ).first()
             if not j_entry:
                 session.add(JournalEntry(
                     party_id=party_id,
-                    created_by=1,
+                    created_by=created_by,
                     amount=amt,
                     entry_date=pay_date,
-                    description="Imported Outgoing Payment"
+                    description=f"{source_identity(out_pay, 'Payment', file_path)}:{acc_code} | Imported Outgoing Payment"
                 ))
                 pay_added += 1
 
+    report["imported"]["payments"] = pay_added
     print(f"Payments (Outgoing): Added {pay_added}")
 
     # ---------------------------------------------------------
@@ -538,7 +569,12 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
         vch_no = clean(sr.findtext('VchNo'))
         date_str = clean(sr.findtext('Date'))
         party_tmpcode = sr.findtext('tmpMasterCode1')
-        total_amt = Decimal(sr.findtext('tmpTotalAmt') or '0')
+        try:
+            total_amt = parse_decimal(sr.findtext('tmpTotalAmt'), 'sale return amount')
+            sr_date = parse_date(date_str)
+        except ValueError as exc:
+            reject("SaleReturn", sr, str(exc))
+            continue
         
         party_name = account_map.get(party_tmpcode)
         if not party_name:
@@ -546,20 +582,20 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
             
         party_id = get_or_create_party(party_name)
         if not party_id or total_amt <= 0:
+            reject("SaleReturn", sr, "missing debtor party or non-positive amount")
             continue
-            
-        sr_date = parse_date(date_str)
-        
+
+        identity = source_identity(sr, "SaleReturn", file_path)
         j_entry = session.query(JournalEntry).filter_by(
-            party_id=party_id, amount=-total_amt, entry_date=sr_date
+            description=identity
         ).first()
         if not j_entry:
             j_entry = JournalEntry(
                 party_id=party_id,
-                created_by=1,
+                created_by=created_by,
                 amount=-total_amt,
                 entry_date=sr_date,
-                description=f"Sale Return: {vch_no}"
+                description=f"{identity} | Sale Return: {vch_no}"
             )
             session.add(j_entry)
             session.flush()
@@ -570,11 +606,18 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                 method = bill_ref.findtext('Method')
                 if method == '2':
                     ref_no = clean(bill_ref.findtext('RefNo'))
-                    val = Decimal(bill_ref.findtext('Value1') or '0')
+                    try:
+                        val = parse_decimal(bill_ref.findtext('Value1'), 'sale return allocation')
+                    except ValueError as exc:
+                        reject("SaleReturn", sr, str(exc))
+                        continue
                     val = abs(val)
                     
                     invoice = session.query(Invoice).filter_by(party_id=party_id, invoice_number=ref_no).first()
                     if invoice:
+                        if val > invoice.balance_due:
+                            reject("SaleReturn", sr, f"allocation exceeds invoice balance: {ref_no}")
+                            continue
                         alloc = PaymentAllocation(
                             journal_id=j_entry.id,
                             invoice_id=invoice.id,
@@ -587,9 +630,15 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
                         else:
                             invoice.is_paid = False
             
+    report["imported"]["sale_returns"] = sr_added
     print(f"Sale Returns: Added {sr_added}")
 
     session.commit()
+    if report_path:
+        with open(report_path, 'w', encoding='utf-8') as output:
+            json.dump(report, output, indent=2, default=str)
+    print(f"Rejected: {len(report['rejected'])}")
+    return report
 
 def calculate_busy_balances(files, session):
     from app.models import Party
@@ -612,7 +661,7 @@ def calculate_busy_balances(files, session):
                     # In BUSY, negative OPBal for Sundry Debtors means Debit (Due from customer)
                     opbal_str = acc.findtext('OPBal')
                     if opbal_str:
-                        amt = -float(opbal_str)
+                        amt = -Decimal(opbal_str)
                         party_balances[name] = amt
         except Exception as e:
             print(f"Failed to parse master file: {e}")
@@ -629,14 +678,21 @@ def calculate_busy_balances(files, session):
     print(f"Updated busy_closing_balance for {updated} parties.")
 
 if __name__ == "__main__":
-    files = sys.argv[1:]
-    if not files:
-        print("Please provide file paths")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Import BUSY transactions with validation and rejection reporting.')
+    parser.add_argument('files', nargs='+')
+    parser.add_argument('--created-by', type=int, default=1)
+    parser.add_argument('--report', help='Write a JSON report to this path.')
+    args = parser.parse_args()
         
     session = SessionLocal()
-    for f in files:
-        import_transactions(f, session)
+    reports = []
+    try:
+        for f in args.files:
+            reports.append(import_transactions(f, session, created_by=args.created_by, report_path=args.report))
         
-    calculate_busy_balances(files, session)
-    session.close()
+        calculate_busy_balances(args.files, session)
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

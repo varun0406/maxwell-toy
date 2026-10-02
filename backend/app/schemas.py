@@ -417,6 +417,11 @@ class OverduePartyOut(BaseModel):
     overdue_days: int
     bills_count: int
 
+class CashFlowMonth(BaseModel):
+    month: str
+    invoiced: Decimal
+    collected: Decimal
+
 class DashboardSummary(BaseModel):
     total_parties: int
     total_invoiced: Decimal
@@ -434,11 +439,6 @@ class DashboardSummary(BaseModel):
 
 class PinReset(BaseModel):
     new_pin: str = Field(min_length=4)
-
-class CashFlowMonth(BaseModel):
-    month: str
-    invoiced: Decimal
-    collected: Decimal
 
 class ExecutiveSummary(BaseModel):
     dso_days: Decimal
