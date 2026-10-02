@@ -22,6 +22,12 @@ if os.path.exists(db_path):
     except Exception as e:
         print("Error altering parties (reminder_date):", e)
 
+    try:
+        conn.execute("ALTER TABLE payments ADD COLUMN settled_amount NUMERIC(12, 2) NOT NULL DEFAULT 0")
+        print("Column settled_amount added to payments.")
+    except Exception as e:
+        print("Error altering payments (settled_amount):", e)
+
     # Let's make existing users superusers for convenience as requested in the plan discussion
     try:
         conn.execute("UPDATE users SET is_superuser = 1")

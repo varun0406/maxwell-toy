@@ -357,6 +357,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                 amount=pay_amount,
                 discount_amount=abs(discount) if len(debtor_entries) == 1 else Decimal('0'),
                 unallocated=pay_amount,
+                settled_amount=Decimal('0'),
                 payment_date=pay_date,
                 mode=payment_mode,
                 note=identity,
@@ -410,6 +411,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                                 'amount': str(alloc_amt),
                                 'reason': 'matched Journal or Payment settlement reference',
                             })
+                            payment.settled_amount += alloc_amt
                             payment.unallocated -= alloc_amt
                         else:
                             unresolved_allocation("Receipt", rcpt, ref_no, alloc_amt)

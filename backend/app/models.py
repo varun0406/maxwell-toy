@@ -199,6 +199,7 @@ class Payment(Base):
     amount = Column(Numeric(12, 2), nullable=False)
     discount_amount = Column(Numeric(12, 2), nullable=False, default=Decimal("0"))
     unallocated = Column(Numeric(12, 2), nullable=False, default=Decimal("0"))  # Overpayment / advance
+    settled_amount = Column(Numeric(12, 2), nullable=False, default=Decimal("0"))  # Matched non-bill settlement
     payment_date = Column(DateTime(timezone=True), nullable=False)
     note = Column(Text, nullable=True)
     mode = Column(String(30), nullable=True)  # cash / upi / bank
