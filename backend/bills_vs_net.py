@@ -8,7 +8,12 @@ session = SessionLocal()
 # Simpler query - avoid self-join cartesian product
 result = session.execute(text("""
     WITH bills AS (
-        SELECT party_id, SUM(balance_due) AS bills_out
+        SELECT
+            party_id,
+            SUM(balance_due) AS bills_out,
+            SUM(amount - balance_due) AS bill_paid,
+            COUNT(*) FILTER (WHERE balance_due > 0 AND balance_due < amount) AS partial_bills,
+            SUM(amount - balance_due) FILTER (WHERE balance_due > 0 AND balance_due < amount) AS partial_paid
         FROM invoices WHERE is_deleted = false GROUP BY party_id
     ),
     inv_sum AS (
@@ -34,6 +39,9 @@ result = session.execute(text("""
     SELECT
         pt.name,
         COALESCE(b.bills_out, 0) AS bill_based_receivable,
+        COALESCE(b.bill_paid, 0) AS bill_paid_or_allocated,
+        COALESCE(b.partial_bills, 0) AS partial_bills,
+        COALESCE(b.partial_paid, 0) AS partial_paid,
         COALESCE(i.total_inv, 0) + COALESCE(j.total_jrn, 0) - COALESCE(p.total_pay, 0) AS party_receivable,
         COALESCE(u.on_account, 0) AS on_account,
         COALESCE(s.matched_settlements, 0) AS matched_settlements,
@@ -54,14 +62,16 @@ result = session.execute(text("""
     LIMIT 30
 """)).fetchall()
 
-print(f"{'Party':<38} {'Bill-based':>15} {'Party recv.':>15} {'On-account':>15} {'Matched':>15} {'Difference':>15}")
-print("-" * 118)
+print(f"{'Party':<30} {'Bill open':>12} {'Bill paid':>12} {'Partial#':>9} {'Partial paid':>13} {'Party recv.':>12} {'On-account':>12} {'Diff':>12}")
+print("-" * 122)
 for r in result:
     print(
-        f"{r.name[:38]:<38} "
-        f"{float(r.bill_based_receivable):>15,.2f} "
-        f"{float(r.party_receivable):>15,.2f} "
-        f"{float(r.on_account):>15,.2f} "
-        f"{float(r.matched_settlements):>15,.2f} "
-        f"{float(r.bill_vs_party_difference):>15,.2f}"
+        f"{r.name[:30]:<30} "
+        f"{float(r.bill_based_receivable):>12,.2f} "
+        f"{float(r.bill_paid_or_allocated):>12,.2f} "
+        f"{r.partial_bills:>9} "
+        f"{float(r.partial_paid):>13,.2f} "
+        f"{float(r.party_receivable):>12,.2f} "
+        f"{float(r.on_account):>12,.2f} "
+        f"{float(r.bill_vs_party_difference):>12,.2f}"
     )
