@@ -306,6 +306,10 @@ export async function generateAndSharePaymentReceipt(payment: any, party: any) {
 export async function generateAndShareLedger(party: any, ledger: any[], fromDate?: string, toDate?: string) {
   const doc = new jsPDF();
   const today = new Date().toLocaleDateString('en-IN');
+  const chronologicalLedger = [...ledger].sort((a, b) => {
+    const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+    return dateDiff || String(a.reference).localeCompare(String(b.reference));
+  });
 
   // Header
   doc.setFontSize(18);
@@ -327,7 +331,7 @@ export async function generateAndShareLedger(party: any, ledger: any[], fromDate
   doc.text(`Period: ${periodStr}`, 14, 43);
   doc.text(`Generated On: ${today}`, 140, 38);
 
-  const tableData = ledger.map((entry: any) => {
+  const tableData = chronologicalLedger.map((entry: any) => {
     let debit = '';
     let credit = '';
     const amt = Number(entry.amount);
@@ -347,7 +351,7 @@ export async function generateAndShareLedger(party: any, ledger: any[], fromDate
     ];
   });
 
-  const closingBalance = ledger.length > 0 ? Number(ledger[ledger.length - 1].running_balance).toFixed(2) : '0.00';
+  const closingBalance = chronologicalLedger.length > 0 ? Number(chronologicalLedger[chronologicalLedger.length - 1].running_balance).toFixed(2) : '0.00';
   tableData.push(['', 'CLOSING BALANCE', '', '', closingBalance]);
 
   autoTable(doc, {

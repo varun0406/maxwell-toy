@@ -345,7 +345,7 @@ def party_ledger(
         FROM with_balance
         WHERE (:from_date IS NULL OR date::date >= :from_date)
           AND (:to_date IS NULL OR date::date <= :to_date)
-        ORDER BY date, reference
+        ORDER BY date DESC, reference DESC
     """), {"party_id": party_id, "from_date": from_date, "to_date": to_date}).fetchall()
 
     return [

@@ -21,6 +21,7 @@ export default function Analytics() {
   const [tab, setTab] = useState<'overview' | 'sales' | 'collections' | 'ar' | 'agents' | 'areas' | 'fabric'>('overview');
   const [collectionDateFilter, setCollectionDateFilter] = useState<'all' | 'month' | 'week'>('all');
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [detailView, setDetailView] = useState<'party' | 'bills' | 'payments' | null>(null);
   const navigate = useNavigate();
 
   // Paginated state per tab
@@ -226,20 +227,20 @@ export default function Analytics() {
               <p className="stat-label">Collected</p>
               <p className="stat-value mono" style={{ fontSize: 16 }}>{formatCurrency(summary?.total_collected || 0)}</p>
             </div>
-            <div className="stat-card warning">
+            <button className="stat-card warning" style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => setDetailView('party')}>
               <p className="stat-label">Net Outstanding</p>
               <p className="stat-value mono" style={{ fontSize: 16 }}>{formatCurrency(summary?.total_outstanding || 0)}</p>
               <div style={{ display: 'flex', flexDirection: 'column', marginTop: 4, gap: 2 }}>
                 <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>Bill-wise: {formatCurrency(summary?.total_bills_outstanding || 0)}</p>
-                <p style={{ fontSize: 10, color: 'var(--success)' }}>On account: {formatCurrency(summary?.total_unallocated_payments || 0)}</p>
+                <button style={{ fontSize: 10, color: 'var(--success)', background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer' }} onClick={() => setDetailView('payments')}>On account: {formatCurrency(summary?.total_unallocated_payments || 0)}</button>
                 <p style={{ fontSize: 10, color: 'var(--accent)' }}>Non-bill impact: {formatCurrency(summary?.total_bill_party_difference || 0)}</p>
               </div>
-            </div>
-            <div className="stat-card" style={{ borderColor: 'var(--accent)' }}>
+            </button>
+            <button className="stat-card" style={{ borderColor: 'var(--accent)', textAlign: 'left', cursor: 'pointer' }} onClick={() => setDetailView('bills')}>
               <p className="stat-label">Partial Bills</p>
               <p className="stat-value mono" style={{ fontSize: 16 }}>{formatCurrency(summary?.partially_paid_amount || 0)}</p>
               <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{summary?.partially_paid_bills_count || 0} invoices partly settled</p>
-            </div>
+            </button>
             <div className="stat-card danger">
               <p className="stat-label">Overdue</p>
               <p className="stat-value">{summary?.overdue_count || 0} bills</p>
@@ -699,6 +700,28 @@ export default function Analytics() {
 
       {selectedAgent && (
         <AgentLedgerModal agentName={selectedAgent} onClose={() => setSelectedAgent(null)} />
+      )}
+      {detailView && (
+        <div className="modal-overlay" onClick={() => setDetailView(null)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-handle" />
+            <h2 className="modal-title">{detailView === 'party' ? 'Party Receivable Detail' : 'Bill-wise Detail'}</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16 }}>
+              {detailView === 'party' ? formatCurrency(summary?.total_outstanding || 0) : formatCurrency(summary?.total_bills_outstanding || 0)}
+            </p>
+            <button className="btn btn-primary btn-full" onClick={async () => {
+              const request = detailView === 'party' ? analyticsApi.exportPartyBalances() : detailView === 'bills' ? analyticsApi.exportBillBalances() : analyticsApi.exportPaymentLedger();
+              const response = await request;
+              const url = URL.createObjectURL(response.data);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `${detailView}-detail.csv`;
+              link.click();
+              URL.revokeObjectURL(url);
+            }}><Download size={14} /> Export CSV</button>
+            <button className="btn btn-secondary btn-full" style={{ marginTop: 8 }} onClick={() => setDetailView(null)}>Close</button>
+          </div>
+        </div>
       )}
     </div>
   );
