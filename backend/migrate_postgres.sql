@@ -48,4 +48,11 @@ EXCEPTION
     WHEN duplicate_column THEN NULL;
 END $$;
 
+-- 6. Add matched non-bill settlement amount to payments (if not exists)
+DO $$ BEGIN
+    ALTER TABLE payments ADD COLUMN settled_amount NUMERIC(12, 2) NOT NULL DEFAULT 0;
+EXCEPTION
+    WHEN duplicate_column THEN NULL;
+END $$;
+
 -- Done! Now you can run: python3 wipe_transactions.py && python3 import_transactions.py ...

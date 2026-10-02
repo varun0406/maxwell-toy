@@ -38,6 +38,16 @@ def migrate_postgres():
             print("✓ Added 'reminder_date' column to 'parties'")
         except Exception as e:
             print("  Skipped 'reminder_date':", str(e).split('\n')[0])
+
+        try:
+            # 5. Add matched non-bill settlement amount to payments
+            conn.execute(text(
+                "ALTER TABLE payments ADD COLUMN settled_amount "
+                "NUMERIC(12, 2) NOT NULL DEFAULT 0"
+            ))
+            print("✓ Added 'settled_amount' column to 'payments'")
+        except Exception as e:
+            print("  Skipped 'settled_amount':", str(e).split('\n')[0])
             
         # Commit the transaction
         conn.commit()
