@@ -255,6 +255,21 @@ export function PartyDetail() {
   const hasUnallocated = payments.some((p: any) => p.unallocated > 0);
   const totalUnallocated = payments.reduce((sum: number, p: any) => sum + Number(p.unallocated), 0);
 
+  const downloadPartyExport = async (kind: 'party' | 'bills' | 'payments') => {
+    const requests = {
+      party: analyticsApi.exportPartyBalances,
+      bills: analyticsApi.exportBillBalances,
+      payments: analyticsApi.exportPaymentLedger,
+    };
+    const response = await requests[kind](Number(id));
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${party.name.replace(/[^a-z0-9]+/gi, '_')}_${kind}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (!party) return <div className="loading-screen"><div className="spinner" /></div>;
 
   return (
@@ -318,6 +333,11 @@ export function PartyDetail() {
           <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none' }} onClick={() => setShowEditModal(true)}>
             Edit Party Details
           </button>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+          <button className="btn btn-sm" onClick={() => downloadPartyExport('party')}>Export Balance</button>
+          <button className="btn btn-sm" onClick={() => downloadPartyExport('bills')}>Export Bills</button>
+          <button className="btn btn-sm" onClick={() => downloadPartyExport('payments')}>Export Payments</button>
         </div>
       </div>
 

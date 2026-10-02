@@ -303,6 +303,98 @@ def download_ar_csv(
     )
 
 
+def _csv_response(output: io.StringIO, filename: str) -> StreamingResponse:
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.get("/party-balances/csv")
+def download_party_balances_csv(
+    party_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    rows = db.execute(text("""
+        WITH inv AS (
+            SELECT party_id, SUM(amount) invoiced, SUM(balance_due) bill_receivable
+            FROM invoices WHERE is_deleted = false GROUP BY party_id
+        ), pay AS (
+            SELECT party_id, SUM(amount) paid, SUM(unallocated) on_account,
+                   SUM(settled_amount) settled
+            FROM payments WHERE is_deleted = false GROUP BY party_id
+        ), jrn AS (
+            SELECT party_id, SUM(amount) journal FROM journal_entries
+            WHERE is_deleted = false GROUP BY party_id
+        )
+        SELECT p.id, p.name, COALESCE(inv.invoiced,0) invoiced,
+               COALESCE(inv.bill_receivable,0) bill_receivable,
+               COALESCE(pay.paid,0) paid, COALESCE(pay.on_account,0) on_account,
+               COALESCE(pay.settled,0) settled, COALESCE(jrn.journal,0) journal,
+               COALESCE(inv.invoiced,0)+COALESCE(jrn.journal,0)-COALESCE(pay.paid,0) party_receivable
+        FROM parties p LEFT JOIN inv ON inv.party_id=p.id
+        LEFT JOIN pay ON pay.party_id=p.id LEFT JOIN jrn ON jrn.party_id=p.id
+        WHERE p.is_active = true AND (:party_id IS NULL OR p.id=:party_id)
+        ORDER BY p.name
+    """), {"party_id": party_id}).fetchall()
+    output = io.StringIO(); writer = csv.writer(output)
+    writer.writerow(["Party", "Invoiced", "Bill Receivable", "Paid", "Journal", "On Account", "Matched Settlement", "Party Receivable"])
+    for row in rows:
+        writer.writerow([row.name, row.invoiced, row.bill_receivable, row.paid, row.journal, row.on_account, row.settled, row.party_receivable])
+    return _csv_response(output, f"party_balances_{datetime.now().strftime('%Y%m%d')}.csv")
+
+
+@router.get("/bill-balances/csv")
+def download_bill_balances_csv(
+    party_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    rows = db.execute(text("""
+        SELECT i.invoice_number, i.invoice_date, p.name party, i.amount,
+               i.amount-i.balance_due bill_paid, i.balance_due,
+               CASE WHEN i.balance_due <= 0 THEN 'PAID'
+                    WHEN i.balance_due < i.amount THEN 'PARTIAL' ELSE 'UNPAID' END status
+        FROM invoices i JOIN parties p ON p.id=i.party_id
+        WHERE i.is_deleted = false AND (:party_id IS NULL OR i.party_id=:party_id)
+        ORDER BY p.name, i.invoice_date, i.invoice_number
+    """), {"party_id": party_id}).fetchall()
+    output = io.StringIO(); writer = csv.writer(output)
+    writer.writerow(["Invoice", "Date", "Party", "Amount", "Bill Paid/Allocated", "Bill Receivable", "Status"])
+    for row in rows:
+        writer.writerow([row.invoice_number, row.invoice_date, row.party, row.amount, row.bill_paid, row.balance_due, row.status])
+    return _csv_response(output, f"bill_balances_{datetime.now().strftime('%Y%m%d')}.csv")
+
+
+@router.get("/payment-ledger/csv")
+def download_payment_ledger_csv(
+    party_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    rows = db.execute(text("""
+        SELECT pay.id, pay.payment_date, p.name party, pay.amount,
+               COALESCE(a.bill_allocated,0) bill_allocated,
+               COALESCE(pay.settled_amount,0) matched_settlement,
+               COALESCE(pay.unallocated,0) on_account,
+               pay.mode, pay.note
+        FROM payments pay JOIN parties p ON p.id=pay.party_id
+        LEFT JOIN (SELECT payment_id, SUM(allocated_amount) bill_allocated
+                   FROM payment_allocations WHERE payment_id IS NOT NULL GROUP BY payment_id) a
+          ON a.payment_id=pay.id
+        WHERE pay.is_deleted = false AND (:party_id IS NULL OR pay.party_id=:party_id)
+        ORDER BY pay.payment_date, pay.id
+    """), {"party_id": party_id}).fetchall()
+    output = io.StringIO(); writer = csv.writer(output)
+    writer.writerow(["Payment ID", "Date", "Party", "Amount", "Bill Allocated", "Matched Settlement", "On Account", "Mode", "Note"])
+    for row in rows:
+        writer.writerow([row.id, row.payment_date, row.party, row.amount, row.bill_allocated, row.matched_settlement, row.on_account, row.mode, row.note])
+    return _csv_response(output, f"payment_ledger_{datetime.now().strftime('%Y%m%d')}.csv")
+
+
 @router.get("/party/{party_id}", response_model=schemas.PartySummary)
 def party_analytics(
     party_id: int,

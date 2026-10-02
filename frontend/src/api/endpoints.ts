@@ -116,6 +116,9 @@ export const analyticsApi = {
   cashflow: () => api.get('/analytics/cashflow'),
   executiveSummary: () => api.get('/analytics/executive-summary'),
   fabricMetrics: () => api.get('/analytics/fabric-metrics'),
+  exportPartyBalances: (partyId?: number) => api.get('/analytics/party-balances/csv', { params: partyId ? { party_id: partyId } : {}, responseType: 'blob' }),
+  exportBillBalances: (partyId?: number) => api.get('/analytics/bill-balances/csv', { params: partyId ? { party_id: partyId } : {}, responseType: 'blob' }),
+  exportPaymentLedger: (partyId?: number) => api.get('/analytics/payment-ledger/csv', { params: partyId ? { party_id: partyId } : {}, responseType: 'blob' }),
 };
 
 // ── Address Book ─────────────────────────────────────────────────────────────
