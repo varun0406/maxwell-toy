@@ -221,7 +221,37 @@ body {
     transform: none;
   }
   .page-content {
-    padding-bottom: 20px !important; 
+    padding-bottom: 20px !important;
+    padding-left: 24px;
+    padding-right: 24px;
+    max-width: 100% !important;
+  }
+  .bottom-nav {
+    width: 260px;
+    max-width: 260px;
+  }
+  .page-title {
+    font-size: 28px;
+  }
+  /* Wide tables look better with more padding */
+  table th, table td {
+    padding: 11px 18px !important;
+  }
+  /* Stats grid: more columns on big screen */
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .bottom-nav {
+    width: 280px;
+    max-width: 280px;
+    padding: 40px 20px;
+  }
+  .page-content {
+    padding-left: 40px;
+    padding-right: 40px;
   }
 }
 
