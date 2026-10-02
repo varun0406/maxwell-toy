@@ -1,12 +1,13 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, FileText, CreditCard, BookOpen, Plus } from 'lucide-react';
+import { Home, Users, FileText, CreditCard, BookOpen, Plus, ShoppingCart } from 'lucide-react';
 
 const TABS = [
-  { path: '/home',           icon: Home,       label: 'Home'      },
-  { path: '/parties',        icon: Users,       label: 'Parties'   },
-  { path: '/invoices',       icon: FileText,    label: 'Invoices'  },
-  { path: '/payments',       icon: CreditCard,  label: 'Receipts'  },
-  { path: '/address-book',   icon: BookOpen,    label: 'Addresses' },
+  { path: '/home',           icon: Home,         label: 'Home'      },
+  { path: '/parties',        icon: Users,         label: 'Parties'   },
+  { path: '/invoices',       icon: FileText,      label: 'Invoices'  },
+  { path: '/payments',       icon: CreditCard,    label: 'Receipts'  },
+  { path: '/purchases',      icon: ShoppingCart,  label: 'Purchases' },
+  { path: '/address-book',   icon: BookOpen,      label: 'Addresses' },
 ];
 
 export default function BottomNav() {
@@ -34,7 +35,7 @@ export default function BottomNav() {
       <button
         className="nav-item"
         style={{
-          background: 'var(--primary)',
+          background: 'var(--accent)',
           color: 'white',
           borderRadius: 14,
           margin: '4px 2px',

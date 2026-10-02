@@ -300,4 +300,82 @@ class AddressBook(Base):
     address_line1 = Column(String(255), nullable=True)
     address_line2 = Column(String(255), nullable=True)
     city = Column(String(120), nullable=True)
+    tag = Column(String(50), nullable=True)   # 'KARIGAR' | 'Broker' | 'Supplier' | 'Customer'
     created_at = Column(DateTime(timezone=True), default=utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Vendors (Suppliers / Karigar — for Purchases)
+# ---------------------------------------------------------------------------
+
+class Vendor(Base):
+    """Supplier or Karigar from whom we purchase goods/work."""
+    __tablename__ = "vendors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(120), nullable=False, index=True)
+    phone = Column(String(20), nullable=True)
+    address = Column(Text, nullable=True)
+    city = Column(String(120), nullable=True)
+    gstin = Column(String(20), nullable=True)
+    tag = Column(String(50), nullable=True)   # 'KARIGAR' | 'Supplier' | 'Other'
+    notes = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    purchases = relationship("Purchase", back_populates="vendor", cascade="all, delete-orphan")
+    vendor_payments = relationship("VendorPayment", back_populates="vendor", cascade="all, delete-orphan")
+
+
+class Purchase(Base):
+    """Incoming goods / work from a vendor (purchase bill)."""
+    __tablename__ = "purchases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vendor_id = Column(Integer, ForeignKey("vendors.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    bill_number = Column(String(50), nullable=True)
+    amount = Column(Numeric(12, 2), nullable=False)
+    balance_due = Column(Numeric(12, 2), nullable=False)   # How much still to be paid to vendor
+    purchase_date = Column(DateTime(timezone=True), nullable=False)
+    description = Column(Text, nullable=True)
+    is_paid = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
+
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    vendor = relationship("Vendor", back_populates="purchases")
+
+    __table_args__ = (
+        Index("ix_purchases_vendor_deleted", "vendor_id", "is_deleted"),
+        Index("ix_purchases_purchase_date", "purchase_date"),
+    )
+
+
+class VendorPayment(Base):
+    """Outgoing payment we made to a vendor."""
+    __tablename__ = "vendor_payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vendor_id = Column(Integer, ForeignKey("vendors.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    amount = Column(Numeric(12, 2), nullable=False)
+    payment_date = Column(DateTime(timezone=True), nullable=False)
+    mode = Column(String(30), nullable=True)   # cash / upi / bank
+    note = Column(Text, nullable=True)
+    purchase_id = Column(Integer, ForeignKey("purchases.id", ondelete="SET NULL"), nullable=True)  # linked bill (optional)
+    is_deleted = Column(Boolean, default=False)
+
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+
+    vendor = relationship("Vendor", back_populates="vendor_payments")
+
+    __table_args__ = (
+        Index("ix_vendor_payments_vendor_deleted", "vendor_id", "is_deleted"),
+        Index("ix_vendor_payments_date", "payment_date"),
+    )
