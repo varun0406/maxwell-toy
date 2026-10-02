@@ -291,7 +291,8 @@ def party_ledger(
                 invoice_date        AS date,
                 invoice_number      AS reference,
                 amount              AS amount,
-                balance_due         AS balance_due
+                balance_due         AS balance_due,
+                description         AS description
             FROM invoices
             WHERE party_id = :party_id AND is_deleted = false
 
@@ -303,7 +304,8 @@ def party_ledger(
                 payment_date            AS date,
                 'PMT-' || id::text      AS reference,
                 -amount                 AS amount,
-                NULL                    AS balance_due
+                NULL                    AS balance_due,
+                NULL                    AS description
             FROM payments
             WHERE party_id = :party_id AND is_deleted = false
 
@@ -315,7 +317,8 @@ def party_ledger(
                 entry_date              AS date,
                 'JNL-' || id::text      AS reference,
                 amount                  AS amount,
-                NULL                    AS balance_due
+                NULL                    AS balance_due,
+                description             AS description
             FROM journal_entries
             WHERE party_id = :party_id AND is_deleted = false
         ),
@@ -327,6 +330,7 @@ def party_ledger(
                 reference,
                 amount,
                 balance_due,
+                description,
                 SUM(amount) OVER (ORDER BY date, reference ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_balance
             FROM ledger_raw
         )
@@ -346,6 +350,7 @@ def party_ledger(
             amount=row.amount,
             balance_due=row.balance_due,
             running_balance=row.running_balance,
+            description=row.description,
         )
         for row in rows
     ]

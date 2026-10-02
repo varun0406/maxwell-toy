@@ -79,7 +79,7 @@ export function PaymentsList() {
   return (
     <div className="page-content">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div><h1 className="page-title">Payments</h1><p className="page-subtitle">{totalCount} received</p></div>
+        <div><h1 className="page-title">Receipts</h1><p className="page-subtitle">{totalCount} received</p></div>
         <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>Total: {formatCurrency(summaryTotal)}</p>
       </div>
 

@@ -204,7 +204,7 @@ export function PartyDetail() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [invFilter, setInvFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
+  const [invFilter, setInvFilter] = useState<'all' | 'unpaid' | 'paid'>('unpaid');
   const [invSort, setInvSort] = useState<{ col: 'date' | 'amount' | 'balance_due', dir: 'asc' | 'desc' }>({ col: 'date', dir: 'desc' });
   const qc = useQueryClient();
 
@@ -455,7 +455,10 @@ export function PartyDetail() {
                           <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 6px', borderRadius: 4,
                             background: entry.type === 'invoice' ? 'rgba(99,102,241,0.12)' : entry.type === 'payment' ? 'rgba(34,197,94,0.12)' : 'rgba(234,179,8,0.12)',
                             color: entry.type === 'invoice' ? 'var(--accent)' : entry.type === 'payment' ? 'var(--success)' : 'var(--warning)'
-                          }}>{entry.type}</span>
+                          }}>{entry.type === 'payment' ? 'receipt' : entry.type}</span>
+                          {entry.description && (
+                            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{entry.description}</p>
+                          )}
                         </td>
                         <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600, color: isDebit ? 'var(--text-primary)' : 'transparent' }}>
                           {isDebit ? formatCurrency(Math.abs(amt)) : '—'}

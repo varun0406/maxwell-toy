@@ -325,6 +325,7 @@ class LedgerEntry(BaseModel):
     amount: Decimal
     balance_due: Optional[Decimal] = None   # for invoices
     running_balance: Decimal
+    description: Optional[str] = None      # journal account name
 
 # ---------------------------------------------------------------------------
 # Agent / Area Analytics
