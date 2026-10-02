@@ -70,7 +70,14 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
         print(f"Error parsing XML: {e}")
         return {"source": file_path, "imported": {}, "rejected": [{"type": "file", "reason": str(e)}]}
 
-    report = {"source": file_path, "imported": {}, "rejected": [], "skipped": [], "unresolved_allocations": []}
+    report = {
+        "source": file_path,
+        "imported": {},
+        "rejected": [],
+        "skipped": [],
+        "settlement_references": [],
+        "unresolved_allocations": [],
+    }
 
     def reject(voucher_type, voucher, reason):
         report["rejected"].append({
@@ -100,6 +107,28 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
             'amount': str(amount),
             'reason': 'referenced bill was not imported',
         })
+
+    def reference_key(account_code, ref_no, amount):
+        return (account_code, clean(ref_no).casefold(), abs(amount))
+
+    settlement_references = set()
+    for voucher_type in ('Journal', 'CrNote', 'DbNote', 'Payment'):
+        for voucher in root.findall(f'.//{voucher_type}'):
+            if is_cancelled(voucher):
+                continue
+            for detail in voucher.findall('./AccEntries/AccDetail'):
+                if (detail.findtext('tmpGroupName') or '') != 'Sundry Debtors':
+                    continue
+                account_code = detail.findtext('tmpAccCode')
+                for bill in detail.findall('./BillRefs/BillDetails'):
+                    ref_no = clean(bill.findtext('RefNo'))
+                    if not ref_no:
+                        continue
+                    try:
+                        amount = parse_decimal(bill.findtext('Value1'), 'settlement reference amount')
+                    except ValueError:
+                        continue
+                    settlement_references.add(reference_key(account_code, ref_no, amount))
 
     print("1. Building Mappings...")
     account_map = {}
@@ -371,7 +400,18 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                             
                         payment.unallocated -= alloc_amt
                     else:
-                        unresolved_allocation("Receipt", rcpt, ref_no, alloc_amt)
+                        ref_key = reference_key(deb['code'], ref_no, alloc_amt)
+                        if ref_key in settlement_references:
+                            report['settlement_references'].append({
+                                'type': 'Receipt',
+                                'voucher': clean(rcpt.findtext('VchNo')),
+                                'date': clean(rcpt.findtext('Date')),
+                                'reference': ref_no,
+                                'amount': str(alloc_amt),
+                                'reason': 'matched Journal or Payment settlement reference',
+                            })
+                        else:
+                            unresolved_allocation("Receipt", rcpt, ref_no, alloc_amt)
 
             rcpts_added += 1
         
@@ -600,14 +640,38 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                 description=f"{source_identity(out_pay, 'Payment', file_path)}:{acc_code}"
             ).first()
             if not j_entry:
-                session.add(JournalEntry(
+                j_entry = JournalEntry(
                     party_id=party_id,
                     created_by=created_by,
                     amount=amt,
                     entry_date=pay_date,
                     description=f"{source_identity(out_pay, 'Payment', file_path)}:{acc_code} | Imported Outgoing Payment"
-                ))
+                )
+                session.add(j_entry)
+                session.flush()
                 pay_added += 1
+
+                bill_refs = acc_det.find('BillRefs')
+                if bill_refs is not None:
+                    for bill_det in bill_refs.findall('BillDetails'):
+                        ref_no = clean(bill_det.findtext('RefNo'))
+                        if not ref_no:
+                            continue
+                        try:
+                            ref_amount = abs(parse_decimal(
+                                bill_det.findtext('Value1'), 'payment bill reference amount'
+                            ))
+                        except ValueError as exc:
+                            reject('Payment', out_pay, str(exc))
+                            continue
+
+                        invoice = session.query(Invoice).filter_by(
+                            party_id=party_id, invoice_number=ref_no
+                        ).first()
+                        if not invoice:
+                            unresolved_allocation(
+                                'Payment', out_pay, ref_no, ref_amount
+                            )
         if not found_debtor:
             reject("Payment", out_pay, "missing debtor entry")
 

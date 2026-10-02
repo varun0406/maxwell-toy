@@ -78,14 +78,14 @@
           "reason": "cancelled in BUSY"
         }
       ],
-      "unresolved_allocations": [
+      "settlement_references": [
         {
           "type": "Receipt",
           "voucher": null,
           "date": "28-07-2024",
           "reference": "0",
           "amount": "7877",
-          "reason": "referenced bill was not imported"
+          "reason": "matched Journal or Payment settlement reference"
         },
         {
           "type": "Receipt",
@@ -93,7 +93,7 @@
           "date": "12-08-2024",
           "reference": "23-24-0761 Old Year Bill",
           "amount": "104263",
-          "reason": "referenced bill was not imported"
+          "reason": "matched Journal or Payment settlement reference"
         },
         {
           "type": "Receipt",
@@ -101,7 +101,7 @@
           "date": "14-11-2024",
           "reference": "Old Ss Baki",
           "amount": "201408",
-          "reason": "referenced bill was not imported"
+          "reason": "matched Journal or Payment settlement reference"
         },
         {
           "type": "Receipt",
@@ -109,10 +109,20 @@
           "date": "20-11-2024",
           "reference": "Sp Garment",
           "amount": "84000",
+          "reason": "matched Journal or Payment settlement reference"
+        }
+      ],
+      "unresolved_allocations": [
+        {
+          "type": "Payment",
+          "voucher": null,
+          "date": "01-04-2024",
+          "reference": "Sp Garment",
+          "amount": "84000",
           "reason": "referenced bill was not imported"
         }
       ],
-      "unresolved_allocation_total": "397548"
+      "unresolved_allocation_total": "84000"
     },
     {
       "source": "../busy-25-26..DAT",
@@ -312,17 +322,18 @@
           "reason": "cancelled in BUSY"
         }
       ],
-      "unresolved_allocations": [
+      "settlement_references": [
         {
           "type": "Receipt",
           "voucher": null,
           "date": "11-03-2026",
           "reference": "Old Bill of 23-24",
           "amount": "263408",
-          "reason": "referenced bill was not imported"
+          "reason": "matched Journal or Payment settlement reference"
         }
       ],
-      "unresolved_allocation_total": "263408"
+      "unresolved_allocations": [],
+      "unresolved_allocation_total": "0"
     },
     {
       "source": "../busy 26-27....DAT",
@@ -342,12 +353,13 @@
           "reason": "cancelled in BUSY"
         }
       ],
+      "settlement_references": [],
       "unresolved_allocations": [],
       "unresolved_allocation_total": "0"
     }
   ],
   "rejected_count": 0,
   "skipped_cancelled_count": 43,
-  "unresolved_allocation_count": 5,
-  "unresolved_allocation_total": "660956"
+  "unresolved_allocation_count": 1,
+  "unresolved_allocation_total": "84000"
 }
