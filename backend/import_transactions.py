@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 from decimal import Decimal
 from datetime import datetime
 from itertools import chain
+from sqlalchemy import func
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.models import Party, Invoice, InvoiceItem, Payment, PaymentAllocation, JournalEntry, AccountMaster
@@ -60,7 +61,7 @@ def get_or_create_account_master(session, name, group_name=None):
     return acct.id
 
 
-def import_transactions(file_path, session, created_by=1, report_path=None):
+def import_transactions(file_path, session, created_by=1, report_path=None, commit=True):
     print(f"\n--- Reading {file_path} ---")
     try:
         tree = ET.parse(file_path)
@@ -633,17 +634,18 @@ def import_transactions(file_path, session, created_by=1, report_path=None):
     report["imported"]["sale_returns"] = sr_added
     print(f"Sale Returns: Added {sr_added}")
 
-    session.commit()
+    if commit:
+        session.commit()
     if report_path:
         with open(report_path, 'w', encoding='utf-8') as output:
             json.dump(report, output, indent=2, default=str)
     print(f"Rejected: {len(report['rejected'])}")
     return report
 
-def calculate_busy_balances(files, session):
+def calculate_busy_balances(files, session, report_path=None, tolerance=Decimal('0.01')):
     from app.models import Party
     import glob
-    print("\n--- Calculating Final BUSY Balances from Master ---")
+    print("\n--- Reconciling Constructed Balances Against BUSY Master ---")
     
     master_files = glob.glob('../*master*.DAT')
     
@@ -667,30 +669,87 @@ def calculate_busy_balances(files, session):
             print(f"Failed to parse master file: {e}")
 
     parties = session.query(Party).all()
-    updated = 0
+    differences = []
+    total_constructed = Decimal('0')
+    total_busy = Decimal('0')
     for p in parties:
         bname = ' '.join(p.name.split())
-        found_amt = party_balances.get(bname, 0)
-        p.busy_closing_balance = found_amt
-        updated += 1
+        busy_balance = party_balances.get(bname)
+        invoice_total = session.query(func.coalesce(func.sum(Invoice.amount), 0)).filter(
+            Invoice.party_id == p.id, Invoice.is_deleted == False
+        ).scalar()
+        payment_total = session.query(func.coalesce(func.sum(Payment.amount), 0)).filter(
+            Payment.party_id == p.id, Payment.is_deleted == False
+        ).scalar()
+        journal_total = session.query(func.coalesce(func.sum(JournalEntry.amount), 0)).filter(
+            JournalEntry.party_id == p.id, JournalEntry.is_deleted == False
+        ).scalar()
+        constructed_balance = Decimal(str(invoice_total or 0)) + Decimal(str(journal_total or 0)) - Decimal(str(payment_total or 0))
 
-    session.commit()
-    print(f"Updated busy_closing_balance for {updated} parties.")
+        if busy_balance is None:
+            differences.append({
+                'party': p.name,
+                'constructed_balance': str(constructed_balance),
+                'busy_closing_balance': None,
+                'difference': None,
+                'status': 'MISSING_IN_MASTER',
+            })
+            continue
+
+        difference = constructed_balance - busy_balance
+        total_constructed += constructed_balance
+        total_busy += busy_balance
+        if abs(difference) > tolerance:
+            differences.append({
+                'party': p.name,
+                'constructed_balance': str(constructed_balance),
+                'busy_closing_balance': str(busy_balance),
+                'difference': str(difference),
+                'status': 'MISMATCH',
+            })
+
+    report = {
+        'total_constructed': str(total_constructed),
+        'total_busy_closing': str(total_busy),
+        'total_difference': str(total_constructed - total_busy),
+        'mismatch_count': len(differences),
+        'tolerance': str(tolerance),
+        'differences': differences,
+    }
+    if report_path:
+        with open(report_path, 'w', encoding='utf-8') as output:
+            json.dump(report, output, indent=2)
+    print(f"Constructed total: {total_constructed:,.2f}")
+    print(f"BUSY master total: {total_busy:,.2f}")
+    print(f"Difference: {total_constructed - total_busy:,.2f}")
+    print(f"Parties requiring review: {len(differences)}")
+    return report
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Import BUSY transactions with validation and rejection reporting.')
     parser.add_argument('files', nargs='+')
     parser.add_argument('--created-by', type=int, default=1)
     parser.add_argument('--report', help='Write a JSON report to this path.')
+    parser.add_argument('--reconciliation-report', help='Write the constructed-vs-BUSY report to this path.')
+    parser.add_argument('--allow-mismatch', action='store_true', help='Commit despite reconciliation differences.')
     args = parser.parse_args()
         
     session = SessionLocal()
     reports = []
     try:
         for f in args.files:
-            reports.append(import_transactions(f, session, created_by=args.created_by, report_path=args.report))
+            reports.append(import_transactions(
+                f, session, created_by=args.created_by, report_path=args.report, commit=False
+            ))
         
-        calculate_busy_balances(args.files, session)
+        reconciliation = calculate_busy_balances(
+            args.files, session, report_path=args.reconciliation_report
+        )
+        if reconciliation['mismatch_count'] and not args.allow_mismatch:
+            session.rollback()
+            print('Import rolled back: constructed balances do not match BUSY master balances.')
+            sys.exit(2)
+        session.commit()
     except Exception:
         session.rollback()
         raise
