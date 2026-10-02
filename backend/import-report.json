@@ -1,365 +1,211 @@
 {
-  "sources": [
+  "source": "../busy-25-26..DAT",
+  "imported": {
+    "sales": 1353,
+    "receipts": 925,
+    "journals": 23,
+    "payments": 0,
+    "sale_returns": 43
+  },
+  "rejected": [],
+  "skipped": [
     {
-      "source": "../busy-24-25a.DAT",
-      "imported": {
-        "sales": 808,
-        "receipts": 438,
-        "journals": 6,
-        "payments": 1,
-        "sale_returns": 22
-      },
-      "rejected": [],
-      "skipped": [
-        {
-          "type": "Sale",
-          "voucher": "24-25-61",
-          "date": "23-04-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-62",
-          "date": "23-04-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-63",
-          "date": "23-04-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-64",
-          "date": "24-04-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-66",
-          "date": "24-04-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-67",
-          "date": "24-04-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-243",
-          "date": "30-07-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-244",
-          "date": "30-07-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-245",
-          "date": "30-07-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-446",
-          "date": "19-11-2024",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "24-25-759",
-          "date": "10-03-2025",
-          "reason": "cancelled in BUSY"
-        }
-      ],
-      "settlement_references": [
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "28-07-2024",
-          "reference": "0",
-          "amount": "7877",
-          "reason": "matched Journal or Payment settlement reference"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "12-08-2024",
-          "reference": "23-24-0761 Old Year Bill",
-          "amount": "104263",
-          "reason": "matched Journal or Payment settlement reference"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "14-11-2024",
-          "reference": "Old Ss Baki",
-          "amount": "201408",
-          "reason": "matched Journal or Payment settlement reference"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "20-11-2024",
-          "reference": "Sp Garment",
-          "amount": "84000",
-          "reason": "matched Journal or Payment settlement reference"
-        }
-      ],
-      "unresolved_allocations": [
-        {
-          "type": "Payment",
-          "voucher": null,
-          "date": "01-04-2024",
-          "reference": "Sp Garment",
-          "amount": "84000",
-          "reason": "referenced bill was not imported"
-        }
-      ],
-      "unresolved_allocation_total": "84000"
+      "type": "Sale",
+      "voucher": "25-26-23",
+      "date": "08-04-2025",
+      "reason": "cancelled in BUSY"
     },
     {
-      "source": "../busy-25-26..DAT",
-      "imported": {
-        "sales": 1353,
-        "receipts": 925,
-        "journals": 23,
-        "payments": 0,
-        "sale_returns": 43
-      },
-      "rejected": [],
-      "skipped": [
-        {
-          "type": "Sale",
-          "voucher": "25-26-23",
-          "date": "08-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "25-26-36",
-          "date": "09-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "25-26-213",
-          "date": "19-05-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "25-26-354",
-          "date": "18-07-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "25-26-443",
-          "date": "08-08-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "25-26-816",
-          "date": "21-11-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Sale",
-          "voucher": "25-26-1072",
-          "date": "27-01-2026",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "01-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "01-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "01-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "02-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "02-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "02-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "03-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "03-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "03-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "03-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "03-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "03-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "04-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "04-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "06-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "06-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "06-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "06-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "06-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "06-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "06-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "06-04-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "Journal",
-          "voucher": null,
-          "date": "29-12-2025",
-          "reason": "cancelled in BUSY"
-        },
-        {
-          "type": "SaleReturn",
-          "voucher": "23/2025-26",
-          "date": "22-09-2025",
-          "reason": "cancelled in BUSY"
-        }
-      ],
-      "settlement_references": [
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "11-03-2026",
-          "reference": "Old Bill of 23-24",
-          "amount": "263408",
-          "reason": "matched Journal or Payment settlement reference"
-        }
-      ],
-      "unresolved_allocations": [],
-      "unresolved_allocation_total": "0"
+      "type": "Sale",
+      "voucher": "25-26-36",
+      "date": "09-04-2025",
+      "reason": "cancelled in BUSY"
     },
     {
-      "source": "../busy 26-27....DAT",
-      "imported": {
-        "sales": 602,
-        "receipts": 453,
-        "journals": 12,
-        "payments": 0,
-        "sale_returns": 6
-      },
-      "rejected": [],
-      "skipped": [
-        {
-          "type": "Receipt",
-          "voucher": null,
-          "date": "07-05-2026",
-          "reason": "cancelled in BUSY"
-        }
-      ],
-      "settlement_references": [],
-      "unresolved_allocations": [],
-      "unresolved_allocation_total": "0"
+      "type": "Sale",
+      "voucher": "25-26-213",
+      "date": "19-05-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Sale",
+      "voucher": "25-26-354",
+      "date": "18-07-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Sale",
+      "voucher": "25-26-443",
+      "date": "08-08-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Sale",
+      "voucher": "25-26-816",
+      "date": "21-11-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Sale",
+      "voucher": "25-26-1072",
+      "date": "27-01-2026",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "01-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "01-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "01-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "02-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "02-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "02-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "03-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "03-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "03-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "03-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "03-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "03-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "04-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "04-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "06-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "06-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "06-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "06-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "06-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "06-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "06-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "06-04-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "Journal",
+      "voucher": null,
+      "date": "29-12-2025",
+      "reason": "cancelled in BUSY"
+    },
+    {
+      "type": "SaleReturn",
+      "voucher": "23/2025-26",
+      "date": "22-09-2025",
+      "reason": "cancelled in BUSY"
     }
   ],
-  "rejected_count": 0,
-  "skipped_cancelled_count": 43,
-  "unresolved_allocation_count": 1,
-  "unresolved_allocation_total": "84000"
+  "settlement_references": [
+    {
+      "type": "Receipt",
+      "voucher": null,
+      "date": "11-03-2026",
+      "reference": "Old Bill of 23-24",
+      "amount": "263408",
+      "reason": "matched Journal or Payment settlement reference"
+    }
+  ],
+  "unresolved_allocations": [],
+  "unresolved_allocation_total": "0"
 }

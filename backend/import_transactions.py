@@ -410,6 +410,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                                 'amount': str(alloc_amt),
                                 'reason': 'matched Journal or Payment settlement reference',
                             })
+                            payment.unallocated -= alloc_amt
                         else:
                             unresolved_allocation("Receipt", rcpt, ref_no, alloc_amt)
 
