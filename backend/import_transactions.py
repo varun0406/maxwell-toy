@@ -91,12 +91,13 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
             'reason': 'cancelled in BUSY',
         })
 
-    def unresolved_allocation(voucher_type, voucher, ref_no):
+    def unresolved_allocation(voucher_type, voucher, ref_no, amount):
         report['unresolved_allocations'].append({
             'type': voucher_type,
             'voucher': clean(voucher.findtext('VchNo')),
             'date': clean(voucher.findtext('Date')),
             'reference': ref_no,
+            'amount': str(amount),
             'reason': 'referenced bill was not imported',
         })
 
@@ -370,7 +371,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                             
                         payment.unallocated -= alloc_amt
                     else:
-                        unresolved_allocation("Receipt", rcpt, ref_no)
+                        unresolved_allocation("Receipt", rcpt, ref_no, alloc_amt)
 
             rcpts_added += 1
         
@@ -691,17 +692,22 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
 
     if commit:
         session.commit()
-    if report_path:
-        with open(report_path, 'w', encoding='utf-8') as output:
-            json.dump(report, output, indent=2, default=str)
     print(f"Rejected: {len(report['rejected'])}")
     print(f"Skipped cancelled: {len(report['skipped'])}")
     print(f"Unresolved allocations: {len(report['unresolved_allocations'])}")
+    unresolved_total = sum(
+        Decimal(item['amount']) for item in report['unresolved_allocations']
+    )
+    report['unresolved_allocation_total'] = str(unresolved_total)
+    print(f"Unresolved allocation amount: {unresolved_total:,.2f}")
     for rejected in report['rejected']:
         print(
             f"  REJECTED {rejected['type']} {rejected.get('voucher') or '[no voucher number]'} "
             f"date={rejected.get('date') or '[missing]'}: {rejected['reason']}"
         )
+    if report_path:
+        with open(report_path, 'w', encoding='utf-8') as output:
+            json.dump(report, output, indent=2, default=str)
     return report
 
 def calculate_busy_balances(files, session, report_path=None, tolerance=Decimal('0.01')):
@@ -819,6 +825,16 @@ if __name__ == "__main__":
             combined_report = {
                 'sources': reports,
                 'rejected_count': sum(len(report.get('rejected', [])) for report in reports),
+                'skipped_cancelled_count': sum(len(report.get('skipped', [])) for report in reports),
+                'unresolved_allocation_count': sum(
+                    len(report.get('unresolved_allocations', [])) for report in reports
+                ),
+                'unresolved_allocation_total': str(sum(
+                    (Decimal(item['amount'])
+                     for report in reports
+                     for item in report.get('unresolved_allocations', [])),
+                    Decimal('0')
+                )),
             }
             with open(args.report, 'w', encoding='utf-8') as output:
                 json.dump(combined_report, output, indent=2, default=str)
