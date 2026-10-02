@@ -70,7 +70,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
         print(f"Error parsing XML: {e}")
         return {"source": file_path, "imported": {}, "rejected": [{"type": "file", "reason": str(e)}]}
 
-    report = {"source": file_path, "imported": {}, "rejected": []}
+    report = {"source": file_path, "imported": {}, "rejected": [], "skipped": [], "unresolved_allocations": []}
 
     def reject(voucher_type, voucher, reason):
         report["rejected"].append({
@@ -78,6 +78,26 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
             "voucher": clean(voucher.findtext("VchNo")) if voucher is not None else None,
             "date": clean(voucher.findtext("Date")) if voucher is not None else None,
             "reason": reason,
+        })
+
+    def is_cancelled(voucher):
+        return voucher.find('Cancelled') is not None
+
+    def skip_cancelled(voucher_type, voucher):
+        report['skipped'].append({
+            'type': voucher_type,
+            'voucher': clean(voucher.findtext('VchNo')),
+            'date': clean(voucher.findtext('Date')),
+            'reason': 'cancelled in BUSY',
+        })
+
+    def unresolved_allocation(voucher_type, voucher, ref_no):
+        report['unresolved_allocations'].append({
+            'type': voucher_type,
+            'voucher': clean(voucher.findtext('VchNo')),
+            'date': clean(voucher.findtext('Date')),
+            'reference': ref_no,
+            'reason': 'referenced bill was not imported',
         })
 
     print("1. Building Mappings...")
@@ -120,6 +140,9 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
     sales_added = 0
     
     for sale in root.findall('.//Sale'):
+        if is_cancelled(sale):
+            skip_cancelled('Sale', sale)
+            continue
         vch_no = clean(sale.findtext('VchNo'))
         date_str = clean(sale.findtext('Date'))
         party_tmpcode = sale.findtext('tmpMasterCode1')
@@ -143,6 +166,16 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
         existing = session.query(Invoice).filter_by(description=identity).first()
         if existing:
             continue
+
+        existing_number = session.query(Invoice).filter_by(
+            invoice_number=vch_no, created_by=created_by
+        ).first()
+        if existing_number:
+            if existing_number.party_id == party_id and existing_number.amount == total_amt:
+                reject("Sale", sale, "duplicate invoice already exists")
+            else:
+                reject("Sale", sale, "invoice number already exists with different party or amount")
+            continue
         
         invoice = Invoice(
             invoice_number=vch_no,
@@ -159,6 +192,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
         session.flush()
         
         # Line Items
+        item_error = False
         item_entries = sale.find('ItemEntries')
         if item_entries is not None:
             for item_det in item_entries.findall('ItemDetail'):
@@ -175,6 +209,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                     reject("Sale", sale, str(exc))
                     session.delete(invoice)
                     session.flush()
+                    item_error = True
                     break
                 
                 inv_item = InvoiceItem(
@@ -185,7 +220,8 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                     total=amt
                 )
                 session.add(inv_item)
-                
+        if item_error:
+            continue
         sales_added += 1
 
     report["imported"]["sales"] = sales_added
@@ -202,11 +238,19 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
     contra_journals_added = 0
     
     for rcpt in root.findall('.//Receipt'):
+        if is_cancelled(rcpt):
+            skip_cancelled('Receipt', rcpt)
+            continue
         date_str = clean(rcpt.findtext('Date'))
-        pay_date = parse_date(date_str)
+        try:
+            pay_date = parse_date(date_str)
+        except ValueError as exc:
+            reject("Receipt", rcpt, str(exc))
+            continue
         
         acc_entries = rcpt.find('AccEntries')
         if acc_entries is None:
+            reject("Receipt", rcpt, "missing account entries")
             continue
         
         # Collect all entries categorized
@@ -244,8 +288,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                 })
         
         if not debtor_entries:
-            if not acc_entries.findall('AccDetail'):
-                reject("Receipt", rcpt, "missing account entries")
+            reject("Receipt", rcpt, "missing debtor entry")
             continue
 
         identity = source_identity(rcpt, "Receipt", file_path)
@@ -327,7 +370,7 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                             
                         payment.unallocated -= alloc_amt
                     else:
-                        reject("Receipt", rcpt, f"invoice not found: {ref_no}")
+                        unresolved_allocation("Receipt", rcpt, ref_no)
 
             rcpts_added += 1
         
@@ -367,6 +410,9 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
     print("4. Importing Journals & Notes...")
     jrnl_added = 0
     for jrnl in chain(root.findall('.//Journal'), root.findall('.//CrNote'), root.findall('.//DbNote')):
+        if is_cancelled(jrnl):
+            skip_cancelled(jrnl.tag, jrnl)
+            continue
         date_str = clean(jrnl.findtext('Date'))
         voucher_type = jrnl.tag
         try:
@@ -505,6 +551,9 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
     print("4b. Importing Payments (Outgoing)...")
     pay_added = 0
     for out_pay in root.findall('.//Payment'):
+        if is_cancelled(out_pay):
+            skip_cancelled('Payment', out_pay)
+            continue
         date_str = clean(out_pay.findtext('Date'))
         try:
             pay_date = parse_date(date_str)
@@ -516,11 +565,12 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
         if acc_entries is None:
             reject("Payment", out_pay, "missing account entries")
             continue
-            
+        found_debtor = False
         for acc_det in acc_entries.findall('AccDetail'):
             grp = acc_det.findtext('tmpGroupName') or ''
             if grp != 'Sundry Debtors':
                 continue
+            found_debtor = True
                 
             acc_code = acc_det.findtext('tmpAccCode')
             party_name = account_map.get(acc_code)
@@ -557,6 +607,8 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
                     description=f"{source_identity(out_pay, 'Payment', file_path)}:{acc_code} | Imported Outgoing Payment"
                 ))
                 pay_added += 1
+        if not found_debtor:
+            reject("Payment", out_pay, "missing debtor entry")
 
     report["imported"]["payments"] = pay_added
     print(f"Payments (Outgoing): Added {pay_added}")
@@ -567,6 +619,9 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
     print("5. Importing Sale Returns...")
     sr_added = 0
     for sr in root.findall('.//SaleReturn'):
+        if is_cancelled(sr):
+            skip_cancelled('SaleReturn', sr)
+            continue
         vch_no = clean(sr.findtext('VchNo'))
         date_str = clean(sr.findtext('Date'))
         party_tmpcode = sr.findtext('tmpMasterCode1')
@@ -640,6 +695,13 @@ def import_transactions(file_path, session, created_by=1, report_path=None, comm
         with open(report_path, 'w', encoding='utf-8') as output:
             json.dump(report, output, indent=2, default=str)
     print(f"Rejected: {len(report['rejected'])}")
+    print(f"Skipped cancelled: {len(report['skipped'])}")
+    print(f"Unresolved allocations: {len(report['unresolved_allocations'])}")
+    for rejected in report['rejected']:
+        print(
+            f"  REJECTED {rejected['type']} {rejected.get('voucher') or '[no voucher number]'} "
+            f"date={rejected.get('date') or '[missing]'}: {rejected['reason']}"
+        )
     return report
 
 def calculate_busy_balances(files, session, report_path=None, tolerance=Decimal('0.01')):
@@ -670,6 +732,7 @@ def calculate_busy_balances(files, session, report_path=None, tolerance=Decimal(
 
     parties = session.query(Party).all()
     differences = []
+    informational = []
     total_constructed = Decimal('0')
     total_busy = Decimal('0')
     for p in parties:
@@ -687,13 +750,18 @@ def calculate_busy_balances(files, session, report_path=None, tolerance=Decimal(
         constructed_balance = Decimal(str(invoice_total or 0)) + Decimal(str(journal_total or 0)) - Decimal(str(payment_total or 0))
 
         if busy_balance is None:
-            differences.append({
+            missing_record = {
                 'party': p.name,
                 'constructed_balance': str(constructed_balance),
                 'busy_closing_balance': None,
                 'difference': None,
                 'status': 'MISSING_IN_MASTER',
-            })
+            }
+            if abs(constructed_balance) > tolerance:
+                differences.append(missing_record)
+            else:
+                missing_record['status'] = 'MISSING_IN_MASTER_ZERO_BALANCE'
+                informational.append(missing_record)
             continue
 
         difference = constructed_balance - busy_balance
@@ -713,8 +781,10 @@ def calculate_busy_balances(files, session, report_path=None, tolerance=Decimal(
         'total_busy_closing': str(total_busy),
         'total_difference': str(total_constructed - total_busy),
         'mismatch_count': len(differences),
+        'informational_count': len(informational),
         'tolerance': str(tolerance),
         'differences': differences,
+        'informational': informational,
     }
     if report_path:
         with open(report_path, 'w', encoding='utf-8') as output:
@@ -745,6 +815,13 @@ if __name__ == "__main__":
         reconciliation = calculate_busy_balances(
             args.files, session, report_path=args.reconciliation_report
         )
+        if args.report:
+            combined_report = {
+                'sources': reports,
+                'rejected_count': sum(len(report.get('rejected', [])) for report in reports),
+            }
+            with open(args.report, 'w', encoding='utf-8') as output:
+                json.dump(combined_report, output, indent=2, default=str)
         if reconciliation['mismatch_count'] and not args.allow_mismatch:
             session.rollback()
             print('Import rolled back: constructed balances do not match BUSY master balances.')

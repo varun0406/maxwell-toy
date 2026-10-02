@@ -1,0 +1,628 @@
+{
+  "total_constructed": "114482545.75",
+  "total_busy_closing": "114482545.75",
+  "total_difference": "0.00",
+  "mismatch_count": 2,
+  "informational_count": 86,
+  "tolerance": "0.01",
+  "differences": [
+    {
+      "party": "MAHADEV JIGNESHBHAI (BHAVNAGAR)",
+      "constructed_balance": "4902459.00",
+      "busy_closing_balance": "5401959",
+      "difference": "-499500.00",
+      "status": "MISMATCH"
+    },
+    {
+      "party": "MAHADEV FASHION BHAVNAGAR",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": "-499500",
+      "difference": "499500.00",
+      "status": "MISMATCH"
+    }
+  ],
+  "informational": [
+    {
+      "party": "OM CREATION (VAIBHAV LAXMI)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "DISHA ENTERPRISE",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SHIV ARADHNA GARMENTS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "NAVKAR GARMENTS(SAFAL-06",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "JAY AMBE APPARELS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "ASTAVINAYAK ENTERPRISE",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "VAANI CREATION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "K K CREATION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "PINKESHBHAI K NAMRATA",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "AFZALBHAI",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SHIV BABA CREATION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "UMESHBHAI",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "S K GARMENTS(JABALPUR)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "J B CREATION (KARNAVATI-09)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "H & H GARMENT",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "GARGAJ WEARS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SHYAM COTS FAB",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SURAJ GARMENTS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "BLACK 4 GARMENT",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "ASTVINAYAK ENTERPRISE ( RAJ LAXMI )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "DINESHBHAI RAJLAXMI",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "IN STYLE CREATION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "MANOJBHAI( SAFAL-06-NILKHANTH)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "K BROTHERS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "LAXMI APPRALS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "VIVEK GARMENTS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SATISHBHAI REVDI BAZAR",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SAUMYA CREATION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "OMKAR GARMENT'S (JIGABHAI)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "AMBICA TEXTILE (FANT)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "S K ENTERPRISE ( WIDE STONE )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "TIRTH FABRICS ( VIJAYBHAI )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "KANHAIYA FASHION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "BHURABHAI",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "MAHALAXMI CUT PIECE CENTRE",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "BHAGWATI CREATION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SSDN (SURAT)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "DIPALI FASHION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "R V CREATION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "BALAJI GARMENTS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "KOMAL CREATION(SAFAL6)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "VAIBHAV LAXMI ENTERPRISE",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "JACKYBHAI ( SNOOR )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "HARESH TRADERS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SHREE KANAYA AGENCY ( NARANBHAI )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "KRISHNA CREATION ( L V MKT )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "S D BARODA",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "DINESHBHAI ( GWALIOR )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "AMRIT APPARELS (AMIT BHAI)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "LAXMI DEEP APPARELS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "HARSHBHAI-THAKKAR NAGAR",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SHREE SHYAM GARMENT",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "HITESHBHAI ( BHAVNAGAR )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "KAMAL ENTERPRISE",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "M A GARMENT",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "K P TEXTILES ( GHANTAKARN MKT )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "KRISHNA CREATION ( TIRTH )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "BHOLESHWAR REDYMADE",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "WAHEGURU APPARELS ( HARSH KORANI )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SHIVAM BHAI",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "ASHIRWAD TRADERS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SUCCESS GARMENTS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "MAHESH HOSIERY",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SAI GARMENT",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "BHARTI GARMENT",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "AADHESH CREATION (BHAVNAGAR)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SANJARI TRADERS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "S M REAYDYMENT",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "PARMESHWAR CREATION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "I ZONE ( BHILWADA)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SHIVNATH TRADERS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "JAI BHAI PAROSIYA",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SONUBHAI ( VIP )",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "VARSHA GARMENTS",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "BOSS JEANS WARE",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "ASHISH BHAI (BALAJI GARMENTS)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "SHREE SANT SEVRAM GARMENT(BHAV)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "KISHANBHAI (BHAVNAGAR)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "BABU BHAI GHANI BHAI (BHAVNAGAR)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "NITA ENTERPRISE(BHAVNAGAR)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "ISHITA ENTERPRISE",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "NARESH LAXMI CREATION",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "GOD WILL",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "MANISHBHAI (BHAVNAGAR)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "BILLU BHAI",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    },
+    {
+      "party": "KANIZA (GONDAL)",
+      "constructed_balance": "0.00",
+      "busy_closing_balance": null,
+      "difference": null,
+      "status": "MISSING_IN_MASTER_ZERO_BALANCE"
+    }
+  ]
+}
