@@ -55,6 +55,18 @@ def dashboard_summary(
               (SELECT SUM(unallocated) FROM payments WHERE is_deleted = false),
             0)                                                               AS total_unallocated_payments,
 
+                        COALESCE(
+                            (SELECT SUM(settled_amount) FROM payments WHERE is_deleted = false),
+                        0)                                                               AS total_matched_settlements,
+
+                        (SELECT COUNT(*) FROM invoices
+                         WHERE is_deleted = false AND balance_due > 0 AND balance_due < amount) AS partially_paid_bills_count,
+
+                        COALESCE(
+                            (SELECT SUM(amount - balance_due) FROM invoices
+                             WHERE is_deleted = false AND balance_due > 0 AND balance_due < amount),
+                        0)                                                               AS partially_paid_amount,
+
             (SELECT COUNT(*)
              FROM invoices
              WHERE is_deleted = false
@@ -139,6 +151,10 @@ def dashboard_summary(
         total_outstanding=total_outstanding,
         total_bills_outstanding=row.total_bills_outstanding,
         total_unallocated_payments=row.total_unallocated_payments,
+        total_bill_party_difference=row.total_bills_outstanding - total_outstanding,
+        total_matched_settlements=row.total_matched_settlements,
+        partially_paid_bills_count=row.partially_paid_bills_count,
+        partially_paid_amount=row.partially_paid_amount,
         invoices_count=row.invoices_count,
         overdue_count=row.overdue_count,
         today_receipts=row.today_receipts,

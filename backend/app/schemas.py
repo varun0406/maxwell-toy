@@ -430,6 +430,10 @@ class DashboardSummary(BaseModel):
     total_outstanding: Decimal
     total_bills_outstanding: Decimal = Field(default=Decimal("0"))
     total_unallocated_payments: Decimal = Field(default=Decimal("0"))
+    total_bill_party_difference: Decimal = Field(default=Decimal("0"))
+    total_matched_settlements: Decimal = Field(default=Decimal("0"))
+    partially_paid_bills_count: int = 0
+    partially_paid_amount: Decimal = Field(default=Decimal("0"))
     invoices_count: int
     overdue_count: int
     today_receipts: Decimal = Field(default=Decimal("0"))
