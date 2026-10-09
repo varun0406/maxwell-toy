@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { partiesApi, paymentsApi, invoicesApi, analyticsApi, accountsApi } from '../../api/endpoints';
 import { formatCurrency, formatDateShort } from '../../utils/format';
-import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2, ArrowLeft, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Archive, ArrowLeft, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { generateAndSharePartyStatement, openWhatsApp, generateAndShareLedger } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import CalculationEvidence from '../../components/CalculationEvidence';
@@ -58,7 +58,7 @@ export function PartiesList() {
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['parties', debouncedSearch, page, agent, sortParam],
-    queryFn: () => partiesApi.list(debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, true, agent || undefined, sortParam).then(r => r.data),
+    queryFn: () => partiesApi.list(debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, false, agent || undefined, sortParam).then(r => r.data),
     placeholderData: keepPreviousData,
   });
 
@@ -179,7 +179,7 @@ export function PartiesList() {
                       setSecureActionId(p.id);
                     }}
                   >
-                    <Trash2 size={12} />
+                    <Archive size={12} />
                   </button>
                 </div>
               </div>
@@ -207,7 +207,7 @@ export function PartiesList() {
       <SecureActionModal
         isOpen={secureActionId !== null}
         onClose={() => setSecureActionId(null)}
-        title="Hide Party"
+        title="Archive Party"
         message="Enter Master PIN to hide this party. All related data will also be hidden."
         onConfirm={async () => {
           if (secureActionId) {
@@ -398,7 +398,7 @@ export function PartyDetail() {
       {hasUnallocated && (
           <div style={{ background: 'var(--accent-glow)', padding: '12px 16px', borderRadius: 12, margin: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                  <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>Unallocated Balance</p>
+                  <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>Advance / On Account</p>
                   <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--accent)' }}>{formatCurrency(totalUnallocated)}</p>
               </div>
               <button className="btn btn-sm" style={{ background: 'var(--accent)', color: 'white' }} onClick={() => setShowAllocateModal(true)}>
@@ -416,7 +416,7 @@ export function PartyDetail() {
           <CreditCard size={18} />Receipt
         </button>
         <button className="quick-action-btn" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }} onClick={() => setShowJournalModal(true)}>
-          <NotebookPen size={18} />General A/c
+          <NotebookPen size={18} />Journal / Adjustment
         </button>
         <button
           className="quick-action-btn warning"
@@ -507,7 +507,7 @@ export function PartyDetail() {
                             background: entry.type === 'invoice' ? 'rgba(99,102,241,0.12)' : entry.type === 'payment' ? 'rgba(34,197,94,0.12)' : 'rgba(234,179,8,0.12)',
                             color: entry.type === 'invoice' ? 'var(--accent)' : entry.type === 'payment' ? 'var(--success)' : 'var(--warning)'
                           }}>{entry.type === 'payment' ? 'receipt' : entry.type}</span>
-                          {entry.description && (
+                          {entry.description && !entry.description.startsWith('BUSY:') && (
                             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{entry.description}</p>
                           )}
                         </td>

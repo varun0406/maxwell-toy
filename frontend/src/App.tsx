@@ -17,6 +17,9 @@ import AccountsList from './pages/Accounts';
 import Purchases from './pages/Purchases';
 import Journals from './pages/Journals';
 import RateBook from './pages/RateBook';
+import ChartOfAccounts from './pages/ChartOfAccounts';
+import JournalEntry from './pages/Vouchers/JournalEntry';
+import SalesReturn from './pages/Vouchers/SalesReturn';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,6 +65,9 @@ export default function App() {
             <Route path="/purchases" element={<Purchases />} />
             <Route path="/journals" element={<Journals />} />
             <Route path="/rate-book" element={<RateBook />} />
+            <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />
+            <Route path="/vouchers/journal" element={<JournalEntry />} />
+            <Route path="/vouchers/credit-note" element={<SalesReturn />} />
           </Route>
 
           {/* Catch-all → calculator */}

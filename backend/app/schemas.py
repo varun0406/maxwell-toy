@@ -456,3 +456,70 @@ class FabricItemMetrics(BaseModel):
     total_meterage: Decimal
     avg_realized_rate: Decimal
     avg_ticket_size: Decimal
+
+# ---------------------------------------------------------------------------
+# Core Double-Entry Accounting
+# ---------------------------------------------------------------------------
+
+class AccountBase(BaseModel):
+    code: Optional[str] = None
+    name: str = Field(..., max_length=200)
+    account_type: str = Field(..., max_length=50)
+    parent_id: Optional[int] = None
+    is_party_control: bool = False
+    is_system: bool = False
+    active: bool = True
+
+class AccountCreate(AccountBase):
+    pass
+
+class AccountOut(AccountBase):
+    id: int
+    model_config = {"from_attributes": True}
+
+
+class VoucherLineBase(BaseModel):
+    account_id: int
+    party_id: Optional[int] = None
+    debit: Decimal = Decimal("0")
+    credit: Decimal = Decimal("0")
+    item_id: Optional[int] = None
+    qty: Optional[Decimal] = None
+    rate: Optional[Decimal] = None
+    tax_code: Optional[str] = None
+    line_narration: Optional[str] = None
+
+class VoucherLineCreate(VoucherLineBase):
+    pass
+
+class VoucherLineOut(VoucherLineBase):
+    id: int
+    voucher_id: int
+    model_config = {"from_attributes": True}
+
+
+class VoucherBase(BaseModel):
+    voucher_type: str = Field(..., max_length=50)
+    series: Optional[str] = None
+    number: Optional[int] = None
+    voucher_date: datetime
+    fy: Optional[str] = None
+    narration: Optional[str] = None
+    ref_voucher_id: Optional[int] = None
+    status: str = "POSTED"
+    source: Optional[str] = None
+    source_ref: Optional[str] = None
+
+class VoucherCreate(VoucherBase):
+    lines: List[VoucherLineCreate]
+
+class VoucherOut(VoucherBase):
+    id: int
+    created_by: int
+    created_at: datetime
+    approved_by: Optional[int] = None
+    posted_at: Optional[datetime] = None
+    reversed_by_voucher_id: Optional[int] = None
+    lines: List[VoucherLineOut]
+    
+    model_config = {"from_attributes": True}

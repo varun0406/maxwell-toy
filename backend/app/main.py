@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 
 from .config import settings
 from .database import engine, Base
-from .routers import auth, parties, invoices, payments, analytics, address_book, users, items, accounts, purchases
+from .routers import auth, parties, invoices, payments, analytics, address_book, users, items, accounts, purchases, vouchers, chart_of_accounts
 
 # Create tables on startup (Alembic takes over in production)
 @asynccontextmanager
@@ -57,6 +57,8 @@ app.include_router(users.router)
 app.include_router(items.router)
 app.include_router(accounts.router)
 app.include_router(purchases.router)
+app.include_router(vouchers.router)
+app.include_router(chart_of_accounts.router)
 
 
 @app.get("/health")

@@ -146,3 +146,16 @@ export const accountsApi = {
     api.get(`/accounts/${id}/entries`, { params: { skip, limit } }),
   create: (data: { name: string; group_name?: string }) => api.post('/accounts/', data),
 };
+
+// ── Vouchers (Phase 1 Accounting Core) ────────────────────────────────────────
+export const vouchersApi = {
+  list: (voucher_type?: string, skip: number = 0, limit: number = 50) => 
+    api.get('/vouchers/', { params: { ...(voucher_type ? { voucher_type } : {}), skip, limit } }),
+  create: (data: unknown) => api.post('/vouchers/', data),
+};
+
+export const chartOfAccountsApi = {
+  list: (account_type?: string, q?: string) => 
+    api.get('/chart-of-accounts/', { params: { ...(account_type ? { account_type } : {}), ...(q ? { q } : {}) } }),
+  create: (data: unknown) => api.post('/chart-of-accounts/', data),
+};

@@ -44,7 +44,7 @@ export default function BottomNav() {
         onClick={() => navigate('/invoices/new')}
       >
         <Plus />
-        <span>New Bill</span>
+        <span>Sales Invoice</span>
       </button>
       <button className={`nav-item ${isActive('/journals') ? 'active' : ''}`} onClick={() => navigate('/journals')} title="Create journal entry">
         <BookMarked />

@@ -392,3 +392,76 @@ class VendorPayment(Base):
         Index("ix_vendor_payments_vendor_deleted", "vendor_id", "is_deleted"),
         Index("ix_vendor_payments_date", "payment_date"),
     )
+
+# ---------------------------------------------------------------------------
+# Core Double-Entry Accounting (Phase 1)
+# ---------------------------------------------------------------------------
+
+class Account(Base):
+    __tablename__ = "accounts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(50), unique=True, index=True, nullable=True)
+    name = Column(String(200), nullable=False)
+    account_type = Column(String(50), nullable=False)  # ASSET, LIABILITY, EQUITY, INCOME, EXPENSE
+    parent_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
+    is_party_control = Column(Boolean, default=False)  # True for Sundry Debtors / Creditors
+    is_system = Column(Boolean, default=False)
+    active = Column(Boolean, default=True)
+
+    parent = relationship("Account", remote_side=[id])
+
+
+class Voucher(Base):
+    __tablename__ = "vouchers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    voucher_type = Column(String(50), nullable=False, index=True) # SALE, RECEIPT, PURCHASE, PAYMENT, CREDIT_NOTE, DEBIT_NOTE, JOURNAL, CONTRA
+    series = Column(String(50), nullable=True)
+    number = Column(Integer, nullable=True)
+    voucher_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    fy = Column(String(20), nullable=True)
+    narration = Column(Text, nullable=True)
+    
+    ref_voucher_id = Column(Integer, ForeignKey("vouchers.id"), nullable=True)
+    status = Column(String(50), nullable=False, default="POSTED") # DRAFT, POSTED, CANCELLED, REVERSED
+    
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    posted_at = Column(DateTime(timezone=True), nullable=True)
+    
+    reversed_by_voucher_id = Column(Integer, ForeignKey("vouchers.id"), nullable=True)
+    source = Column(String(50), nullable=True)
+    source_ref = Column(String(200), nullable=True)
+
+    lines = relationship("VoucherLine", back_populates="voucher", cascade="all, delete-orphan")
+
+
+class VoucherLine(Base):
+    __tablename__ = "voucher_lines"
+
+    id = Column(Integer, primary_key=True, index=True)
+    voucher_id = Column(Integer, ForeignKey("vouchers.id", ondelete="CASCADE"), nullable=False)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
+    party_id = Column(Integer, ForeignKey("parties.id"), nullable=True)
+    
+    debit = Column(Numeric(14, 2), nullable=False, default=Decimal("0"))
+    credit = Column(Numeric(14, 2), nullable=False, default=Decimal("0"))
+    
+    item_id = Column(Integer, ForeignKey("items.id"), nullable=True)
+    qty = Column(Numeric(14, 3), nullable=True)
+    rate = Column(Numeric(14, 2), nullable=True)
+    tax_code = Column(String(50), nullable=True)
+    line_narration = Column(Text, nullable=True)
+
+    voucher = relationship("Voucher", back_populates="lines")
+    account = relationship("Account")
+    party = relationship("Party")
+    item = relationship("ItemMaster")
+
+    __table_args__ = (
+        Index("ix_voucher_lines_account", "account_id"),
+        Index("ix_voucher_lines_party", "party_id"),
+    )
+

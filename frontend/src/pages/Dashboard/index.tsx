@@ -126,11 +126,11 @@ export default function Dashboard() {
       <div className="quick-actions" style={{ marginBottom: 12 }}>
         <button className="quick-action-btn accent" onClick={() => navigate('/invoices/new')}>
           <Plus size={20} />
-          New Invoice
+          Sales Invoice
         </button>
         <button className="quick-action-btn success" onClick={() => navigate('/payments/new')}>
           <CreditCard size={20} />
-          Record Payment
+          Record Receipt
         </button>
         <button className="quick-action-btn danger" onClick={() => navigate('/pending-dues')}>
           <CalendarClock size={20} />
@@ -201,10 +201,10 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* Recent Payments */}
+      {/* Recent Receipts */}
       {summary?.recent_payments?.length > 0 && (
         <>
-          <p className="section-label">Recent Payments</p>
+          <p className="section-label">Recent Receipts</p>
           <div className="list-container">
             {summary.recent_payments.map((p: any) => (
               <div key={p.id} className="list-item" onClick={() => navigate(`/payments/${p.id}`)}>
@@ -212,7 +212,7 @@ export default function Dashboard() {
                   💰
                 </div>
                 <div className="list-item-body">
-                  <p className="list-item-title">Payment #{p.id}</p>
+                  <p className="list-item-title">Receipt #{p.id}</p>
                   <p className="list-item-sub">{formatDate(p.payment_date)} · {p.mode || 'cash'}</p>
                 </div>
                 <div className="list-item-right">
