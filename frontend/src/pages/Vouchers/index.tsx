@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Undo2 } from 'lucide-react';
 import { vouchersApi } from '../../api/endpoints';
 import { formatCurrency, formatDateShort } from '../../utils/format';
 
 export default function VouchersList() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [voucherType, setVoucherType] = useState('');
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 50;
@@ -18,6 +19,15 @@ export default function VouchersList() {
 
   const vouchers = data?.items || [];
   const total = data?.total || 0;
+
+  const reverseMutation = useMutation({
+    mutationFn: (id: number) => vouchersApi.reverse(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['vouchers'] });
+      alert('Voucher reversed successfully.');
+    },
+    onError: (err: any) => alert(err.response?.data?.detail || 'Failed to reverse voucher')
+  });
 
   return (
     <div className="page-content">
@@ -67,10 +77,8 @@ export default function VouchersList() {
               // Calculate total debit
               const amount = v.lines?.reduce((sum: number, line: any) => sum + (Number(line.debit) || 0), 0) || 0;
               
-
-
               return (
-                <div key={v.id} className="card" style={{ padding: 16 }}>
+                <div key={v.id} className="card" style={{ padding: 16, opacity: v.status === 'REVERSED' || v.status === 'CANCELLED' ? 0.6 : 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -92,7 +100,7 @@ export default function VouchersList() {
                       <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
                         {formatCurrency(amount)}
                       </p>
-                      <p style={{ fontSize: 11, color: 'var(--success)', marginTop: 2, fontWeight: 600 }}>{v.status}</p>
+                      <p style={{ fontSize: 11, color: v.status === 'REVERSED' ? 'var(--danger)' : 'var(--success)', marginTop: 2, fontWeight: 600 }}>{v.status}</p>
                     </div>
                   </div>
                   
@@ -102,9 +110,24 @@ export default function VouchersList() {
                     </p>
                   )}
                   
-                  {/* Quick view of lines */}
-                  <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-                    {v.lines?.length} lines recorded.
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      {v.lines?.length} lines recorded.
+                    </div>
+                    {v.status === 'POSTED' && (
+                      <button 
+                        className="btn btn-secondary btn-sm" 
+                        onClick={() => {
+                          if (window.confirm("Are you sure you want to reverse this voucher? This will post a counter-entry.")) {
+                            reverseMutation.mutate(v.id);
+                          }
+                        }}
+                        disabled={reverseMutation.isPending}
+                        style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px' }}
+                      >
+                        <Undo2 size={14} /> Reverse
+                      </button>
+                    )}
                   </div>
                 </div>
               );

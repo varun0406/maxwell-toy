@@ -152,6 +152,7 @@ export const vouchersApi = {
   list: (voucher_type?: string, skip: number = 0, limit: number = 50) => 
     api.get('/vouchers/', { params: { ...(voucher_type ? { voucher_type } : {}), skip, limit } }),
   create: (data: unknown) => api.post('/vouchers/', data),
+  reverse: (id: number) => api.post(`/vouchers/${id}/reverse`),
 };
 
 export const chartOfAccountsApi = {

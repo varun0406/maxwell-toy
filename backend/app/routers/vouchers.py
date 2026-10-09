@@ -99,3 +99,53 @@ def list_vouchers(
         "skip": skip,
         "limit": limit
     }
+
+@router.post("/{voucher_id}/reverse", response_model=schemas.VoucherOut)
+def reverse_voucher(
+    voucher_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    orig = db.query(models.Voucher).filter(models.Voucher.id == voucher_id).first()
+    if not orig:
+        raise HTTPException(404, "Voucher not found")
+    if orig.status == "REVERSED":
+        raise HTTPException(400, "Voucher is already reversed")
+    if orig.status == "CANCELLED":
+        raise HTTPException(400, "Voucher is cancelled")
+
+    # Create reversal voucher
+    rev = models.Voucher(
+        voucher_type=orig.voucher_type,
+        voucher_date=datetime.now(timezone.utc),
+        narration=f"Reversal of {orig.voucher_type} #{orig.number or orig.id}",
+        ref_voucher_id=orig.id,
+        status="POSTED",
+        created_by=current_user.id,
+        posted_at=datetime.now(timezone.utc)
+    )
+    db.add(rev)
+    db.flush()
+
+    # Reverse lines
+    for ln in orig.lines:
+        rev_line = models.VoucherLine(
+            voucher_id=rev.id,
+            account_id=ln.account_id,
+            party_id=ln.party_id,
+            debit=ln.credit,   # Swap Dr/Cr
+            credit=ln.debit,
+            item_id=ln.item_id,
+            qty=ln.qty,
+            rate=ln.rate,
+            tax_code=ln.tax_code,
+            line_narration=f"Reversal of line {ln.id}"
+        )
+        db.add(rev_line)
+
+    orig.status = "REVERSED"
+    orig.reversed_by_voucher_id = rev.id
+    
+    db.commit()
+    db.refresh(rev)
+    return rev

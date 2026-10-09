@@ -16,6 +16,7 @@ import PendingDues from './pages/PendingDues';
 import AccountsList from './pages/Accounts';
 import Purchases from './pages/Purchases';
 import RateBook from './pages/RateBook';
+import DayBook from './pages/Reports/DayBook';
 import ChartOfAccounts from './pages/ChartOfAccounts';
 import AccountLedger from './pages/ChartOfAccounts/Ledger';
 import VouchersList from './pages/Vouchers';
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/pending-dues" element={<PendingDues />} />
             <Route path="/accounts" element={<AccountsList />} />
             <Route path="/purchases" element={<Purchases />} />
+            <Route path="/day-book" element={<DayBook />} />
             <Route path="/rate-book" element={<RateBook />} />
             <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />
             <Route path="/chart-of-accounts/:id" element={<AccountLedger />} />

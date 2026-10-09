@@ -8,6 +8,8 @@ const TABS = [
   { path: '/payments',       icon: CreditCard,    label: 'Receipts'  },
   { path: '/purchases',      icon: ShoppingCart,  label: 'Purchases' },
   { path: '/chart-of-accounts', icon: BookOpen,   label: 'Accounts' },
+  { path: '/day-book',       icon: FileText,      label: 'Day Book' },
+  { path: '/analytics',      icon: BookMarked,    label: 'Reports'  },
 ];
 
 export default function BottomNav() {
