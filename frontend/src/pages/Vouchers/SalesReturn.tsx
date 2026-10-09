@@ -26,7 +26,11 @@ export default function SalesReturn() {
     queryFn: () => chartOfAccountsApi.list().then((r) => r.data),
   });
 
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['invoices', form.party_id],
     queryFn: () => invoicesApi.list(parseInt(form.party_id), false, '', 0, 100).then((r) => r.data.items),
+    enabled: !!form.party_id,
+  });
 
   const salesReturnAccounts = accounts.filter(a => a.name.toLowerCase().includes('return') || a.account_type === 'EXPENSE');
 
