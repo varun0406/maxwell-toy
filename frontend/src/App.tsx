@@ -16,6 +16,7 @@ import PendingDues from './pages/PendingDues';
 import AccountsList from './pages/Accounts';
 import Purchases from './pages/Purchases';
 import Journals from './pages/Journals';
+import RateBook from './pages/RateBook';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +61,7 @@ export default function App() {
             <Route path="/accounts" element={<AccountsList />} />
             <Route path="/purchases" element={<Purchases />} />
             <Route path="/journals" element={<Journals />} />
+            <Route path="/rate-book" element={<RateBook />} />
           </Route>
 
           {/* Catch-all → calculator */}

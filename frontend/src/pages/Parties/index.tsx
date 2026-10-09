@@ -719,6 +719,114 @@ export function PartyDetail() {
 }
 
 
+// ── Statement Preview Modal ─────────────────────────────────────────────────
+function StatementPreviewModal({
+  party,
+  invoices,
+  unallocated,
+  journalBalance,
+  onClose,
+  onDownload,
+}: {
+  party: any;
+  invoices: any[];
+  unallocated: number;
+  journalBalance: number;
+  onClose: () => void;
+  onDownload: () => void;
+}) {
+  const today = new Date().toLocaleDateString('en-IN');
+  const totalBills = invoices.reduce((s: number, i: any) => s + Number(i.balance_due), 0);
+  const netPayable = totalBills - unallocated + journalBalance;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-sheet"
+        style={{ maxWidth: 540, maxHeight: '90vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="modal-handle" />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <div>
+            <h2 className="modal-title" style={{ marginBottom: 2 }}>Outstanding Statement</h2>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{today}</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>✕</button>
+        </div>
+
+        {/* Party info */}
+        <div style={{ background: 'var(--bg-elevated)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+          <p style={{ fontWeight: 700, fontSize: 15 }}>{party.name}</p>
+          {party.phone && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>📞 {party.phone}</p>}
+          {party.agent_name && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>Agent: {party.agent_name}</p>}
+          {party.billing_city && <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>📍 {party.billing_city}</p>}
+        </div>
+
+        {/* Invoice table */}
+        <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--bg-elevated)', borderBottom: '2px solid var(--border)' }}>
+                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-secondary)' }}>Invoice No.</th>
+                <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: 'var(--text-secondary)' }}>Date</th>
+                <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: 'var(--text-secondary)' }}>Amount</th>
+                <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: 'var(--text-secondary)' }}>Balance Due</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((inv: any, i: number) => (
+                <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'transparent' : 'var(--bg-elevated)' }}>
+                  <td style={{ padding: '8px 10px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                  <td style={{ padding: '8px 10px', color: 'var(--text-muted)' }}>{formatDateShort(inv.invoice_date)}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right' }}>{formatCurrency(inv.amount)}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: 'var(--warning)' }}>{formatCurrency(inv.balance_due)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Totals */}
+        <div style={{ background: 'var(--bg-elevated)', borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13 }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Total Bills Due</span>
+            <span style={{ fontWeight: 600 }}>{formatCurrency(totalBills)}</span>
+          </div>
+          {unallocated > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13 }}>
+              <span style={{ color: 'var(--success)' }}>Advance / On Account (−)</span>
+              <span style={{ fontWeight: 600, color: 'var(--success)' }}>−{formatCurrency(unallocated)}</span>
+            </div>
+          )}
+          {journalBalance !== 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13 }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Journal Adjustment</span>
+              <span style={{ fontWeight: 600 }}>{formatCurrency(journalBalance)}</span>
+            </div>
+          )}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 15 }}>
+            <span style={{ fontWeight: 700 }}>Net Payable</span>
+            <span style={{ fontWeight: 800, color: netPayable > 0 ? 'var(--warning)' : 'var(--success)' }}>{formatCurrency(netPayable)}</span>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Close</button>
+          <button
+            className="btn btn-primary"
+            style={{ flex: 1 }}
+            onClick={() => { onDownload(); onClose(); }}
+          >
+            📄 Download PDF
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Allocate On-Account Modal ───────────────────────────────────────────────
 function AllocateOnAccountModal({ partyId, payments, onClose }: { partyId: number, payments: any[], onClose: () => void }) {
     const qc = useQueryClient();

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, FileText, CreditCard, BookOpen, Plus, ShoppingCart, BookMarked, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { Home, Users, FileText, CreditCard, BookOpen, Plus, ShoppingCart, BookMarked, ArrowDownToLine, ArrowUpFromLine, Tag } from 'lucide-react';
 
 const TABS = [
   { path: '/home',           icon: Home,         label: 'Home'      },
