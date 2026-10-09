@@ -107,7 +107,7 @@ export function PaymentsList() {
       {isLoading && !isFetching ? (
         <div className="loading-screen"><div className="spinner" /></div>
       ) : payments.length === 0 ? (
-        <div className="empty-state"><Plus size={48} /><h3>No payments yet</h3><p>Record your first payment to track collections</p></div>
+        <div className="empty-state"><Plus size={48} /><h3>No receipts yet</h3><p>Record your first receipt to track collections</p></div>
       ) : (
         <div className="list-container">
           {payments.map((p: any) => (
@@ -244,7 +244,7 @@ export function NewPayment() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 20px 16px', borderBottom: '1px solid var(--border)' }}>
         <button className="btn-icon btn" onClick={() => navigate(-1)}><ChevronLeft size={20} /></button>
-        <h1 className="page-title">Record Payment</h1>
+        <h1 className="page-title">Record Receipt</h1>
       </div>
       <div className="page-content" style={{ paddingTop: 20, paddingLeft: 20, paddingRight: 20 }}>
         {err && <div style={{ color: 'var(--danger)', fontSize: 13, marginBottom: 12 }}>{err}</div>}

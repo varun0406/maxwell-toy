@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { partiesApi, paymentsApi, invoicesApi, analyticsApi, accountsApi } from '../../api/endpoints';
-import { formatCurrency, formatDate } from '../../utils/format';
+import { formatCurrency, formatDate, formatDateShort } from '../../utils/format';
 import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2, ArrowLeft, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { generateAndSharePartyStatement, openWhatsApp, generateAndShareLedger } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
@@ -223,6 +223,8 @@ export function PartyDetail() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [invFilter, setInvFilter] = useState<'all' | 'unpaid' | 'paid'>('unpaid');
+  const [showStatementPreview, setShowStatementPreview] = useState(false);
+  const [statementInvoices, setStatementInvoices] = useState<any[]>([]);
   const [invSort, setInvSort] = useState<{ col: 'date' | 'amount' | 'balance_due', dir: 'asc' | 'desc' }>({ col: 'date', dir: 'desc' });
   const qc = useQueryClient();
 
@@ -401,7 +403,7 @@ export function PartyDetail() {
           <FileText size={18} />New Invoice
         </button>
         <button className="quick-action-btn success" onClick={() => navigate(`/payments/new?party=${id}`)}>
-          <CreditCard size={18} />Payment
+          <CreditCard size={18} />Receipt
         </button>
         <button className="quick-action-btn" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }} onClick={() => setShowJournalModal(true)}>
           <NotebookPen size={18} />General A/c
@@ -411,7 +413,8 @@ export function PartyDetail() {
           onClick={async () => {
             const unpaid = (await invoicesApi.list(Number(id), true, undefined, 0, 1000)).data.items;
             if (unpaid.length === 0) { alert('No pending invoices for this party.'); return; }
-            generateAndSharePartyStatement(party, unpaid, totalUnallocated, Number(party.total_journal || 0));
+            setStatementInvoices(unpaid);
+            setShowStatementPreview(true);
           }}
         >
           <FileText size={18} />Outstanding Statement
@@ -487,7 +490,7 @@ export function PartyDetail() {
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <td style={{ padding: '9px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatDate(entry.date)}</td>
+                        <td style={{ padding: '9px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatDateShort(entry.date)}</td>
                         <td style={{ padding: '9px 14px' }}>
                           <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{entry.reference}</span>
                           <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 6px', borderRadius: 4,
@@ -596,7 +599,7 @@ export function PartyDetail() {
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <td style={{ padding: '9px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatDate(inv.invoice_date)}</td>
+                        <td style={{ padding: '9px 14px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatDateShort(inv.invoice_date)}</td>
                         <td style={{ padding: '9px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
                         <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(inv.amount)}</td>
                         <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: 700, color: Number(inv.balance_due) > 0 ? 'var(--warning)' : 'var(--success)' }}>
@@ -645,7 +648,7 @@ export function PartyDetail() {
                 <div className="ledger-dot payment" />
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: 14, fontWeight: 600 }}>PMT-{String(pmt.id).padStart(4, '0')}</p>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDate(pmt.payment_date)}</p>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatDateShort(pmt.payment_date)}</p>
                 </div>
                 <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(pmt.amount)}</p>
@@ -695,6 +698,20 @@ export function PartyDetail() {
           party={party} 
           onClose={() => setShowEditModal(false)} 
           onSuccess={() => { setShowEditModal(false); refetchParty(); qc.invalidateQueries({ queryKey: ['parties'] }); }} 
+        />
+      )}
+
+      {/* Outstanding Statement Preview Modal */}
+      {showStatementPreview && (
+        <StatementPreviewModal
+          party={party}
+          invoices={statementInvoices}
+          unallocated={totalUnallocated}
+          journalBalance={Number(party.total_journal || 0)}
+          onClose={() => setShowStatementPreview(false)}
+          onDownload={() => {
+            generateAndSharePartyStatement(party, statementInvoices, totalUnallocated, Number(party.total_journal || 0));
+          }}
         />
       )}
     </div>
