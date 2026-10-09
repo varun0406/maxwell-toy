@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partiesApi, chartOfAccountsApi, vouchersApi } from '../../api/endpoints';
 import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
-import Header from '../../components/Header';
 import { formatCurrency } from '../../utils/format';
 
 export default function JournalEntry() {
@@ -21,7 +20,7 @@ export default function JournalEntry() {
 
   const { data: parties = [] } = useQuery({
     queryKey: ['parties'],
-    queryFn: () => partiesApi.list('', false).then((r) => r.data.items),
+    queryFn: () => partiesApi.list('', 0, 1000).then((r) => r.data.items),
   });
 
   const { data: accounts = [] } = useQuery({
@@ -87,13 +86,17 @@ export default function JournalEntry() {
 
   return (
     <div className="page-layout">
-      <Header 
-        title="Journal Voucher" 
-        leftIcon={<ArrowLeft />} 
-        onLeftClick={() => navigate(-1)} 
-        rightIcon={<Save style={{ color: isBalanced ? 'var(--success)' : 'var(--text-muted)' }} />}
-        onRightClick={handleSave}
-      />
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="page-title" style={{ margin: 0 }}>Journal Voucher</h1>
+        </div>
+        <button className="btn-icon" onClick={handleSave} disabled={!isBalanced || createMutation.isPending} style={{ color: isBalanced ? 'var(--success)' : 'var(--text-muted)' }}>
+          <Save size={24} />
+        </button>
+      </div>
       
       <div className="content-area" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
@@ -110,7 +113,7 @@ export default function JournalEntry() {
 
         {/* Lines */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {lines.map((line, idx) => {
+          {lines.map((line) => {
             const isPartyControl = accounts.find((a: any) => a.id.toString() === line.account_id)?.is_party_control;
             return (
               <div key={line.id} className="card" style={{ padding: 12 }}>

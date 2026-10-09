@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partiesApi, chartOfAccountsApi, vouchersApi } from '../../api/endpoints';
 import { ArrowLeft, Save } from 'lucide-react';
-import Header from '../../components/Header';
 
 export default function SalesReturn() {
   const navigate = useNavigate();
@@ -18,7 +17,7 @@ export default function SalesReturn() {
 
   const { data: parties = [] } = useQuery({
     queryKey: ['parties'],
-    queryFn: () => partiesApi.list('', false).then((r) => r.data.items),
+    queryFn: () => partiesApi.list('', 0, 1000).then((r) => r.data.items),
   });
 
   const { data: accounts = [] } = useQuery({
@@ -73,13 +72,17 @@ export default function SalesReturn() {
 
   return (
     <div className="page-layout">
-      <Header 
-        title="Credit Note (Sales Return)" 
-        leftIcon={<ArrowLeft />} 
-        onLeftClick={() => navigate(-1)} 
-        rightIcon={<Save style={{ color: 'var(--success)' }} />}
-        onRightClick={handleSave}
-      />
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="page-title" style={{ margin: 0 }}>Credit Note (Sales Return)</h1>
+        </div>
+        <button className="btn-icon" onClick={handleSave} disabled={createMutation.isPending} style={{ color: 'var(--success)' }}>
+          <Save size={24} />
+        </button>
+      </div>
       
       <div className="content-area" style={{ padding: 20 }}>
         <div className="card" style={{ padding: 20 }}>

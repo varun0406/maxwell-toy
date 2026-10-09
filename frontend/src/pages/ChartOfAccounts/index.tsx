@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { chartOfAccountsApi } from '../../api/endpoints';
-import Header from '../../components/Header';
 import { Plus, X, Search, ArrowLeft } from 'lucide-react';
 
 export default function ChartOfAccounts() {
@@ -18,13 +17,17 @@ export default function ChartOfAccounts() {
 
   return (
     <div className="page-layout">
-      <Header 
-        title="Chart of Accounts" 
-        leftIcon={<ArrowLeft />} 
-        onLeftClick={() => navigate(-1)} 
-        rightIcon={<Plus />} 
-        onRightClick={() => setShowAdd(true)} 
-      />
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="page-title" style={{ margin: 0 }}>Chart of Accounts</h1>
+        </div>
+        <button className="btn-icon" onClick={() => setShowAdd(true)} style={{ color: 'var(--accent)' }}>
+          <Plus size={24} />
+        </button>
+      </div>
       
       <div className="search-bar-container">
         <div className="search-input-wrapper">
