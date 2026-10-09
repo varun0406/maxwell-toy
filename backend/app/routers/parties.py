@@ -62,6 +62,13 @@ def list_parties(
             SELECT party_id, SUM(amount) AS total_journal
             FROM journal_entries WHERE COALESCE(is_deleted, false) = false GROUP BY party_id
         ),
+        v_agg AS (
+            SELECT vl.party_id, SUM(vl.debit - vl.credit) AS total_voucher_net
+            FROM voucher_lines vl
+            JOIN vouchers v ON v.id = vl.voucher_id
+            WHERE v.status = 'POSTED' AND vl.party_id IS NOT NULL
+            GROUP BY vl.party_id
+        ),
         j_unalloc AS (
             SELECT party_id, 
                    SUM(ABS(amount) - COALESCE((SELECT SUM(allocated_amount) FROM payment_allocations WHERE journal_id = j.id), 0)) AS unallocated_journals
@@ -92,8 +99,8 @@ def list_parties(
                 p.busy_closing_balance,
                 COALESCE(i_agg.total_invoiced, 0) AS total_invoiced,
                 COALESCE(p_agg.total_paid, 0) AS total_paid,
-                COALESCE(j_agg.total_journal, 0) AS total_journal,
-                (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0)) AS outstanding,
+                COALESCE(j_agg.total_journal, 0) + COALESCE(v_agg.total_voucher_net, 0) AS total_journal,
+                (COALESCE(i_agg.total_invoiced, 0) + COALESCE(j_agg.total_journal, 0) - COALESCE(p_agg.total_paid, 0) + COALESCE(v_agg.total_voucher_net, 0)) AS outstanding,
                 COALESCE(i_agg.bills_outstanding, 0) AS bills_outstanding,
                 COALESCE(p_agg.unallocated_payments, 0) + COALESCE(j_unalloc.unallocated_journals, 0) AS unallocated_payments,
                 EXTRACT(DAY FROM (CURRENT_TIMESTAMP - i_agg.oldest_due)) AS overdue_days
@@ -101,6 +108,7 @@ def list_parties(
             LEFT JOIN i_agg ON i_agg.party_id = p.id
             LEFT JOIN p_agg ON p_agg.party_id = p.id
             LEFT JOIN j_agg ON j_agg.party_id = p.id
+            LEFT JOIN v_agg ON v_agg.party_id = p.id
             LEFT JOIN j_unalloc ON j_unalloc.party_id = p.id
                 WHERE COALESCE(p.is_active, true) = true
               AND (
@@ -218,7 +226,8 @@ def get_party(
             p.created_at,
             COALESCE((SELECT SUM(amount) FROM invoices WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS total_invoiced,
             COALESCE((SELECT SUM(amount) FROM payments WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS total_paid,
-            COALESCE((SELECT SUM(amount) FROM journal_entries WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS total_journal,
+            COALESCE((SELECT SUM(amount) FROM journal_entries WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) +
+            COALESCE((SELECT SUM(vl.debit - vl.credit) FROM voucher_lines vl JOIN vouchers v ON v.id = vl.voucher_id WHERE vl.party_id = p.id AND v.status = 'POSTED'), 0) AS total_journal,
             
             COALESCE((SELECT SUM(balance_due) FROM invoices WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) AS bills_outstanding,
             COALESCE((SELECT SUM(unallocated) FROM payments WHERE party_id = p.id AND COALESCE(is_deleted, false) = false), 0) +

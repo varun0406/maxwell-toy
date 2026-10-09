@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { partiesApi, chartOfAccountsApi, vouchersApi } from '../../api/endpoints';
+import { partiesApi, chartOfAccountsApi, vouchersApi, invoicesApi } from '../../api/endpoints';
 import { ArrowLeft, Save } from 'lucide-react';
 
 export default function SalesReturn() {
@@ -10,6 +10,7 @@ export default function SalesReturn() {
   const [form, setForm] = useState({
     party_id: '',
     account_id: '',
+    invoice_id: '',
     amount: '',
     voucher_date: new Date().toISOString().split('T')[0],
     narration: '',
@@ -24,6 +25,8 @@ export default function SalesReturn() {
     queryKey: ['accounts', 'EXPENSE'], // Sales returns behave like expense/contra-income
     queryFn: () => chartOfAccountsApi.list().then((r) => r.data),
   });
+
+    queryFn: () => invoicesApi.list(parseInt(form.party_id), false, '', 0, 100).then((r) => r.data.items),
 
   const salesReturnAccounts = accounts.filter(a => a.name.toLowerCase().includes('return') || a.account_type === 'EXPENSE');
 
@@ -51,6 +54,8 @@ export default function SalesReturn() {
       voucher_type: 'CREDIT_NOTE',
       voucher_date: new Date(form.voucher_date).toISOString(),
       narration: form.narration || 'Sales Return',
+      source: form.invoice_id ? 'INVOICE' : undefined,
+      source_ref: form.invoice_id || undefined,
       lines: [
         {
           account_id: parseInt(form.account_id),
@@ -102,7 +107,7 @@ export default function SalesReturn() {
             <select 
               className="form-input" 
               value={form.party_id}
-              onChange={e => setForm({ ...form, party_id: e.target.value })}
+              onChange={e => setForm({ ...form, party_id: e.target.value, invoice_id: '' })}
             >
               <option value="">Select Customer...</option>
               {parties.map((p: any) => (
@@ -110,6 +115,24 @@ export default function SalesReturn() {
               ))}
             </select>
           </div>
+
+          {form.party_id && invoices.length > 0 && (
+            <div className="form-group" style={{ marginTop: 16 }}>
+              <label className="form-label">Against Invoice (Optional)</label>
+              <select 
+                className="form-input" 
+                value={form.invoice_id}
+                onChange={e => setForm({ ...form, invoice_id: e.target.value })}
+              >
+                <option value="">-- No specific invoice --</option>
+                {invoices.map((inv: any) => (
+                  <option key={inv.id} value={inv.id}>
+                    {inv.invoice_number} ({new Date(inv.invoice_date).toLocaleDateString()}) - ₹{inv.amount}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="form-group" style={{ marginTop: 16 }}>
             <label className="form-label">Sales Return Account</label>
