@@ -30,6 +30,8 @@ export const partiesApi = {
   addJournalEntry: (id: number, data: { amount: number; entry_date: string; description: string; account_id?: number }) =>
     api.post(`/parties/${id}/journal`, data),
   deleteJournalEntry: (journalId: number) => api.delete(`/journal/${journalId}`),
+  itemRates: (id: number) => api.get(`/parties/${id}/item-rates`),
+  itemHistory: (id: number, itemName: string) => api.get(`/parties/${id}/item-rates/${encodeURIComponent(itemName)}`),
 };
 
 // ── Invoices ─────────────────────────────────────────────────────────────────

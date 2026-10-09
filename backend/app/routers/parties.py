@@ -420,3 +420,85 @@ def delete_journal(
     jnl.is_deleted = True
     db.commit()
     return None
+
+
+# ── Party Item Rates ─────────────────────────────────────────────────────────
+
+@router.get("/{party_id}/item-rates")
+def party_item_rates(
+    party_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return all items sold to a party with last sale date and rate."""
+    _get_party_or_404(party_id, db)
+    rows = db.execute(text("""
+        SELECT
+            ii.item_name,
+            MAX(i.invoice_date)                                          AS last_date,
+            (SELECT ii2.rate
+             FROM invoice_items ii2
+             JOIN invoices i2 ON i2.id = ii2.invoice_id
+             WHERE ii2.item_name = ii.item_name
+               AND i2.party_id   = :party_id
+               AND COALESCE(i2.is_deleted, false) = false
+             ORDER BY i2.invoice_date DESC
+             LIMIT 1)                                                    AS last_rate,
+            SUM(ii.meter)                                                AS total_meter,
+            SUM(ii.total)                                                AS total_amount,
+            COUNT(DISTINCT i.id)                                         AS invoice_count
+        FROM invoice_items ii
+        JOIN invoices i ON i.id = ii.invoice_id
+        WHERE i.party_id = :party_id
+          AND COALESCE(i.is_deleted, false) = false
+        GROUP BY ii.item_name
+        ORDER BY last_date DESC
+    """), {"party_id": party_id}).fetchall()
+
+    return [
+        {
+            "item_name": r.item_name,
+            "last_date": str(r.last_date) if r.last_date else None,
+            "last_rate": float(r.last_rate) if r.last_rate else 0,
+            "total_meter": float(r.total_meter) if r.total_meter else 0,
+            "total_amount": float(r.total_amount) if r.total_amount else 0,
+            "invoice_count": r.invoice_count,
+        }
+        for r in rows
+    ]
+
+
+@router.get("/{party_id}/item-rates/{item_name}")
+def party_item_history(
+    party_id: int,
+    item_name: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return full sales history for a specific item sold to a party."""
+    _get_party_or_404(party_id, db)
+    rows = db.execute(text("""
+        SELECT
+            i.invoice_number,
+            i.invoice_date,
+            ii.meter,
+            ii.rate,
+            ii.total
+        FROM invoice_items ii
+        JOIN invoices i ON i.id = ii.invoice_id
+        WHERE i.party_id  = :party_id
+          AND ii.item_name = :item_name
+          AND COALESCE(i.is_deleted, false) = false
+        ORDER BY i.invoice_date DESC
+    """), {"party_id": party_id, "item_name": item_name}).fetchall()
+
+    return [
+        {
+            "invoice_number": r.invoice_number,
+            "invoice_date": str(r.invoice_date) if r.invoice_date else None,
+            "meter": float(r.meter) if r.meter else 0,
+            "rate": float(r.rate) if r.rate else 0,
+            "total": float(r.total) if r.total else 0,
+        }
+        for r in rows
+    ]
