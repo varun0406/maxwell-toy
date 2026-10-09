@@ -57,11 +57,24 @@ app.include_router(users.router)
 app.include_router(items.router)
 app.include_router(accounts.router)
 app.include_router(purchases.router)
+
+from fastapi import WebSocket, WebSocketDisconnect
+from .ws_manager import manager
+
 app.include_router(vouchers.router)
 app.include_router(chart_of_accounts.router)
 app.include_router(app_settings.router)
 app.include_router(webhook.router)
 
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # We just keep the connection open. Clients don't need to send anything.
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 @app.get("/health")
 def health():

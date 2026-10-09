@@ -23,6 +23,22 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+from sqlalchemy import event
+from sqlalchemy.orm import Session
+import asyncio
+
+def trigger_broadcast():
+    try:
+        loop = asyncio.get_running_loop()
+        from .ws_manager import manager
+        loop.create_task(manager.broadcast({"type": "DB_UPDATE"}))
+    except (RuntimeError, ImportError):
+        pass
+
+@event.listens_for(SessionLocal, 'after_commit')
+def receive_after_commit(session):
+    trigger_broadcast()
+
 
 class Base(DeclarativeBase):
     pass

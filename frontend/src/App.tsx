@@ -25,6 +25,8 @@ import VouchersList from './pages/Vouchers';
 import JournalEntry from './pages/Vouchers/JournalEntry';
 import SalesReturn from './pages/Vouchers/SalesReturn';
 
+import { useEffect } from 'react';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -36,9 +38,47 @@ const queryClient = new QueryClient({
   },
 });
 
+function GlobalWebSocketListener() {
+  useEffect(() => {
+    // Determine ws url based on current host
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = process.env.NODE_ENV === 'development' 
+      ? 'ws://127.0.0.1:8000/ws' 
+      : `${protocol}//${window.location.host}/api/ws`;
+
+    let ws: WebSocket;
+    let reconnectTimeout: NodeJS.Timeout;
+
+    function connect() {
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'DB_UPDATE') {
+            queryClient.invalidateQueries();
+          }
+        } catch (e) {}
+      };
+      ws.onclose = () => {
+        reconnectTimeout = setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
+
+    return () => {
+      clearTimeout(reconnectTimeout);
+      if (ws) ws.close();
+    };
+  }, []);
+
+  return null;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <GlobalWebSocketListener />
       <BrowserRouter>
         <Routes>
           {/* Stealth entry — always shows calculator first */}
