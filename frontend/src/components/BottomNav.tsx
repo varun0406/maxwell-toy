@@ -46,9 +46,9 @@ export default function BottomNav() {
         <Plus />
         <span>Sales Invoice</span>
       </button>
-      <button className={`nav-item ${isActive('/journals') ? 'active' : ''}`} onClick={() => navigate('/journals')} title="Create journal entry">
+      <button className={`nav-item ${isActive('/vouchers') ? 'active' : ''}`} onClick={() => navigate('/vouchers')} title="All Vouchers">
         <BookMarked />
-        <span>Journals</span>
+        <span>Vouchers</span>
       </button>
       <button className={`nav-item ${isActive('/rate-book') ? 'active' : ''}`} onClick={() => navigate('/rate-book')} title="Party Rate Book">
         <Tag />
