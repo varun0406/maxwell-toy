@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { partiesApi, paymentsApi, invoicesApi, analyticsApi, accountsApi } from '../../api/endpoints';
-import { formatCurrency, formatDate, formatDateShort } from '../../utils/format';
+import { formatCurrency, formatDateShort } from '../../utils/format';
 import { Plus, Phone, MapPin, Search, NotebookPen, FileText, CreditCard, X, Trash2, ArrowLeft, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { generateAndSharePartyStatement, openWhatsApp, generateAndShareLedger } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
