@@ -213,6 +213,35 @@ def create_invoice(
         )
         db.add(db_item)
 
+    # --- Phase 1: Auto-create SALE Voucher ---
+    debtors_acc = db.query(models.Account).filter(models.Account.code == "DEBTORS").first()
+    sales_acc = db.query(models.Account).filter(models.Account.code == "SALES").first()
+    
+    if debtors_acc and sales_acc:
+        from datetime import timezone, datetime
+        v = models.Voucher(
+            voucher_type="SALE",
+            voucher_date=invoice.invoice_date,
+            narration=f"Sales Invoice #{invoice.invoice_number}",
+            status="POSTED",
+            created_by=current_user.id,
+            posted_at=datetime.now(timezone.utc),
+            source="INVOICE",
+            source_ref=str(invoice.id)
+        )
+        db.add(v)
+        db.flush()
+        
+        # Dr Debtors
+        db.add(models.VoucherLine(
+            voucher_id=v.id, account_id=debtors_acc.id, party_id=invoice.party_id, debit=total_amount, credit=0
+        ))
+        # Cr Sales
+        db.add(models.VoucherLine(
+            voucher_id=v.id, account_id=sales_acc.id, debit=0, credit=total_amount
+        ))
+    # -----------------------------------------
+
     db.commit()
     db.refresh(invoice)
     return invoice

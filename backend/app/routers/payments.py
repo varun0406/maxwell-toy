@@ -150,6 +150,38 @@ def create_payment(
             if invoice.balance_due <= 0:
                 invoice.is_paid = True
 
+    # --- Phase 1: Auto-create RECEIPT Voucher ---
+    debtors_acc = db.query(models.Account).filter(models.Account.code == "DEBTORS").first()
+    mode_code = (payload.mode or "CASH").upper()
+    bank_acc = db.query(models.Account).filter(models.Account.code == mode_code).first()
+    if not bank_acc:
+        bank_acc = db.query(models.Account).filter(models.Account.code == "CASH").first()
+        
+    if debtors_acc and bank_acc:
+        from datetime import timezone, datetime
+        v = models.Voucher(
+            voucher_type="RECEIPT",
+            voucher_date=payment.payment_date,
+            narration=f"Receipt via {payment.mode} - {payment.note or ''}".strip(),
+            status="POSTED",
+            created_by=current_user.id,
+            posted_at=datetime.now(timezone.utc),
+            source="PAYMENT",
+            source_ref=str(payment.id)
+        )
+        db.add(v)
+        db.flush()
+        
+        # Dr Bank/Cash
+        db.add(models.VoucherLine(
+            voucher_id=v.id, account_id=bank_acc.id, debit=payment.amount, credit=0
+        ))
+        # Cr Debtors
+        db.add(models.VoucherLine(
+            voucher_id=v.id, account_id=debtors_acc.id, party_id=payment.party_id, debit=0, credit=payment.amount
+        ))
+    # --------------------------------------------
+
     db.commit()
     db.refresh(payment)
     return payment
