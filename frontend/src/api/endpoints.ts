@@ -121,6 +121,7 @@ export const analyticsApi = {
   exportPartyBalances: (partyId?: number) => api.get('/analytics/party-balances/csv', { params: partyId ? { party_id: partyId } : {}, responseType: 'blob' }),
   exportBillBalances: (partyId?: number) => api.get('/analytics/bill-balances/csv', { params: partyId ? { party_id: partyId } : {}, responseType: 'blob' }),
   exportPaymentLedger: (partyId?: number) => api.get('/analytics/payment-ledger/csv', { params: partyId ? { party_id: partyId } : {}, responseType: 'blob' }),
+  trialBalance: (asOf?: string) => api.get('/analytics/trial-balance', { params: asOf ? { as_of: asOf } : {} }),
 };
 
 // ── Address Book ─────────────────────────────────────────────────────────────
@@ -153,6 +154,7 @@ export const vouchersApi = {
     api.get('/vouchers/', { params: { ...(voucher_type ? { voucher_type } : {}), skip, limit } }),
   create: (data: unknown) => api.post('/vouchers/', data),
   reverse: (id: number) => api.post(`/vouchers/${id}/reverse`),
+  getHistory: (id: number) => api.get(`/vouchers/${id}/history`),
 };
 
 export const chartOfAccountsApi = {

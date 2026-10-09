@@ -82,6 +82,16 @@ def create_voucher(
         )
         db.add(db_line)
 
+    import json
+    audit = models.AuditLog(
+        entity="Voucher",
+        entity_id=db_voucher.id,
+        action="CREATE",
+        after_json=json.dumps({"voucher_type": voucher.voucher_type, "total_dr": float(total_debit), "total_cr": float(total_credit)}),
+        user_id=current_user.id
+    )
+    db.add(audit)
+
     db.commit()
     db.refresh(db_voucher)
     return db_voucher
@@ -164,6 +174,50 @@ def reverse_voucher(
     orig.status = "REVERSED"
     orig.reversed_by_voucher_id = rev.id
     
+    import json
+    audit_orig = models.AuditLog(
+        entity="Voucher",
+        entity_id=orig.id,
+        action="REVERSE",
+        before_json=json.dumps({"status": "POSTED"}),
+        after_json=json.dumps({"status": "REVERSED", "reversed_by_voucher_id": rev.id}),
+        user_id=current_user.id
+    )
+    db.add(audit_orig)
+
+    audit_rev = models.AuditLog(
+        entity="Voucher",
+        entity_id=rev.id,
+        action="CREATE_REVERSAL",
+        after_json=json.dumps({"voucher_type": rev.voucher_type, "ref_voucher_id": orig.id}),
+        user_id=current_user.id
+    )
+    db.add(audit_rev)
+
     db.commit()
     db.refresh(rev)
     return rev
+
+@router.get("/{voucher_id}/history")
+def get_voucher_history(
+    voucher_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    logs = db.query(models.AuditLog).filter(
+        models.AuditLog.entity == "Voucher",
+        models.AuditLog.entity_id == voucher_id
+    ).order_by(models.AuditLog.created_at.desc()).all()
+    
+    result = []
+    for l in logs:
+        result.append({
+            "id": l.id,
+            "action": l.action,
+            "before_json": l.before_json,
+            "after_json": l.after_json,
+            "created_at": l.created_at,
+            "user_id": l.user_id,
+            "username": l.user.username if l.user else "Unknown"
+        })
+    return result

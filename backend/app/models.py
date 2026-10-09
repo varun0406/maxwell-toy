@@ -474,3 +474,17 @@ class SystemSetting(Base):
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    entity = Column(String(50), nullable=False, index=True) # e.g. "Voucher", "Party"
+    entity_id = Column(Integer, nullable=False, index=True)
+    action = Column(String(20), nullable=False) # e.g. "CREATE", "UPDATE", "REVERSE"
+    before_json = Column(Text, nullable=True)
+    after_json = Column(Text, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    
+    user = relationship("User")
+

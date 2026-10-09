@@ -17,6 +17,7 @@ import AccountsList from './pages/Accounts';
 import Purchases from './pages/Purchases';
 import RateBook from './pages/RateBook';
 import DayBook from './pages/Reports/DayBook';
+import TrialBalance from './pages/Reports/TrialBalance';
 import ChartOfAccounts from './pages/ChartOfAccounts';
 import AccountLedger from './pages/ChartOfAccounts/Ledger';
 import Settings from './pages/Settings';
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="/accounts" element={<AccountsList />} />
             <Route path="/purchases" element={<Purchases />} />
             <Route path="/day-book" element={<DayBook />} />
+            <Route path="/trial-balance" element={<TrialBalance />} />
             <Route path="/rate-book" element={<RateBook />} />
             <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />
             <Route path="/chart-of-accounts/:id" element={<AccountLedger />} />

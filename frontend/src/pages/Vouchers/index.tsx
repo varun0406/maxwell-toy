@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Undo2 } from 'lucide-react';
+import { Plus, Undo2, History } from 'lucide-react';
 import { vouchersApi } from '../../api/endpoints';
 import { formatCurrency, formatDateShort } from '../../utils/format';
 
@@ -9,6 +9,7 @@ export default function VouchersList() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [voucherType, setVoucherType] = useState('');
+  const [historyVoucherId, setHistoryVoucherId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 50;
 
@@ -114,20 +115,29 @@ export default function VouchersList() {
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                       {v.lines?.length} lines recorded.
                     </div>
-                    {v.status === 'POSTED' && (
+                    <div style={{ display: 'flex', gap: 8 }}>
                       <button 
-                        className="btn btn-secondary btn-sm" 
-                        onClick={() => {
-                          if (window.confirm("Are you sure you want to reverse this voucher? This will post a counter-entry.")) {
-                            reverseMutation.mutate(v.id);
-                          }
-                        }}
-                        disabled={reverseMutation.isPending}
-                        style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px' }}
+                        className="btn btn-sm" 
+                        onClick={() => setHistoryVoucherId(v.id)}
+                        style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', background: 'var(--bg-elevated)' }}
                       >
-                        <Undo2 size={14} /> Reverse
+                        <History size={14} /> History
                       </button>
-                    )}
+                      {v.status === 'POSTED' && (
+                        <button 
+                          className="btn btn-secondary btn-sm" 
+                          onClick={() => {
+                            if (window.confirm("Are you sure you want to reverse this voucher? This will post a counter-entry.")) {
+                              reverseMutation.mutate(v.id);
+                            }
+                          }}
+                          disabled={reverseMutation.isPending}
+                          style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px' }}
+                        >
+                          <Undo2 size={14} /> Reverse
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -138,6 +148,54 @@ export default function VouchersList() {
       
       {/* Spacer for bottom nav */}
       <div style={{ height: 100 }} />
+
+      {/* History Modal */}
+      {historyVoucherId && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', background: 'rgba(0,0,0,0.5)' }}>
+          <div style={{ background: 'var(--surface)', width: '100%', maxWidth: 500, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: '24px 20px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700 }}>Voucher History</h3>
+              <button onClick={() => setHistoryVoucherId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                ✕
+              </button>
+            </div>
+            
+            <VoucherHistoryList voucherId={historyVoucherId} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VoucherHistoryList({ voucherId }: { voucherId: number }) {
+  const { data: logs, isLoading } = useQuery({
+    queryKey: ['voucher-history', voucherId],
+    queryFn: () => vouchersApi.getHistory(voucherId).then(r => r.data)
+  });
+
+  if (isLoading) return <div style={{ padding: 20, textAlign: 'center' }}>Loading history...</div>;
+  if (!logs || logs.length === 0) return <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>No history found for this voucher.</div>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {logs.map((l: any) => (
+        <div key={l.id} style={{ padding: 12, background: 'var(--bg-card)', borderRadius: 8, border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>{l.action}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(l.created_at).toLocaleString()}</span>
+          </div>
+          <div style={{ fontSize: 12 }}>
+            <span style={{ color: 'var(--text-secondary)' }}>By: </span>
+            <span style={{ fontWeight: 600 }}>{l.username}</span>
+          </div>
+          {l.after_json && (
+            <div style={{ marginTop: 8, fontSize: 11, background: 'var(--bg-body)', padding: 8, borderRadius: 4, fontFamily: 'monospace', color: 'var(--text-muted)' }}>
+              {l.after_json}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

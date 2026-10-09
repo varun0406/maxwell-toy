@@ -787,3 +787,64 @@ def fabric_metrics(
             avg_ticket_size=avg_ticket
         ))
     return items
+
+@router.get("/trial-balance")
+def trial_balance(
+    as_of: Optional[str] = None,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = """
+        SELECT 
+            a.id as account_id,
+            a.name as account_name,
+            a.account_type,
+            SUM(vl.debit) as total_debit,
+            SUM(vl.credit) as total_credit
+        FROM accounts a
+        LEFT JOIN voucher_lines vl ON a.id = vl.account_id
+        LEFT JOIN vouchers v ON vl.voucher_id = v.id AND v.status = 'POSTED'
+    """
+    
+    params = {}
+    if as_of:
+        query += " WHERE v.voucher_date <= :as_of "
+        params["as_of"] = as_of
+        
+    query += """
+        GROUP BY a.id, a.name, a.account_type
+        HAVING SUM(vl.debit) > 0 OR SUM(vl.credit) > 0
+        ORDER BY a.account_type, a.name
+    """
+    
+    rows = db.execute(text(query), params).fetchall()
+    
+    result = []
+    total_dr = 0
+    total_cr = 0
+    
+    for r in rows:
+        dr = r.total_debit or 0
+        cr = r.total_credit or 0
+        
+        # Netting for display
+        net_dr = dr - cr if dr > cr else 0
+        net_cr = cr - dr if cr > dr else 0
+        
+        total_dr += net_dr
+        total_cr += net_cr
+        
+        result.append({
+            "account_id": r.account_id,
+            "account_name": r.account_name,
+            "account_type": r.account_type,
+            "debit": net_dr,
+            "credit": net_cr
+        })
+        
+    return {
+        "items": result,
+        "total_debit": total_dr,
+        "total_credit": total_cr,
+        "is_balanced": abs(total_dr - total_cr) < 0.01
+    }

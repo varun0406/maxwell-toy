@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/auth';
 import { formatCurrency, formatDate } from '../../utils/format';
 import CalculationEvidence from '../../components/CalculationEvidence';
 import {
-  Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert, BookOpen, Settings as SettingsIcon
+  Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert, BookOpen, Settings as SettingsIcon, FileText
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -148,6 +148,10 @@ export default function Dashboard() {
         <button className="quick-action-btn" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15))', border: '1px solid rgba(99,102,241,0.25)' }} onClick={() => navigate('/accounts')}>
           <BookOpen size={20} />
           Accounts
+        </button>
+        <button className="quick-action-btn" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.15))', border: '1px solid rgba(168,85,247,0.25)' }} onClick={() => navigate('/trial-balance')}>
+          <FileText size={20} />
+          Trial Balance
         </button>
         {user?.is_superuser && (
           <button className="quick-action-btn" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }} onClick={() => navigate('/users')}>
