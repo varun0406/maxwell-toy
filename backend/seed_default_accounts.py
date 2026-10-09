@@ -1,11 +1,9 @@
 import os
-from sqlalchemy import create_engine, text
-from dotenv import load_dotenv
+import sys
+from sqlalchemy import text
 
-load_dotenv("backend/.env")
-
-# Connect to database
-engine = create_engine(os.environ["DATABASE_URL"])
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from app.database import engine
 
 accounts = [
     # ASSETS
