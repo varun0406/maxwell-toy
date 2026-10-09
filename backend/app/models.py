@@ -236,12 +236,14 @@ class PaymentAllocation(Base):
     id = Column(Integer, primary_key=True, index=True)
     payment_id = Column(Integer, ForeignKey("payments.id", ondelete="CASCADE"), nullable=True)
     journal_id = Column(Integer, ForeignKey("journal_entries.id", ondelete="CASCADE"), nullable=True)
+    voucher_id = Column(Integer, ForeignKey("vouchers.id", ondelete="CASCADE"), nullable=True)
     invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="CASCADE"), nullable=False)
     allocated_amount = Column(Numeric(12, 2), nullable=False)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     payment = relationship("Payment", back_populates="allocations")
     journal = relationship("JournalEntry", back_populates="allocations")
+    voucher = relationship("Voucher", back_populates="allocations")
     invoice = relationship("Invoice", back_populates="allocations")
 
     @property
@@ -436,6 +438,7 @@ class Voucher(Base):
     source_ref = Column(String(200), nullable=True)
 
     lines = relationship("VoucherLine", back_populates="voucher", cascade="all, delete-orphan")
+    allocations = relationship("PaymentAllocation", back_populates="voucher", cascade="all, delete-orphan")
 
 
 class VoucherLine(Base):

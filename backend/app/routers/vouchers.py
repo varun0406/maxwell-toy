@@ -221,3 +221,115 @@ def get_voucher_history(
             "username": l.user.username if l.user else "Unknown"
         })
     return result
+@router.post("/sales-return", response_model=schemas.VoucherOut)
+def create_sales_return(
+    payload: dict, # expecting party_id, invoice_id, amount, reason
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from decimal import Decimal
+    from datetime import datetime, timezone
+    
+    party_id = payload.get("party_id")
+    invoice_id = payload.get("invoice_id")
+    amount = Decimal(str(payload.get("amount", 0)))
+    reason = payload.get("reason", "Sales Return")
+    
+    if amount <= 0:
+        raise HTTPException(400, "Invalid amount")
+    if not party_id:
+        raise HTTPException(400, "Party is required")
+        
+    party = db.query(models.Party).filter(models.Party.id == party_id).first()
+    if not party:
+        raise HTTPException(404, "Party not found")
+        
+    invoice = None
+    if invoice_id:
+        invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+        if not invoice:
+            raise HTTPException(404, "Invoice not found")
+        if invoice.balance_due < amount:
+            raise HTTPException(400, "Return amount cannot exceed invoice balance due. Or use On-Account settlement.")
+            
+    # Find Accounts
+    sales_return_acc = db.query(models.Account).filter(models.Account.name.ilike("%return%")).first()
+    if not sales_return_acc:
+        # Fallback to Sales account
+        sales_return_acc = db.query(models.Account).filter(models.Account.name.ilike("%sales%")).first()
+        
+    party_acc = db.query(models.Account).filter(models.Account.is_party_control == True, models.Account.code == "DEBTORS").first()
+    if not party_acc:
+        party_acc = db.query(models.Account).filter(models.Account.is_party_control == True).first()
+        
+    if not sales_return_acc or not party_acc:
+        raise HTTPException(500, "Required accounts not found. Please setup Chart of Accounts.")
+
+    # 1. Create Voucher
+    from .invoices import _next_invoice_number # We can use a similar logic, but for now just timestamp
+    import time
+    
+    voucher = models.Voucher(
+        voucher_type="CREDIT_NOTE",
+        voucher_date=datetime.now(timezone.utc),
+        narration=reason,
+        source="INVOICE" if invoice else None,
+        source_ref=str(invoice.id) if invoice else None,
+        status="POSTED",
+        created_by=current_user.id,
+        posted_at=datetime.now(timezone.utc)
+    )
+    db.add(voucher)
+    db.flush()
+    
+    # 2. Add Voucher Lines
+    # Dr. Sales Return
+    db.add(models.VoucherLine(
+        voucher_id=voucher.id,
+        account_id=sales_return_acc.id,
+        debit=amount,
+        credit=0,
+        line_narration=reason
+    ))
+    
+    # Cr. Party
+    db.add(models.VoucherLine(
+        voucher_id=voucher.id,
+        account_id=party_acc.id,
+        party_id=party.id,
+        debit=0,
+        credit=amount,
+        line_narration=reason
+    ))
+    
+    # 3. Handle Settlement
+    if invoice:
+        # Reduce invoice balance
+        invoice.balance_due = Decimal(str(invoice.balance_due)) - amount
+        if invoice.balance_due <= 0:
+            invoice.is_paid = True
+            
+        # Record the allocation
+        db.add(models.PaymentAllocation(
+            voucher_id=voucher.id,
+            invoice_id=invoice.id,
+            allocated_amount=amount
+        ))
+    else:
+        # On-account credit note? We would need to create a Payment with unallocated amount
+        # so it shows up in "Advance / On Account".
+        # A Credit Note conceptually acts as a receipt without money.
+        payment = models.Payment(
+            party_id=party.id,
+            amount=0,
+            unallocated=amount, # This puts it into the party's advance pool
+            payment_date=datetime.now(timezone.utc),
+            note=f"Credit Note: {reason}",
+            mode="ADJUSTMENT",
+            created_by=current_user.id
+        )
+        db.add(payment)
+        
+    db.commit()
+    db.refresh(voucher)
+    return voucher

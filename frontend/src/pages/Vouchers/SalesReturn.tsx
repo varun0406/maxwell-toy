@@ -4,13 +4,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partiesApi, chartOfAccountsApi, vouchersApi, invoicesApi } from '../../api/endpoints';
 import { ArrowLeft, Save } from 'lucide-react';
 
+import { useSearchParams } from 'react-router-dom';
+
 export default function SalesReturn() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [searchParams] = useSearchParams();
+  
   const [form, setForm] = useState({
-    party_id: '',
+    party_id: searchParams.get('party_id') || '',
     account_id: '',
-    invoice_id: '',
+    invoice_id: searchParams.get('invoice_id') || '',
     amount: '',
     voucher_date: new Date().toISOString().split('T')[0],
     narration: '',
@@ -35,17 +39,19 @@ export default function SalesReturn() {
   const salesReturnAccounts = accounts.filter(a => a.name.toLowerCase().includes('return') || a.account_type === 'EXPENSE');
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => vouchersApi.create(data),
+    mutationFn: (data: any) => vouchersApi.salesReturn(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vouchers'] });
+      qc.invalidateQueries({ queryKey: ['parties'] });
+      qc.invalidateQueries({ queryKey: ['invoices'] });
       navigate('/vouchers');
     },
     onError: (err: any) => alert(err.response?.data?.detail || 'Error creating Credit Note'),
   });
 
   const handleSave = () => {
-    if (!form.party_id || !form.account_id || !form.amount) {
-      alert("Please fill all required fields");
+    if (!form.party_id || !form.amount) {
+      alert("Please fill Party and Amount");
       return;
     }
     const amt = parseFloat(form.amount);
@@ -55,26 +61,10 @@ export default function SalesReturn() {
     }
 
     const payload = {
-      voucher_type: 'CREDIT_NOTE',
-      voucher_date: new Date(form.voucher_date).toISOString(),
-      narration: form.narration || 'Sales Return',
-      source: form.invoice_id ? 'INVOICE' : undefined,
-      source_ref: form.invoice_id || undefined,
-      lines: [
-        {
-          account_id: parseInt(form.account_id),
-          debit: amt,
-          credit: 0,
-          line_narration: 'Sales Return'
-        },
-        {
-          account_id: accounts.find(a => a.is_party_control)?.id || 1, // Fallback, normally you lookup the Party Control Account ID
-          party_id: parseInt(form.party_id),
-          debit: 0,
-          credit: amt,
-          line_narration: 'Party Credit'
-        }
-      ]
+      party_id: parseInt(form.party_id),
+      invoice_id: form.invoice_id ? parseInt(form.invoice_id) : undefined,
+      amount: amt,
+      reason: form.narration || 'Sales Return'
     };
     createMutation.mutate(payload);
   };

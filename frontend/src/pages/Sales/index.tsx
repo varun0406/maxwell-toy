@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { invoicesApi, partiesApi, addressBookApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon, Copy, CreditCard, Filter, FileText } from 'lucide-react';
+import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon, Copy, CreditCard, Filter, FileText, Undo2 } from 'lucide-react';
 import { generateAndShareInvoice } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import { SearchCombobox } from '../../components/SearchCombobox';
@@ -209,6 +209,7 @@ export function InvoicesList() {
                     {status !== 'paid' && (
                       <button className="btn-icon" title="Receive full payment" style={{ padding: 4, background: 'rgba(16,185,129,0.2)', color: 'var(--success)' }} onClick={e => { e.stopPropagation(); navigate(`/payments/new?party=${inv.party_id}&invoice=${inv.id}&amount=${inv.balance_due}`); }}><CreditCard size={13} /></button>
                     )}
+                    <button className="btn-icon" title="Sales Return / Credit Note" style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }} onClick={e => { e.stopPropagation(); navigate(`/vouchers/sales-return?party_id=${inv.party_id}&invoice_id=${inv.id}`); }}><Undo2 size={13} /></button>
                     {inv.delivery_challan_url && <button className="btn-icon" style={{ padding: 4, background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }} onClick={e => { e.stopPropagation(); window.open(inv.delivery_challan_url, '_blank'); }}><ImageIcon size={13} /></button>}
                   </div>
                 </div>
