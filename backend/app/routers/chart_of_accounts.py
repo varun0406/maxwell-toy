@@ -39,3 +39,36 @@ def create_account(
     db.commit()
     db.refresh(db_acc)
     return db_acc
+
+@router.get("/{account_id}/entries")
+def get_account_ledger(
+    account_id: int,
+    skip: int = 0,
+    limit: int = 50,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    lines = (
+        db.query(models.VoucherLine)
+        .join(models.Voucher)
+        .filter(models.VoucherLine.account_id == account_id)
+        .filter(models.Voucher.status == 'POSTED')
+        .order_by(models.Voucher.voucher_date.desc(), models.Voucher.id.desc())
+        .offset(skip).limit(limit).all()
+    )
+    
+    results = []
+    for ln in lines:
+        results.append({
+            "id": ln.id,
+            "voucher_id": ln.voucher.id,
+            "voucher_type": ln.voucher.voucher_type,
+            "voucher_number": ln.voucher.number,
+            "voucher_date": ln.voucher.voucher_date,
+            "debit": ln.debit,
+            "credit": ln.credit,
+            "narration": ln.line_narration or ln.voucher.narration,
+            "party_id": ln.party_id,
+            "party_name": ln.party.name if getattr(ln, 'party', None) else None
+        })
+    return {"items": results}

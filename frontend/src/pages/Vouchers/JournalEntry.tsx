@@ -111,78 +111,119 @@ export default function JournalEntry() {
           </div>
         </div>
 
-        {/* Lines */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {lines.map((line) => {
-            const isPartyControl = accounts.find((a: any) => a.id.toString() === line.account_id)?.is_party_control;
-            return (
-              <div key={line.id} className="card" style={{ padding: 12 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <select 
-                    className="form-input" 
-                    style={{ width: 80, padding: '8px', fontWeight: 700 }}
-                    value={line.type}
-                    onChange={e => updateLine(line.id, 'type', e.target.value)}
-                  >
-                    <option value="DR">Dr</option>
-                    <option value="CR">Cr</option>
-                  </select>
-                  
-                  <select 
-                    className="form-input" 
-                    style={{ flex: 1 }}
-                    value={line.account_id}
-                    onChange={e => updateLine(line.id, 'account_id', e.target.value)}
-                  >
-                    <option value="">Select Account...</option>
-                    {accounts.map((a: any) => (
-                      <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
-                  </select>
-
-                  <button 
-                    className="btn-icon" 
-                    style={{ padding: 8, color: 'var(--danger)' }}
-                    onClick={() => removeLine(line.id)}
-                  >
-                    <Trash2 size={16} />
+        {/* Lines Table */}
+        <div className="card" style={{ overflowX: 'auto', marginTop: 12 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Account</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Party (if Control)</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Debit (₹)</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Credit (₹)</th>
+                <th style={{ padding: '12px 16px', width: 40 }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line) => {
+                const isPartyControl = accounts.find((a: any) => a.id.toString() === line.account_id)?.is_party_control;
+                return (
+                  <tr key={line.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '8px 16px' }}>
+                      <select 
+                        className="form-input" 
+                        style={{ minWidth: 200, padding: '8px' }}
+                        value={line.account_id}
+                        onChange={e => updateLine(line.id, 'account_id', e.target.value)}
+                      >
+                        <option value="">Select Account...</option>
+                        {accounts.map((a: any) => (
+                          <option key={a.id} value={a.id}>{a.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ padding: '8px 16px' }}>
+                      {isPartyControl ? (
+                        <select 
+                          className="form-input" 
+                          style={{ minWidth: 200, border: '1px dashed var(--accent)', padding: '8px' }}
+                          value={line.party_id}
+                          onChange={e => updateLine(line.id, 'party_id', e.target.value)}
+                        >
+                          <option value="">Select Party...</option>
+                          {parties.map((p: any) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '8px 16px' }}>
+                      <input 
+                        type="number" 
+                        className="form-input" 
+                        placeholder="Dr" 
+                        style={{ textAlign: 'right', fontWeight: 600, minWidth: 100 }}
+                        value={line.type === 'DR' ? line.amount : ''}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val) {
+                            setLines(lines.map(l => l.id === line.id ? { ...l, type: 'DR', amount: val } : l));
+                          } else {
+                            updateLine(line.id, 'amount', '');
+                          }
+                        }}
+                      />
+                    </td>
+                    <td style={{ padding: '8px 16px' }}>
+                      <input 
+                        type="number" 
+                        className="form-input" 
+                        placeholder="Cr" 
+                        style={{ textAlign: 'right', fontWeight: 600, minWidth: 100 }}
+                        value={line.type === 'CR' ? line.amount : ''}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val) {
+                            setLines(lines.map(l => l.id === line.id ? { ...l, type: 'CR', amount: val } : l));
+                          } else {
+                            updateLine(line.id, 'amount', '');
+                          }
+                        }}
+                      />
+                    </td>
+                    <td style={{ padding: '8px 16px', textAlign: 'center' }}>
+                      <button 
+                        className="btn-icon" 
+                        style={{ color: 'var(--danger)', padding: 4 }}
+                        onClick={() => removeLine(line.id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr style={{ background: 'var(--bg-body)' }}>
+                <td colSpan={2} style={{ padding: '12px 16px' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={addLine}>
+                    <Plus size={14} /> Add Line
                   </button>
-                </div>
-                
-                {isPartyControl && (
-                  <div style={{ marginTop: 8 }}>
-                    <select 
-                      className="form-input" 
-                      style={{ border: '1px dashed var(--accent)' }}
-                      value={line.party_id}
-                      onChange={e => updateLine(line.id, 'party_id', e.target.value)}
-                    >
-                      <option value="">Select Party...</option>
-                      {parties.map((p: any) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div style={{ marginTop: 8 }}>
-                  <input 
-                    type="number" 
-                    className="form-input" 
-                    placeholder="Amount" 
-                    style={{ textAlign: 'right', fontWeight: 700, fontSize: 16 }}
-                    value={line.amount}
-                    onChange={e => updateLine(line.id, 'amount', e.target.value)}
-                  />
-                </div>
-              </div>
-            );
-          })}
+                </td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontSize: 14 }}>
+                  {formatCurrency(totalDr)}
+                </td>
+                <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontSize: 14 }}>
+                  {formatCurrency(totalCr)}
+                </td>
+                <td style={{ padding: '12px 16px' }}>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
-
-        <button className="btn btn-secondary" style={{ width: '100%', marginTop: 12 }} onClick={addLine}>
-          <Plus size={16} /> Add Line
-        </button>
 
         <div className="card" style={{ marginTop: 16, padding: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>

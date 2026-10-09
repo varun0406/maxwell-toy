@@ -55,7 +55,12 @@ export default function ChartOfAccounts() {
         ) : (
           <div className="list-container">
             {accounts.map((acc: any) => (
-              <div key={acc.id} className="list-item">
+              <div 
+                key={acc.id} 
+                className="list-item" 
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/chart-of-accounts/${acc.id}`)}
+              >
                 <div className="list-item-body">
                   <p className="list-item-title">{acc.name}</p>
                   <p className="list-item-sub">{acc.account_type} {acc.code ? `• Code: ${acc.code}` : ''}</p>
