@@ -5,30 +5,35 @@ from sqlalchemy import text
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.database import engine
 
-accounts = [
-    # ASSETS
-    {"code": "CASH", "name": "Cash on Hand", "type": "ASSET", "party": False, "sys": True},
-    {"code": "BANK", "name": "Bank Account", "type": "ASSET", "party": False, "sys": True},
+base_accounts = [
+    # Core automatic accounts
     {"code": "DEBTORS", "name": "Sundry Debtors", "type": "ASSET", "party": True, "sys": True},
-    # LIABILITIES
     {"code": "CREDITORS", "name": "Sundry Creditors", "type": "LIABILITY", "party": True, "sys": True},
-    {"code": "GST_PAYABLE", "name": "GST Payable", "type": "LIABILITY", "party": False, "sys": True},
-    # EQUITY
-    {"code": "CAPITAL", "name": "Capital Account", "type": "EQUITY", "party": False, "sys": True},
-    {"code": "RETAINED", "name": "Retained Earnings", "type": "EQUITY", "party": False, "sys": True},
-    # INCOME
     {"code": "SALES", "name": "Sales Account", "type": "INCOME", "party": False, "sys": True},
-    {"code": "DISC_REC", "name": "Discount Received", "type": "INCOME", "party": False, "sys": True},
-    # EXPENSES
-    {"code": "PURCHASES", "name": "Purchases Account", "type": "EXPENSE", "party": False, "sys": True},
     {"code": "SALES_RET", "name": "Sales Return", "type": "EXPENSE", "party": False, "sys": True},
+    {"code": "PURCHASES", "name": "Purchases Account", "type": "EXPENSE", "party": False, "sys": True},
     {"code": "DISC_ALLOW", "name": "Discount Allowed", "type": "EXPENSE", "party": False, "sys": True},
-    {"code": "BANK_CHG", "name": "Bank Charges", "type": "EXPENSE", "party": False, "sys": True},
 ]
 
 with engine.connect() as conn:
-    for acc in accounts:
-        # Check if exists
+    # 1. Discover payment modes dynamically from existing transactions
+    modes_result = conn.execute(text("SELECT DISTINCT COALESCE(mode, 'CASH') as p_mode FROM payments WHERE COALESCE(is_deleted, false) = false")).fetchall()
+    
+    seen_modes = set()
+    for row in modes_result:
+        mode = row.p_mode.strip().upper()
+        if mode and mode not in seen_modes:
+            seen_modes.add(mode)
+            base_accounts.append({
+                "code": mode,
+                "name": "Cash on Hand" if mode == "CASH" else f"{mode.capitalize()} Account",
+                "type": "ASSET",
+                "party": False,
+                "sys": True
+            })
+
+    # 2. Insert all base and discovered accounts
+    for acc in base_accounts:
         exists = conn.execute(text("SELECT id FROM accounts WHERE code = :code"), {"code": acc["code"]}).fetchone()
         if not exists:
             conn.execute(
@@ -43,4 +48,4 @@ with engine.connect() as conn:
             print(f"Account {acc['name']} already exists.")
     
     conn.commit()
-    print("Seed complete.")
+    print("Automatic account generation from transactions complete.")
