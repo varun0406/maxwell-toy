@@ -33,8 +33,8 @@ with engine.connect() as conn:
         if not exists:
             conn.execute(
                 text("""
-                    INSERT INTO accounts (code, name, account_type, is_party_control, is_system, active, created_at)
-                    VALUES (:code, :name, :type, :party, :sys, true, NOW())
+                    INSERT INTO accounts (code, name, account_type, is_party_control, is_system, active)
+                    VALUES (:code, :name, :type, :party, :sys, true)
                 """),
                 {"code": acc["code"], "name": acc["name"], "type": acc["type"], "party": acc["party"], "sys": acc["sys"]}
             )
