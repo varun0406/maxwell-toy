@@ -160,3 +160,8 @@ export const chartOfAccountsApi = {
     api.get('/chart-of-accounts/', { params: { ...(account_type ? { account_type } : {}), ...(q ? { q } : {}) } }),
   create: (data: unknown) => api.post('/chart-of-accounts/', data),
 };
+
+export const settingsApi = {
+  get: () => api.get('/settings/'),
+  update: (data: any) => api.post('/settings/', data),
+};

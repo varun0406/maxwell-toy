@@ -37,6 +37,15 @@ def create_voucher(
     if not voucher.voucher_date:
         voucher.voucher_date = datetime.now(timezone.utc)
 
+    # Enforce period lock
+    from .settings import get_period_lock_date
+    lock_date = get_period_lock_date(db)
+    if lock_date and voucher.voucher_date.replace(tzinfo=None) <= lock_date:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Cannot post voucher. Books are closed on or before {lock_date.strftime('%d-%m-%Y')}."
+        )
+
     # Create Voucher
     db_voucher = models.Voucher(
         voucher_type=voucher.voucher_type,
@@ -113,6 +122,15 @@ def reverse_voucher(
         raise HTTPException(400, "Voucher is already reversed")
     if orig.status == "CANCELLED":
         raise HTTPException(400, "Voucher is cancelled")
+
+    from .settings import get_period_lock_date
+    lock_date = get_period_lock_date(db)
+    now_date = datetime.now(timezone.utc)
+    if lock_date and now_date.replace(tzinfo=None) <= lock_date:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Cannot reverse voucher. Books are closed on or before {lock_date.strftime('%d-%m-%Y')}."
+        )
 
     # Create reversal voucher
     rev = models.Voucher(

@@ -19,6 +19,7 @@ import RateBook from './pages/RateBook';
 import DayBook from './pages/Reports/DayBook';
 import ChartOfAccounts from './pages/ChartOfAccounts';
 import AccountLedger from './pages/ChartOfAccounts/Ledger';
+import Settings from './pages/Settings';
 import VouchersList from './pages/Vouchers';
 import JournalEntry from './pages/Vouchers/JournalEntry';
 import SalesReturn from './pages/Vouchers/SalesReturn';
@@ -69,6 +70,7 @@ export default function App() {
             <Route path="/rate-book" element={<RateBook />} />
             <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />
             <Route path="/chart-of-accounts/:id" element={<AccountLedger />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/vouchers" element={<VouchersList />} />
             <Route path="/vouchers/journal" element={<JournalEntry />} />
             <Route path="/vouchers/credit-note" element={<SalesReturn />} />

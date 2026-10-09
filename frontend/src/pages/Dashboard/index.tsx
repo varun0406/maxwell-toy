@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/auth';
 import { formatCurrency, formatDate } from '../../utils/format';
 import CalculationEvidence from '../../components/CalculationEvidence';
 import {
-  Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert, BookOpen
+  Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert, BookOpen, Settings as SettingsIcon
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -33,8 +33,13 @@ export default function Dashboard() {
           <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{greeting()},</p>
           <h1 className="page-title">{user?.username || 'User'} 👋</h1>
         </div>
-        <div style={{ width: 44, height: 44, borderRadius: 12, overflow: 'hidden', border: '2px solid var(--border)', background: 'var(--bg-elevated)' }}>
-          <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => navigate('/settings')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+            <SettingsIcon size={24} />
+          </button>
+          <div style={{ width: 44, height: 44, borderRadius: 12, overflow: 'hidden', border: '2px solid var(--border)', background: 'var(--bg-elevated)' }}>
+            <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
         </div>
       </div>
 

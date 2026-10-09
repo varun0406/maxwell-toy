@@ -465,3 +465,12 @@ class VoucherLine(Base):
         Index("ix_voucher_lines_party", "party_id"),
     )
 
+
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+
+    key = Column(String(50), primary_key=True)
+    value = Column(String(200), nullable=True)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
