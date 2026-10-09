@@ -7,7 +7,7 @@ const TABS = [
   { path: '/invoices',       icon: FileText,      label: 'Invoices'  },
   { path: '/payments',       icon: CreditCard,    label: 'Receipts'  },
   { path: '/purchases',      icon: ShoppingCart,  label: 'Purchases' },
-  { path: '/address-book',   icon: BookOpen,      label: 'Addresses' },
+  { path: '/chart-of-accounts', icon: BookOpen,   label: 'Accounts' },
 ];
 
 export default function BottomNav() {
@@ -61,6 +61,10 @@ export default function BottomNav() {
       <button className="nav-item" onClick={() => navigate('/purchases')} title="New vendor payment">
         <ArrowUpFromLine />
         <span>New Payment</span>
+      </button>
+      <button className={`nav-item ${isActive('/vouchers/credit-note') ? 'active' : ''}`} onClick={() => navigate('/vouchers/credit-note')} title="Sales Return">
+        <ArrowDownToLine />
+        <span>Credit Note</span>
       </button>
     </nav>
   );

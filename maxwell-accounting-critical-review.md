@@ -114,12 +114,6 @@ Same gap on the supplier/job-worker side: defective material returned to the sup
 * **Allocation is manual** ("Settle Bills" button). Many receipts are "ON ACCT". Add: auto-allocate (FIFO by invoice date, or by specific invoice) at receipt time, with an editable allocation grid.
 * **Advance vs due netting:** the party list shows one net red number. Advances are a *liability to the customer*; show gross Due and gross Advance separately, with net as a third figure.
 
-### 3.8 Receipts / payment-mode & compliance
-
-* Every receipt visible is **CASH**, several ≥ ₹2 L (₹4,00,000; ₹3,99,500; ₹2,00,000×2; ₹2,45,635). Either the mode isn't being captured correctly during import, or the business is receiving large cash.
-* **Worth verifying with your CA:** Sec. 269ST (cash receipt ≥ ₹2 L per day/transaction/event, penalty Sec. 271DA) and Sec. 40A(3) (cash payments > ₹10,000 disallowed as expense).
-* **Product fix:** capture Mode (Cash / Bank transfer / UPI / Cheque / Adjustment), bank account, UTR/cheque no., cheque date; show a soft warning when cash for one party/day reaches ₹2 L; add a bank-reconciliation screen.
-
 ### 3.9 Audit trail & controls
 
 * **Delete** (red trash) on every party card — in an accounting system, parties with transactions must be **Archived**, never deleted.
@@ -128,10 +122,6 @@ Same gap on the supplier/job-worker side: defective material returned to the sup
 * No roles beyond "Manage Users" — no maker-checker for journals, write-offs, returns.
 * Ledger narration shows technical IDs: `BUSY:busy 26-27...DAT:Sale:ff9a43febf2fd1270331f04e`. That's good for traceability, bad for humans. See §4.5.
 * If Maxwell is a company, the Companies (Accounts) Rules require accounting software to keep an **edit log that cannot be disabled** — verify applicability.
-
-### 3.10 GST / TDS
-
-Not visible anywhere: GSTIN on parties, place of supply, HSN, tax split (CGST/SGST/IGST), e-invoice/e-way bill, GSTR-1/3B export, TDS/TCS. Credit/debit notes in GST must reference the original invoice and be reported in returns (Sec. 34 CGST Act has a time limit — confirm with CA), so returns **must** be built with GST fields from day one.
 
 ### 3.11 Two sources of truth: BUSY vs this app
 
