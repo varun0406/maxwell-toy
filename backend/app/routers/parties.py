@@ -30,17 +30,19 @@ def list_parties(
     search: str = "",
     unpaid_only: bool = False,
     agent: Optional[str] = None,
-    sort: str = Query("name", pattern="^(name|dues)$"),
+    sort: str = Query("name", pattern="^(name|name_desc|dues)$"),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     skip, limit = clamp_page(skip, limit)
     search_filter = ilike_pattern(search)
-    order_sql = (
-        "CASE WHEN reminder_date IS NULL THEN 1 ELSE 0 END, reminder_date ASC NULLS LAST, outstanding DESC, name ASC"
-        if (sort == "dues" or unpaid_only)
-        else "name ASC"
-    )
+    
+    if sort == "dues" or (unpaid_only and sort not in ["name", "name_desc"]):
+        order_sql = "CASE WHEN reminder_date IS NULL THEN 1 ELSE 0 END, reminder_date ASC NULLS LAST, outstanding DESC, name ASC"
+    elif sort == "name_desc":
+        order_sql = "name DESC"
+    else:
+        order_sql = "name ASC"
 
     rows = db.execute(text(f"""
         WITH i_agg AS (

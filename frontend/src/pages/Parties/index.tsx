@@ -45,10 +45,11 @@ export function PartiesList() {
   const PAGE_SIZE = 20;
 
   const [agent, setAgent] = useState('');
+  const [sortParam, setSortParam] = useState('name_desc'); // Default as requested: A to Z desc order
   const debouncedSearch = useDebouncedValue(search, 400);
   
   // reset to first page when search changes
-  useEffect(() => { setPage(0); }, [debouncedSearch, agent]);
+  useEffect(() => { setPage(0); }, [debouncedSearch, agent, sortParam]);
 
   const { data: agents = [] } = useQuery({
     queryKey: ['agents'],
@@ -56,8 +57,8 @@ export function PartiesList() {
   });
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ['parties', debouncedSearch, page, agent],
-    queryFn: () => partiesApi.list(debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, true, agent || undefined).then(r => r.data),
+    queryKey: ['parties', debouncedSearch, page, agent, sortParam],
+    queryFn: () => partiesApi.list(debouncedSearch, page * PAGE_SIZE, PAGE_SIZE, true, agent || undefined, sortParam).then(r => r.data),
     placeholderData: keepPreviousData,
   });
 
@@ -84,9 +85,18 @@ export function PartiesList() {
           {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={14} /></button>}
         </div>
         <select 
+          value={sortParam} 
+          onChange={e => setSortParam(e.target.value)}
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '0 12px', outline: 'none', cursor: 'pointer' }}
+        >
+          <option value="name_desc">Z-A</option>
+          <option value="name">A-Z</option>
+          <option value="dues">Dues</option>
+        </select>
+        <select 
           value={agent} 
           onChange={e => setAgent(e.target.value)}
-          style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '0 16px', outline: 'none', cursor: 'pointer' }}
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '0 12px', outline: 'none', cursor: 'pointer' }}
         >
           <option value="">All Agents</option>
           {agents.map((a: any) => (

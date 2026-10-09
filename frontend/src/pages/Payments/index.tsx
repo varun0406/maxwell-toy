@@ -312,7 +312,7 @@ export function NewPayment() {
           {paymentType === 'on_account' && <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, textAlign: 'center' }}>This payment will be saved to the party's account and can be applied to invoices later.</p>}
 
           <button type="submit" className="btn btn-success btn-full" disabled={loading || (paymentType === 'bill_adjustment' && enteredAmount > 0 && totalAllocated > Number(enteredAmount))}>
-            {loading ? 'Processing…' : 'Record Payment'}
+            {loading ? 'Processing…' : 'Record Receipt'}
           </button>
         </form>
       </div>
