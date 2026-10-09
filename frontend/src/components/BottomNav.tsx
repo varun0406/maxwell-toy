@@ -50,6 +50,10 @@ export default function BottomNav() {
         <BookMarked />
         <span>Journals</span>
       </button>
+      <button className={`nav-item ${isActive('/rate-book') ? 'active' : ''}`} onClick={() => navigate('/rate-book')} title="Party Rate Book">
+        <Tag />
+        <span>Rates</span>
+      </button>
       <button className="nav-item" onClick={() => navigate('/payments/new')} title="New customer receipt">
         <ArrowDownToLine />
         <span>New Receipt</span>
