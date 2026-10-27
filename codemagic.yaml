@@ -1,9 +1,14 @@
 workflows:
-  ios-unsigned-ipa:
-    name: Maxwell Accounting iOS (Unsigned IPA)
+  ios-signed-adhoc:
+    name: Maxwell Accounting iOS (Signed Ad-Hoc IPA)
     max_build_duration: 30
     instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Code Manager CI
     environment:
+      ios_signing:
+        distribution_type: ad_hoc
+        bundle_identifier: com.maxwell.accounting
       node: 22
       xcode: latest
     triggering:
@@ -18,25 +23,36 @@ workflows:
     scripts:
       - name: Setup Node 22 & Install Dependencies
         script: |
-          # Ensure Node 22+ is active
           if [ -s "$HOME/.nvm/nvm.sh" ]; then
             . "$HOME/.nvm/nvm.sh"
             nvm install 22
             nvm use 22
           fi
           echo "Node version: $(node -v)"
-          echo "NPM version: $(npm -v)"
           cd frontend
           npm install --legacy-peer-deps
-      - name: Build Web App & Compile Unsigned IPA
+      - name: Build Web App & Sync Capacitor iOS
         script: |
-          set -e
           if [ -s "$HOME/.nvm/nvm.sh" ]; then
             . "$HOME/.nvm/nvm.sh"
             nvm use 22
           fi
-          chmod +x scripts/build-unsigned-ipa.sh
-          ./scripts/build-unsigned-ipa.sh
+          cd frontend
+          npm run build
+          npx cap sync ios
+      - name: Set up code signing with Apple Developer Portal
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "com.maxwell.accounting" \
+            --type IOS_APP_ADHOC \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build Signed IPA
+        script: |
+          xcode-project build-ipa \
+            --project frontend/ios/App/App.xcodeproj \
+            --scheme App
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
@@ -45,7 +61,7 @@ workflows:
           - varun@example.com
         notify:
           failure: true
-          success: false
+          success: true
 
   android-apk:
     name: Maxwell Accounting Android (APK)
