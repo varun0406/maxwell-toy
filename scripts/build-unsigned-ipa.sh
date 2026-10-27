@@ -10,6 +10,14 @@ FRONTEND_DIR="${PROJECT_ROOT}/frontend"
 IOS_APP_DIR="${FRONTEND_DIR}/ios/App"
 OUTPUT_DIR="${PROJECT_ROOT}/build/ios/ipa"
 
+# Ensure Node 22+ is used if nvm is installed on CI runner
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+  . "$HOME/.nvm/nvm.sh"
+  nvm use 22 || true
+fi
+
+echo "Active Node: $(node -v)"
+
 echo "=== [1/4] Building Frontend Web Assets ==="
 cd "${FRONTEND_DIR}"
 npm run build

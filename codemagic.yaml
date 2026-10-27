@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 30
     instance_type: mac_mini_m2
     environment:
-      node: 20
+      node: 22
       xcode: latest
     triggering:
       events:
@@ -16,18 +16,25 @@ workflows:
           source: true
       cancel_previous_builds: true
     scripts:
-      - name: Install dependencies
+      - name: Setup Node 22 & Install Dependencies
         script: |
+          # Ensure Node 22+ is active
+          if [ -s "$HOME/.nvm/nvm.sh" ]; then
+            . "$HOME/.nvm/nvm.sh"
+            nvm install 22
+            nvm use 22
+          fi
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
           cd frontend
           npm install --legacy-peer-deps
-      - name: Build Web App & Sync Capacitor iOS
-        script: |
-          cd frontend
-          npm run build
-          npx cap sync ios
-      - name: Build Unsigned IPA
+      - name: Build Web App & Compile Unsigned IPA
         script: |
           set -e
+          if [ -s "$HOME/.nvm/nvm.sh" ]; then
+            . "$HOME/.nvm/nvm.sh"
+            nvm use 22
+          fi
           chmod +x scripts/build-unsigned-ipa.sh
           ./scripts/build-unsigned-ipa.sh
     artifacts:
@@ -35,7 +42,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - varun@example.com # Replace with your notification email if desired
+          - varun@example.com
         notify:
           failure: true
           success: false
@@ -46,7 +53,7 @@ workflows:
     instance_type: linux_x2
     environment:
       java: 17
-      node: 20
+      node: 22
     triggering:
       events:
         - push
@@ -56,12 +63,22 @@ workflows:
           source: true
       cancel_previous_builds: true
     scripts:
-      - name: Install dependencies
+      - name: Setup Node 22 & Install Dependencies
         script: |
+          if [ -s "$HOME/.nvm/nvm.sh" ]; then
+            . "$HOME/.nvm/nvm.sh"
+            nvm install 22
+            nvm use 22
+          fi
+          echo "Node version: $(node -v)"
           cd frontend
           npm install --legacy-peer-deps
       - name: Build Web App & Sync Capacitor Android
         script: |
+          if [ -s "$HOME/.nvm/nvm.sh" ]; then
+            . "$HOME/.nvm/nvm.sh"
+            nvm use 22
+          fi
           cd frontend
           npm run build
           npx cap sync android

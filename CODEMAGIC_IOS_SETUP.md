@@ -40,7 +40,7 @@ Codemagic runs on macOS cloud builders (Apple Silicon M2) with Xcode installed. 
 
 5. **Codemagic Pipeline Configuration (`codemagic.yaml`)**:
    - Two workflows configured:
-     - `ios-unsigned-ipa` (macOS M2 runner, Node 20, latest Xcode)
+     - `ios-unsigned-ipa` (macOS M2 runner, Node 22, latest Xcode)
      - `android-apk` (Linux runner for Android debug APKs)
    - Triggers on `push` to `main` branch or manual trigger from the Codemagic dashboard.
    - Captures `build/ios/ipa/*.ipa` as downloadable artifacts.
