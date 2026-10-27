@@ -1,0 +1,74 @@
+workflows:
+  ios-unsigned-ipa:
+    name: Maxwell Accounting iOS (Unsigned IPA)
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      node: 20
+      xcode: latest
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+          source: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          cd frontend
+          npm install --legacy-peer-deps
+      - name: Build Web App & Sync Capacitor iOS
+        script: |
+          cd frontend
+          npm run build
+          npx cap sync ios
+      - name: Build Unsigned IPA
+        script: |
+          set -e
+          chmod +x scripts/build-unsigned-ipa.sh
+          ./scripts/build-unsigned-ipa.sh
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - varun@example.com # Replace with your notification email if desired
+        notify:
+          failure: true
+          success: false
+
+  android-apk:
+    name: Maxwell Accounting Android (APK)
+    max_build_duration: 20
+    instance_type: linux_x2
+    environment:
+      java: 17
+      node: 20
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+          source: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          cd frontend
+          npm install --legacy-peer-deps
+      - name: Build Web App & Sync Capacitor Android
+        script: |
+          cd frontend
+          npm run build
+          npx cap sync android
+      - name: Build Android Debug APK
+        script: |
+          cd frontend/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+    artifacts:
+      - frontend/android/app/build/outputs/apk/**/*.apk

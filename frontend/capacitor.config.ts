@@ -12,6 +12,11 @@ const config: CapacitorConfig = {
     minSdkVersion: 24,
     targetSdkVersion: 34,
   },
+  ios: {
+    contentInset: 'automatic',
+    preferredContentMode: 'mobile',
+    scheme: 'Maxwell Accounting',
+  },
 };
 
 export default config;
