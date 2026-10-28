@@ -6,6 +6,9 @@ workflows:
     integrations:
       app_store_connect: Code Manager CI
     environment:
+      ios_signing:
+        distribution_type: ad_hoc
+        bundle_identifier: com.maxwell.accounting
       node: 22
       xcode: latest
     triggering:
@@ -37,13 +40,8 @@ workflows:
           cd frontend
           npm run build
           npx cap sync ios
-      - name: Set up code signing with Apple Developer Portal
+      - name: Set up code signing on Xcode project
         script: |
-          keychain initialize
-          app-store-connect fetch-signing-files "com.maxwell.accounting" \
-            --type IOS_APP_ADHOC \
-            --create
-          keychain add-certificates
           xcode-project use-profiles --project frontend/ios/App/App.xcodeproj
       - name: Build Signed IPA
         script: |
