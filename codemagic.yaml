@@ -7,8 +7,6 @@ workflows:
       app_store_connect: Code Manager CI
     environment:
       ios_signing:
-        distribution_type: ad_hoc
-        bundle_identifier: com.maxwell.accounting
         provisioning_profiles:
           - maxwell_adhoc
         certificates:
