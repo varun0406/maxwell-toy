@@ -9,6 +9,10 @@ workflows:
       ios_signing:
         distribution_type: ad_hoc
         bundle_identifier: com.maxwell.accounting
+        provisioning_profiles:
+          - maxwell_adhoc
+        certificates:
+          - maxwell-acc
       node: 22
       xcode: latest
     triggering:
