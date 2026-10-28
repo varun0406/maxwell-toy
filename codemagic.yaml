@@ -44,7 +44,7 @@ workflows:
             --type IOS_APP_ADHOC \
             --create
           keychain add-certificates
-          xcode-project use-profiles
+          xcode-project use-profiles --project frontend/ios/App/App.xcodeproj
       - name: Build Signed IPA
         script: |
           xcode-project build-ipa \
