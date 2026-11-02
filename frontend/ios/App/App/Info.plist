@@ -75,5 +75,11 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Maxwell Accounting requires camera access to take photos of delivery challans.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Maxwell Accounting requires photo library access to upload delivery challan images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Maxwell Accounting requires permission to save photos and documents to your photo library.</string>
 </dict>
 </plist>

@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { invoicesApi, partiesApi, addressBookApi } from '../../api/endpoints';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon, Copy, CreditCard, Filter, FileText, Undo2 } from 'lucide-react';
+import { Share as ShareIcon, Plus, ChevronLeft, X, Search, MapPin, Edit2, Trash2, Image as ImageIcon, Copy, CreditCard, Filter, FileText, Undo2, Camera } from 'lucide-react';
 import { generateAndShareInvoice } from '../../utils/pdfGenerator';
 import { SecureActionModal } from '../../components/SecureActionModal';
 import { SearchCombobox } from '../../components/SearchCombobox';
@@ -14,6 +14,7 @@ import type { ComboboxOption } from '../../components/SearchCombobox';
 import { ItemAutocomplete } from '../../components/ItemAutocomplete';
 import { AddressFormModal } from '../AddressBook';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { ImageViewerModal } from '../../components/ImageViewerModal';
 
 const itemSchema = z.object({
   item_name: z.string().min(1, 'Required'),
@@ -41,6 +42,72 @@ function getPaymentStatus(inv: any): 'paid' | 'partial' | 'unpaid' {
   return 'unpaid';
 }
 
+/** Client-side image optimization to prevent huge uploads from camera crashing/timing out on mobile */
+async function compressImageIfNeeded(file: File): Promise<File> {
+  if (!file.type.startsWith('image/')) {
+    return file;
+  }
+  // If already under 500KB, upload directly
+  if (file.size <= 500 * 1024) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxDim = 1600;
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(file);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob && blob.size < file.size) {
+                const newName = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
+                const compressedFile = new File([blob], newName, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            },
+            'image/jpeg',
+            0.82
+          );
+        } catch {
+          resolve(file);
+        }
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
 function getDateRange(filter: string): { from: string; to: string } | null {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -63,6 +130,7 @@ export function InvoicesList() {
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
   const [page, setPage] = useState(0);
+  const [challanModalUrl, setChallanModalUrl] = useState<string | null>(null);
   const PAGE_SIZE = 20;
 
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -191,7 +259,30 @@ export function InvoicesList() {
                       <div style={{ height: '100%', width: `${pct}%`, background: 'var(--success)', borderRadius: 2 }} />
                     </div>
                   )}
-                  {inv.delivery_challan_url && <a href={inv.delivery_challan_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, display: 'inline-block', marginTop: 2 }}>📎 Challan</a>}
+                  {inv.delivery_challan_url && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setChallanModalUrl(inv.delivery_challan_url);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        fontSize: 11,
+                        color: 'var(--accent)',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        cursor: 'pointer',
+                        marginTop: 2,
+                      }}
+                    >
+                      📎 Challan
+                    </button>
+                  )}
                 </div>
                 <div className="list-item-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                   <span className="badge" style={{ background: status === 'paid' ? 'var(--success-bg)' : status === 'partial' ? 'rgba(245,158,11,0.15)' : 'var(--warning-bg)', color: status === 'paid' ? 'var(--success)' : status === 'partial' ? '#f59e0b' : 'var(--warning)', fontSize: 10 }}>
@@ -210,7 +301,19 @@ export function InvoicesList() {
                       <button className="btn-icon" title="Receive full payment" style={{ padding: 4, background: 'rgba(16,185,129,0.2)', color: 'var(--success)' }} onClick={e => { e.stopPropagation(); navigate(`/payments/new?party=${inv.party_id}&invoice=${inv.id}&amount=${inv.balance_due}`); }}><CreditCard size={13} /></button>
                     )}
                     <button className="btn-icon" title="Sales Return / Credit Note" style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }} onClick={e => { e.stopPropagation(); navigate(`/vouchers/sales-return?party_id=${inv.party_id}&invoice_id=${inv.id}`); }}><Undo2 size={13} /></button>
-                    {inv.delivery_challan_url && <button className="btn-icon" style={{ padding: 4, background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }} onClick={e => { e.stopPropagation(); window.open(inv.delivery_challan_url, '_blank'); }}><ImageIcon size={13} /></button>}
+                    {inv.delivery_challan_url && (
+                      <button
+                        className="btn-icon"
+                        style={{ padding: 4, background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}
+                        title="View Delivery Challan"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setChallanModalUrl(inv.delivery_challan_url);
+                        }}
+                      >
+                        <ImageIcon size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -240,6 +343,13 @@ export function InvoicesList() {
           setSecureAction(null);
         }}
       />
+
+      <ImageViewerModal
+        isOpen={!!challanModalUrl}
+        onClose={() => setChallanModalUrl(null)}
+        imageUrl={challanModalUrl}
+        title="Delivery Challan"
+      />
     </div>
   );
 }
@@ -256,6 +366,21 @@ export function NewInvoice() {
   const [addressSearch, setAddressSearch] = useState('');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [uploadingChallan, setUploadingChallan] = useState(false);
+  const [viewChallanModalUrl, setViewChallanModalUrl] = useState<string | null>(null);
+
+  const handleChallanUpload = async (file: File) => {
+    setUploadingChallan(true);
+    try {
+      const fileToUpload = await compressImageIfNeeded(file);
+      const res = await invoicesApi.upload(fileToUpload);
+      setValue('delivery_challan_url', res.data.url);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || 'Upload failed';
+      alert(`Upload failed: ${msg}`);
+    } finally {
+      setUploadingChallan(false);
+    }
+  };
 
   const editId = searchParams.get('edit') ? Number(searchParams.get('edit')) : null;
   const duplicateId = searchParams.get('duplicate') ? Number(searchParams.get('duplicate')) : null;
@@ -433,30 +558,178 @@ export function NewInvoice() {
               <button type="button" className="btn btn-secondary" style={{ width: '100%' }} onClick={() => append({ item_name: '', meter: 0, rate: 0 })}><Plus size={16} /> Add Another Item</button>
             </div>
 
-            <div className="desktop-form-grid" style={{ marginBottom: 0 }}>
-              <div className="form-group full-width">
-                <label className="form-label">Delivery Challan</label>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <input type="file" accept="image/*" capture="environment" id="challan-camera" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
-                  <input type="file" accept="image/*,.pdf" id="challan-file" style={{ display: 'none' }} onChange={async e => { if (e.target.files?.[0]) { setUploadingChallan(true); try { const res = await invoicesApi.upload(e.target.files[0]); setValue('delivery_challan_url', res.data.url); } catch { alert("Upload failed"); } finally { setUploadingChallan(false); } } }} />
-                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-camera')?.click()}>Take Photo</button>
-                  <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => document.getElementById('challan-file')?.click()}>Upload File</button>
-                  {watch('delivery_challan_url') && <a href={watch('delivery_challan_url')} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>View</a>}
-                  {uploadingChallan && <div className="spinner" style={{ width: 20, height: 20 }} />}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 20, background: 'rgba(108,99,255,0.1)', borderRadius: 12, marginBottom: 24, border: '1px solid rgba(108,99,255,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 20, background: 'rgba(108,99,255,0.1)', borderRadius: 12, marginTop: 16, marginBottom: 16, border: '1px solid rgba(108,99,255,0.2)' }}>
               <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 16 }}>Grand Total</span>
               <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent-light)' }}>{formatCurrency(totalAmount)}</span>
             </div>
 
           </fieldset>
 
+          {/* Delivery Challan Section (accessible in both view & edit modes) */}
+          <div className="form-group full-width" style={{ marginTop: 8, marginBottom: 20 }}>
+            <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Delivery Challan</span>
+              {uploadingChallan && (
+                <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>
+                  Uploading photo…
+                </span>
+              )}
+            </label>
+
+            {/* Native file inputs triggered via htmlFor labels (reliable on iOS WKWebView) */}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              id="challan-camera"
+              style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  handleChallanUpload(e.target.files[0]);
+                  e.target.value = '';
+                }
+              }}
+            />
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              id="challan-file"
+              style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  handleChallanUpload(e.target.files[0]);
+                  e.target.value = '';
+                }
+              }}
+            />
+
+            {watch('delivery_challan_url') ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', flex: 1, minWidth: 0 }}
+                  onClick={() => setViewChallanModalUrl(watch('delivery_challan_url')!)}
+                >
+                  {watch('delivery_challan_url')?.toLowerCase().split('?')[0].endsWith('.pdf') ? (
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 8,
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--danger)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <FileText size={24} />
+                    </div>
+                  ) : (
+                    <img
+                      src={watch('delivery_challan_url')}
+                      alt="Challan thumbnail"
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 8,
+                        objectFit: 'cover',
+                        border: '1px solid var(--border)',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <div style={{ overflow: 'hidden' }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      Challan Attached
+                    </p>
+                    <p style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, margin: '2px 0 0' }}>
+                      Tap to view photo
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-secondary"
+                    style={{ padding: '6px 12px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    onClick={() => setViewChallanModalUrl(watch('delivery_challan_url')!)}
+                  >
+                    <ImageIcon size={14} /> View
+                  </button>
+                  {!viewId && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      style={{ padding: '6px 10px', fontSize: 12, color: 'var(--danger)' }}
+                      onClick={() => setValue('delivery_challan_url', '')}
+                      title="Remove Challan"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : viewId ? (
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic', padding: '6px 0', margin: 0 }}>
+                No delivery challan attached.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <label
+                  htmlFor="challan-camera"
+                  className="btn btn-secondary"
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    cursor: uploadingChallan ? 'not-allowed' : 'pointer',
+                    opacity: uploadingChallan ? 0.6 : 1,
+                    padding: '10px 14px',
+                    margin: 0,
+                  }}
+                >
+                  <Camera size={16} /> Take Photo
+                </label>
+                <label
+                  htmlFor="challan-file"
+                  className="btn btn-secondary"
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    cursor: uploadingChallan ? 'not-allowed' : 'pointer',
+                    opacity: uploadingChallan ? 0.6 : 1,
+                    padding: '10px 14px',
+                    margin: 0,
+                  }}
+                >
+                  <ImageIcon size={16} /> Upload File
+                </label>
+                {uploadingChallan && <div className="spinner" style={{ width: 20, height: 20 }} />}
+              </div>
+            )}
+          </div>
+
           {!viewId && (
-            <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 8 }}>
-              {loading ? 'Processing…' : 'Review & Save Invoice'}
+            <button type="submit" className="btn btn-primary btn-full" disabled={loading || uploadingChallan} style={{ marginTop: 8 }}>
+              {loading ? 'Processing…' : uploadingChallan ? 'Uploading Challan…' : 'Review & Save Invoice'}
             </button>
           )}
           {viewId && targetInvoice && (
@@ -545,6 +818,13 @@ export function NewInvoice() {
           </div>
         </div>
       )}
+
+      <ImageViewerModal
+        isOpen={!!viewChallanModalUrl}
+        onClose={() => setViewChallanModalUrl(null)}
+        imageUrl={viewChallanModalUrl}
+        title="Delivery Challan"
+      />
     </div>
   );
 }
