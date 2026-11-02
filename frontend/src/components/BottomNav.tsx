@@ -1,10 +1,11 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, FileText, CreditCard, BookOpen, Plus, ShoppingCart, BookMarked, ArrowDownToLine, Tag } from 'lucide-react';
+import { Home, Users, FileText, CreditCard, BookOpen, Plus, ShoppingCart, BookMarked, ArrowDownToLine, Tag, Truck } from 'lucide-react';
 
 const TABS = [
   { path: '/home',           icon: Home,         label: 'Home'      },
   { path: '/parties',        icon: Users,         label: 'Parties'   },
   { path: '/invoices',       icon: FileText,      label: 'Invoices'  },
+  { path: '/challans',       icon: Truck,         label: 'Challans'  },
   { path: '/payments',       icon: CreditCard,    label: 'Receipts'  },
   { path: '/purchases',      icon: ShoppingCart,  label: 'Purchases' },
   { path: '/chart-of-accounts', icon: BookOpen,   label: 'Accounts' },
@@ -54,10 +55,6 @@ export default function BottomNav() {
       <button className={`nav-item ${isActive('/rate-book') ? 'active' : ''}`} onClick={() => navigate('/rate-book')} title="Party Rate Book">
         <Tag />
         <span>Rates</span>
-      </button>
-      <button className="nav-item" onClick={() => navigate('/payments/new')} title="New customer receipt">
-        <ArrowDownToLine />
-        <span>New Receipt</span>
       </button>
       <button className={`nav-item ${isActive('/vouchers/credit-note') ? 'active' : ''}`} onClick={() => navigate('/vouchers/credit-note')} title="Sales Return">
         <ArrowDownToLine />

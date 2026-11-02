@@ -111,25 +111,69 @@ export function PaymentsList() {
       ) : (
         <div className="list-container">
           {payments.map((p: any) => (
-            <div key={p.id} className="list-item" onClick={() => navigate(`/payments/${p.id}`)}>
-              <div className="list-item-icon" style={{ background: 'var(--success-bg)' }}>💰</div>
-              <div className="list-item-body">
-                <p 
-                  className="list-item-title party-link" 
-                  onClick={(e) => { e.stopPropagation(); navigate(`/parties/${p.party_id}`); }}
-                >
-                  {p.party_name}
-                </p>
-                <p className="list-item-sub">PMT-{String(p.id).padStart(4, '0')} · {formatDate(p.payment_date)} · {(p.mode || 'cash').toUpperCase()}</p>
-                {p.note && <p className="list-item-sub" style={{ fontSize: 11 }}>{p.note}</p>}
-              </div>
-              <div className="list-item-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--success)' }}>{formatCurrency(p.amount)}</p>
-                <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                  {Number(p.discount_amount || 0) > 0 && <span className="badge" style={{ fontSize: 10, background: 'rgba(234,179,8,0.15)', color: 'var(--warning)' }}>Disc: {formatCurrency(p.discount_amount)}</span>}
-                  {Number(p.unallocated) > 0 && <span className="badge badge-accent" style={{ fontSize: 10 }}>On Acct {formatCurrency(p.unallocated)}</span>}
+            <div 
+              key={p.id} 
+              className="compact-record-card" 
+              onClick={() => navigate(`/payments/${p.id}`)}
+            >
+              {/* Header: Party Name + Amount */}
+              <div className="compact-record-header">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p 
+                    className="compact-party-title" 
+                    onClick={(e) => { e.stopPropagation(); navigate(`/parties/${p.party_id}`); }}
+                  >
+                    {p.party_name}
+                  </p>
+                  <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2, fontWeight: 500 }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>PMT-{String(p.id).padStart(4, '0')}</span> · {formatDate(p.payment_date)}
+                  </p>
+                </div>
+
+                <div className="compact-amount-col">
+                  <span className="compact-record-amount" style={{ color: 'var(--success)', fontSize: 16 }}>
+                    +{formatCurrency(p.amount)}
+                  </span>
+                  <span 
+                    className="badge" 
+                    style={{ 
+                      marginTop: 2,
+                      fontSize: 10,
+                      padding: '2px 6px',
+                      background: 'rgba(34,197,94,0.12)', 
+                      color: 'var(--success)', 
+                      textTransform: 'uppercase',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {(p.mode || 'cash')}
+                  </span>
                 </div>
               </div>
+
+              {/* Sub details & Badges */}
+              {(p.note || Number(p.discount_amount || 0) > 0 || Number(p.unallocated || 0) > 0) && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 4 }}>
+                  {p.note ? (
+                    <p style={{ fontSize: 11.5, color: 'var(--text-muted)', fontStyle: 'italic', margin: 0, flex: 1 }}>
+                      {p.note}
+                    </p>
+                  ) : <div />}
+
+                  <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+                    {Number(p.discount_amount || 0) > 0 && (
+                      <span className="badge" style={{ fontSize: 10, background: 'rgba(234,179,8,0.15)', color: 'var(--warning)', padding: '2px 6px' }}>
+                        Disc: {formatCurrency(p.discount_amount)}
+                      </span>
+                    )}
+                    {Number(p.unallocated || 0) > 0 && (
+                      <span className="badge badge-accent" style={{ fontSize: 10, padding: '2px 6px' }}>
+                        On Acct: {formatCurrency(p.unallocated)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
           {/* Pagination */}

@@ -4,6 +4,36 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 
+async function loadChallanImageForPdf(url: string): Promise<{ dataUrl: string; width: number; height: number; format: string } | null> {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const isPng = blob.type.includes('png');
+          resolve({
+            dataUrl,
+            width: img.naturalWidth || img.width || 800,
+            height: img.naturalHeight || img.height || 600,
+            format: isPng ? 'PNG' : 'JPEG',
+          });
+        };
+        img.onerror = () => resolve(null);
+        img.src = dataUrl;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn('Could not load challan image for PDF:', e);
+    return null;
+  }
+}
+
 export async function generateAndShareInvoice(invoice: any, party: any) {
   const doc = new jsPDF();
   
@@ -56,6 +86,47 @@ export async function generateAndShareInvoice(invoice: any, party: any) {
     headStyles: { fillColor: [234, 179, 8] },
     footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
   });
+
+  // Append Delivery Challan page if attached
+  if (invoice.delivery_challan_url && !invoice.delivery_challan_url.toLowerCase().split('?')[0].endsWith('.pdf')) {
+    try {
+      const challanImg = await loadChallanImageForPdf(invoice.delivery_challan_url);
+      if (challanImg) {
+        doc.addPage();
+
+        doc.setFontSize(16);
+        doc.setFont('', 'bold');
+        doc.text('DELIVERY CHALLAN / ACKNOWLEDGEMENT', 105, 18, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setFont('', 'normal');
+        doc.text(`Invoice No: ${invoice.invoice_number}`, 14, 28);
+        doc.text(`Party: ${party?.name || 'Customer'}`, 14, 34);
+        doc.text(`Date: ${new Date(invoice.invoice_date).toLocaleDateString()}`, 140, 28);
+
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.4);
+        doc.line(14, 38, 196, 38);
+
+        const maxWidth = 182;
+        const maxHeight = 236;
+        let imgWidth = maxWidth;
+        let imgHeight = (challanImg.height * maxWidth) / challanImg.width;
+
+        if (imgHeight > maxHeight) {
+          imgHeight = maxHeight;
+          imgWidth = (challanImg.width * maxHeight) / challanImg.height;
+        }
+
+        const posX = 14 + (maxWidth - imgWidth) / 2;
+        const posY = 44;
+
+        doc.addImage(challanImg.dataUrl, challanImg.format, posX, posY, imgWidth, imgHeight);
+      }
+    } catch (e) {
+      console.error('Error adding challan image to PDF', e);
+    }
+  }
 
   // Export PDF
   const pdfOutput = doc.output('datauristring');

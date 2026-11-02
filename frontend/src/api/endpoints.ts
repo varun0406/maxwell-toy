@@ -75,6 +75,26 @@ export const invoicesApi = {
   },
 };
 
+// ── Delivery Challans ────────────────────────────────────────────────────────
+export const challansApi = {
+  list: (status: string = 'ALL', partyId?: number, search?: string, skip: number = 0, limit: number = 100) =>
+    api.get('/challans/', {
+      params: {
+        status,
+        ...(partyId ? { party_id: partyId } : {}),
+        ...(search ? { search } : {}),
+        skip,
+        limit,
+      },
+    }),
+  create: (data: { image_url: string; party_id?: number; party_name?: string; challan_number?: string; notes?: string }) =>
+    api.post('/challans/', data),
+  linkInvoice: (challanId: number, invoiceId: number) =>
+    api.post(`/challans/${challanId}/link?invoice_id=${invoiceId}`),
+  delete: (challanId: number) =>
+    api.delete(`/challans/${challanId}`),
+};
+
 // ── Payments ─────────────────────────────────────────────────────────────────
 export const paymentsApi = {
   list: (

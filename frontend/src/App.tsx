@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import { PartiesList, PartyDetail } from './pages/Parties';
 import { InvoicesList, NewInvoice } from './pages/Sales';
+import ChallansList from './pages/Challans';
 import { PaymentsList, NewPayment, PaymentDetail } from './pages/Payments';
 import Analytics from './pages/Analytics';
 import AddressBook from './pages/AddressBook';
@@ -96,6 +97,7 @@ export default function App() {
 
             <Route path="/invoices" element={<InvoicesList />} />
             <Route path="/invoices/new" element={<NewInvoice />} />
+            <Route path="/challans" element={<ChallansList />} />
 
             <Route path="/payments" element={<PaymentsList />} />
             <Route path="/payments/new" element={<NewPayment />} />

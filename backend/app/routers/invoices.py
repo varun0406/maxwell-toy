@@ -199,9 +199,35 @@ def create_invoice(
         description=payload.description,
         invoice_date=payload.invoice_date,
         due_date=payload.due_date,
+        delivery_challan_url=payload.delivery_challan_url,
     )
     db.add(invoice)
     db.flush()  # get invoice.id
+
+    # If delivery challan url is present, link any matching pending DeliveryChallan
+    if payload.delivery_challan_url:
+        matching_challan = (
+            db.query(models.DeliveryChallan)
+            .filter(models.DeliveryChallan.image_url == payload.delivery_challan_url)
+            .first()
+        )
+        if matching_challan:
+            matching_challan.invoice_id = invoice.id
+            matching_challan.status = "INVOICED"
+            matching_challan.party_id = invoice.party_id
+        else:
+            # Auto-record as an invoiced DeliveryChallan
+            dc_count = db.query(models.DeliveryChallan).count() + 1
+            auto_challan = models.DeliveryChallan(
+                challan_number=f"DC-{dc_count:04d}",
+                party_id=invoice.party_id,
+                party_name=party.name if party else None,
+                image_url=payload.delivery_challan_url,
+                status="INVOICED",
+                invoice_id=invoice.id,
+                created_by=current_user.id,
+            )
+            db.add(auto_challan)
 
     for item in payload.items:
         db_item = models.InvoiceItem(

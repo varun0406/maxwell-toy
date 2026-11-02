@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 
 from .config import settings
 from .database import engine, Base
-from .routers import auth, parties, invoices, payments, analytics, address_book, users, items, accounts, purchases, vouchers, chart_of_accounts, settings as app_settings, webhook
+from .routers import auth, parties, invoices, payments, analytics, address_book, users, items, accounts, purchases, vouchers, chart_of_accounts, settings as app_settings, webhook, challans
 
 # Create tables on startup (Alembic takes over in production)
 @asynccontextmanager
@@ -65,6 +65,7 @@ app.include_router(vouchers.router)
 app.include_router(chart_of_accounts.router)
 app.include_router(app_settings.router)
 app.include_router(webhook.router)
+app.include_router(challans.router)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

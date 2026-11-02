@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/auth';
 import { formatCurrency, formatDate } from '../../utils/format';
 import CalculationEvidence from '../../components/CalculationEvidence';
 import {
-  Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert, BookOpen, Settings as SettingsIcon, FileText
+  Users, ChevronRight, Plus, CreditCard, BarChart2, CalendarClock, ShieldAlert, BookOpen, Settings as SettingsIcon, FileText, Truck
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -132,6 +132,10 @@ export default function Dashboard() {
         <button className="quick-action-btn accent" onClick={() => navigate('/invoices/new')}>
           <Plus size={20} />
           Sales Invoice
+        </button>
+        <button className="quick-action-btn" style={{ background: 'rgba(217, 154, 0, 0.12)', border: '1px solid rgba(217, 154, 0, 0.3)', color: 'var(--accent)' }} onClick={() => navigate('/challans')}>
+          <Truck size={20} />
+          Challans
         </button>
         <button className="quick-action-btn success" onClick={() => navigate('/payments/new')}>
           <CreditCard size={20} />

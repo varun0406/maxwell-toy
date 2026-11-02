@@ -395,6 +395,31 @@ class VendorPayment(Base):
         Index("ix_vendor_payments_date", "payment_date"),
     )
 
+
+# ---------------------------------------------------------------------------
+# Delivery Challans (Goods Dispatched / Proof of Delivery)
+# ---------------------------------------------------------------------------
+
+class DeliveryChallan(Base):
+    __tablename__ = "delivery_challans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    challan_number = Column(String(50), nullable=True, index=True)
+    party_id = Column(Integer, ForeignKey("parties.id", ondelete="SET NULL"), nullable=True, index=True)
+    party_name = Column(String(120), nullable=True)
+    image_url = Column(String(500), nullable=False)
+    notes = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default="PENDING", index=True)  # PENDING | INVOICED
+    invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    party = relationship("Party")
+    invoice = relationship("Invoice")
+    created_by_user = relationship("User")
+
+
 # ---------------------------------------------------------------------------
 # Core Double-Entry Accounting (Phase 1)
 # ---------------------------------------------------------------------------

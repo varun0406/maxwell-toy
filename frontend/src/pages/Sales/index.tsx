@@ -15,6 +15,7 @@ import { ItemAutocomplete } from '../../components/ItemAutocomplete';
 import { AddressFormModal } from '../AddressBook';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { ImageViewerModal } from '../../components/ImageViewerModal';
+import { compressImageIfNeeded } from '../../utils/imageCompressor';
 
 const itemSchema = z.object({
   item_name: z.string().min(1, 'Required'),
@@ -40,72 +41,6 @@ function getPaymentStatus(inv: any): 'paid' | 'partial' | 'unpaid' {
   if (inv.is_paid) return 'paid';
   if (Number(inv.balance_due) < Number(inv.amount)) return 'partial';
   return 'unpaid';
-}
-
-/** Client-side image optimization to prevent huge uploads from camera crashing/timing out on mobile */
-async function compressImageIfNeeded(file: File): Promise<File> {
-  if (!file.type.startsWith('image/')) {
-    return file;
-  }
-  // If already under 500KB, upload directly
-  if (file.size <= 500 * 1024) {
-    return file;
-  }
-
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const maxDim = 1600;
-          let { width, height } = img;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(file);
-            return;
-          }
-
-          ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob(
-            (blob) => {
-              if (blob && blob.size < file.size) {
-                const newName = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
-                const compressedFile = new File([blob], newName, {
-                  type: 'image/jpeg',
-                  lastModified: Date.now(),
-                });
-                resolve(compressedFile);
-              } else {
-                resolve(file);
-              }
-            },
-            'image/jpeg',
-            0.82
-          );
-        } catch {
-          resolve(file);
-        }
-      };
-      img.onerror = () => resolve(file);
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => resolve(file);
-    reader.readAsDataURL(file);
-  });
 }
 
 function getDateRange(filter: string): { from: string; to: string } | null {
@@ -233,88 +168,142 @@ export function InvoicesList() {
             return (
               <div 
                 key={inv.id} 
-                className="list-item" 
-                style={{ cursor: 'pointer' }}
+                className="compact-record-card" 
                 onClick={() => navigate(`/invoices/new?view=${inv.id}`)}
               >
-                <div className="list-item-icon" style={{ background: status === 'paid' ? 'var(--success-bg)' : status === 'partial' ? 'rgba(245,158,11,0.12)' : 'var(--warning-bg)' }}>
-                  {status === 'paid' ? '✅' : status === 'partial' ? '⏳' : '📄'}
-                </div>
-                <div className="list-item-body">
-                  <p 
-                    className="list-item-title party-link" 
-                    onClick={(e) => { e.stopPropagation(); navigate(`/parties/${inv.party_id}`); }}
-                  >
-                    {inv.party_name}
-                  </p>
-                  <p className="list-item-sub" style={{ fontSize: 11 }}>{inv.invoice_number} · {formatDate(inv.invoice_date)}{inv.due_date ? ` · Due ${formatDate(inv.due_date)}` : ''}</p>
-                  {status !== 'paid' && (
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                      Invoice: <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(inv.amount)}</span>
-                      {status === 'partial' && <> · Paid: <span style={{ color: 'var(--success)' }}>{formatCurrency(Number(inv.amount) - Number(inv.balance_due))}</span></>}
+                {/* Header: Full party name + Amount & Status */}
+                <div className="compact-record-header">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p 
+                      className="compact-party-title" 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/parties/${inv.party_id}`); }}
+                    >
+                      {inv.party_name}
                     </p>
-                  )}
-                  {status === 'partial' && (
-                    <div style={{ marginTop: 4, height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden', width: '100%' }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: 'var(--success)', borderRadius: 2 }} />
-                    </div>
-                  )}
+                    <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2, fontWeight: 500 }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{inv.invoice_number}</span> · {formatDate(inv.invoice_date)}
+                      {inv.due_date ? ` · Due ${formatDate(inv.due_date)}` : ''}
+                    </p>
+                  </div>
+
+                  <div className="compact-amount-col">
+                    <span 
+                      className="compact-record-amount" 
+                      style={{ color: status === 'paid' ? 'var(--success)' : status === 'partial' ? '#d97706' : 'var(--warning)' }}
+                    >
+                      {formatCurrency(status === 'paid' ? inv.amount : inv.balance_due)}
+                    </span>
+                    <span 
+                      className="badge" 
+                      style={{ 
+                        marginTop: 2,
+                        fontSize: 10,
+                        padding: '2px 6px',
+                        background: status === 'paid' ? 'var(--success-bg)' : status === 'partial' ? 'rgba(245,158,11,0.15)' : 'var(--warning-bg)', 
+                        color: status === 'paid' ? 'var(--success)' : status === 'partial' ? '#d97706' : 'var(--warning)', 
+                      }}
+                    >
+                      {status === 'paid' ? 'Paid' : status === 'partial' ? `Partial (${pct}%)` : 'Unpaid'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Sub details: If partial or unpaid, show total bill info */}
+                {status !== 'paid' && (
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>Total: {formatCurrency(inv.amount)}</span>
+                    {status === 'partial' && (
+                      <>
+                        <span>·</span>
+                        <span style={{ color: 'var(--success)' }}>Paid: {formatCurrency(Number(inv.amount) - Number(inv.balance_due))}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {status === 'partial' && (
+                  <div style={{ height: 3, borderRadius: 2, background: 'var(--border)', overflow: 'hidden', width: '100%' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: 'var(--success)', borderRadius: 2 }} />
+                  </div>
+                )}
+
+                {/* Actions Toolbar */}
+                <div className="compact-action-row" onClick={(e) => e.stopPropagation()}>
                   {inv.delivery_challan_url && (
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setChallanModalUrl(inv.delivery_challan_url);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        fontSize: 11,
-                        color: 'var(--accent)',
-                        fontWeight: 600,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 3,
-                        cursor: 'pointer',
-                        marginTop: 2,
-                      }}
+                      className="action-pill-btn"
+                      style={{ background: 'rgba(59,130,246,0.12)', color: '#2563eb', marginRight: 'auto' }}
+                      title="View Delivery Challan"
+                      onClick={() => setChallanModalUrl(inv.delivery_challan_url)}
                     >
-                      📎 Challan
+                      <ImageIcon size={12} />
+                      <span>Challan</span>
                     </button>
                   )}
-                </div>
-                <div className="list-item-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  <span className="badge" style={{ background: status === 'paid' ? 'var(--success-bg)' : status === 'partial' ? 'rgba(245,158,11,0.15)' : 'var(--warning-bg)', color: status === 'paid' ? 'var(--success)' : status === 'partial' ? '#f59e0b' : 'var(--warning)', fontSize: 10 }}>
-                    {status === 'paid' ? 'Paid' : status === 'partial' ? 'Partial' : 'Unpaid'}
-                  </span>
-                  <p style={{ fontWeight: 700, fontSize: 14, color: status === 'paid' ? 'var(--success)' : 'var(--warning)' }}>
-                    {formatCurrency(status === 'paid' ? inv.amount : inv.balance_due)}
-                  </p>
-                  <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{status === 'paid' ? 'total' : 'due'}</p>
-                  <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <button className="btn-icon" style={{ padding: 4, background: 'rgba(108,99,255,0.1)', color: 'var(--accent)' }} onClick={e => { e.stopPropagation(); setSecureAction({ type: 'edit', id: inv.id }); }}><Edit2 size={13} /></button>
-                    <button className="btn-icon" style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }} onClick={e => { e.stopPropagation(); setSecureAction({ type: 'delete', id: inv.id }); }}><Trash2 size={13} /></button>
-                    <button className="btn-icon" style={{ padding: 4, background: 'rgba(108,99,255,0.1)', color: 'var(--accent)' }} onClick={async e => { e.stopPropagation(); const party = (await partiesApi.get(inv.party_id)).data; const fullInv = (await invoicesApi.get(inv.id)).data; generateAndShareInvoice(fullInv, party); }}><ShareIcon size={13} /></button>
-                    <button className="btn-icon" title="Duplicate invoice" style={{ padding: 4, background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }} onClick={e => { e.stopPropagation(); navigate(`/invoices/new?duplicate=${inv.id}`); }}><Copy size={13} /></button>
-                    {status !== 'paid' && (
-                      <button className="btn-icon" title="Receive full payment" style={{ padding: 4, background: 'rgba(16,185,129,0.2)', color: 'var(--success)' }} onClick={e => { e.stopPropagation(); navigate(`/payments/new?party=${inv.party_id}&invoice=${inv.id}&amount=${inv.balance_due}`); }}><CreditCard size={13} /></button>
-                    )}
-                    <button className="btn-icon" title="Sales Return / Credit Note" style={{ padding: 4, background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }} onClick={e => { e.stopPropagation(); navigate(`/vouchers/sales-return?party_id=${inv.party_id}&invoice_id=${inv.id}`); }}><Undo2 size={13} /></button>
-                    {inv.delivery_challan_url && (
-                      <button
-                        className="btn-icon"
-                        style={{ padding: 4, background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}
-                        title="View Delivery Challan"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setChallanModalUrl(inv.delivery_challan_url);
-                        }}
-                      >
-                        <ImageIcon size={13} />
-                      </button>
-                    )}
-                  </div>
+
+                  <button 
+                    className="action-pill-btn" 
+                    style={{ background: 'rgba(108,99,255,0.1)', color: 'var(--accent)' }} 
+                    title="Share Invoice with Delivery Challan"
+                    onClick={async () => { 
+                      const party = (await partiesApi.get(inv.party_id)).data; 
+                      const fullInv = (await invoicesApi.get(inv.id)).data; 
+                      generateAndShareInvoice(fullInv, party); 
+                    }}
+                  >
+                    <ShareIcon size={12} />
+                    <span>PDF</span>
+                  </button>
+
+                  <button 
+                    className="action-pill-btn" 
+                    title="Duplicate invoice" 
+                    style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }} 
+                    onClick={() => navigate(`/invoices/new?duplicate=${inv.id}`)}
+                  >
+                    <Copy size={12} />
+                    <span>Copy</span>
+                  </button>
+
+                  {status !== 'paid' && (
+                    <button 
+                      className="action-pill-btn" 
+                      title="Receive payment" 
+                      style={{ background: 'rgba(16,185,129,0.18)', color: 'var(--success)', fontWeight: 700 }} 
+                      onClick={() => navigate(`/payments/new?party=${inv.party_id}&invoice=${inv.id}&amount=${inv.balance_due}`)}
+                    >
+                      <CreditCard size={12} />
+                      <span>Pay</span>
+                    </button>
+                  )}
+
+                  <button 
+                    className="action-pill-btn" 
+                    title="Sales Return / Credit Note" 
+                    style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--danger)' }} 
+                    onClick={() => navigate(`/vouchers/sales-return?party_id=${inv.party_id}&invoice_id=${inv.id}`)}
+                  >
+                    <Undo2 size={12} />
+                  </button>
+
+                  <button 
+                    className="action-pill-btn" 
+                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }} 
+                    title="Edit invoice"
+                    onClick={() => setSecureAction({ type: 'edit', id: inv.id })}
+                  >
+                    <Edit2 size={12} />
+                  </button>
+
+                  <button 
+                    className="action-pill-btn" 
+                    style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--danger)' }} 
+                    title="Delete invoice"
+                    onClick={() => setSecureAction({ type: 'delete', id: inv.id })}
+                  >
+                    <Trash2 size={12} />
+                  </button>
                 </div>
               </div>
             );
@@ -423,6 +412,23 @@ export function NewInvoice() {
       if (targetInvoice.items?.length > 0) setValue('items', targetInvoice.items.map((i: any) => ({ item_name: i.item_name, meter: i.meter, rate: i.rate })));
     }
   }, [targetInvoice, duplicateId, setValue, today]);
+
+  useEffect(() => {
+    const challanUrl = searchParams.get('challan_url');
+    if (challanUrl && !targetId) {
+      setValue('delivery_challan_url', decodeURIComponent(challanUrl));
+    }
+    const partyParam = searchParams.get('party');
+    if (partyParam && !targetId && parties.length > 0) {
+      const pid = Number(partyParam);
+      setValue('party_id', pid);
+      const party = parties.find((p: any) => p.id === pid);
+      if (party) {
+        setValue('billing_address', [party.billing_address_line1, party.billing_address_line2, party.billing_address_line3, party.billing_city].filter(Boolean).join(', '));
+        setValue('shipping_address', [party.shipping_address_line1, party.shipping_address_line2, party.shipping_address_line3, party.shipping_city].filter(Boolean).join(', '));
+      }
+    }
+  }, [searchParams, targetId, setValue, parties]);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchItems = watch('items');
