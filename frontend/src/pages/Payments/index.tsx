@@ -9,7 +9,7 @@ import { formatCurrency, formatDate } from '../../utils/format';
 import { SearchCombobox } from '../../components/SearchCombobox';
 import type { ComboboxOption } from '../../components/SearchCombobox';
 import { SecureActionModal } from '../../components/SecureActionModal';
-import { Search, X, Plus, ChevronLeft, Edit2, Receipt } from 'lucide-react';
+import { Search, X, Plus, ChevronLeft, Edit2, Receipt, AlertTriangle } from 'lucide-react';
 import { generateAndSharePaymentReceipt } from '../../utils/pdfGenerator';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
@@ -159,6 +159,8 @@ export function NewPayment() {
   const [unpaidInvoices, setUnpaidInvoices] = useState<any[]>([]);
   const [allocations, setAllocations] = useState<{ [invoiceId: number]: number }>({});
   const [draftAllocations, setDraftAllocations] = useState<{ [invoiceId: number]: string }>({});
+  const [showOnAccountConfirm, setShowOnAccountConfirm] = useState(false);
+  const [pendingPaymentData, setPendingPaymentData] = useState<PaymentForm | null>(null);
 
   const today = new Date().toISOString().split('T')[0];
   // F8: Pre-fill from invoice quick-settle link
@@ -181,22 +183,24 @@ export function NewPayment() {
   const { data: parties = [] } = useQuery({ queryKey: ['parties', partySearch], queryFn: () => partiesApi.list(partySearch, 0, 100).then(r => r.data.items) });
   const partyOptions: ComboboxOption[] = (Array.isArray(parties) ? parties : []).map((p: any) => ({ value: p.id, label: p.name, sublabel: `Due: ${Number(p.outstanding || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })}` }));
 
+  // Always fetch unpaid invoices when a party is selected to know if pending bills exist
   useEffect(() => {
-    if (selectedParty && paymentType === 'bill_adjustment') {
+    if (selectedParty) {
       invoicesApi.list(Number(selectedParty), true, undefined, 0, 1000).then(r => {
-        const sorted = r.data.items.sort((a: any, b: any) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime());
+        const sorted = (r.data.items || []).sort((a: any, b: any) => new Date(a.invoice_date).getTime() - new Date(b.invoice_date).getTime());
         setUnpaidInvoices(sorted);
         // F8: Auto-allocate to pre-filled invoice
         if (prefilledInvoiceId && prefilledAmount) {
           const inv = sorted.find((i: any) => i.id === prefilledInvoiceId);
           if (inv) setAllocations({ [prefilledInvoiceId]: Math.min(prefilledAmount, Number(inv.balance_due)) });
-        } else {
-          setAllocations({});
         }
-        setDraftAllocations({});
-      });
+      }).catch(() => {});
+    } else {
+      setUnpaidInvoices([]);
+      setAllocations({});
+      setDraftAllocations({});
     }
-  }, [selectedParty, paymentType]);
+  }, [selectedParty, prefilledInvoiceId, prefilledAmount]);
 
   // F8: Auto-switch to bill_adjustment if invoice param present
   useEffect(() => {
@@ -212,16 +216,12 @@ export function NewPayment() {
 
   const totalAllocated = Object.values(allocations).reduce((s, v) => s + (v || 0), 0);
 
-  const onSubmit = async (data: PaymentForm) => {
-    if (loading) return;
+  const executePaymentSave = async (data: PaymentForm, forceOnAccount: boolean = false) => {
     setLoading(true); setErr('');
-    if (paymentType === 'bill_adjustment' && totalAllocated > Number(data.amount)) {
-      setErr('Total allocated cannot exceed payment amount.');
-      setLoading(false); return;
-    }
     try {
       const payload: any = { ...data, payment_date: new Date(data.payment_date).toISOString() };
-      if (paymentType === 'bill_adjustment') {
+      const currentType = forceOnAccount ? 'on_account' : paymentType;
+      if (currentType === 'bill_adjustment') {
         const finalAllocations = { ...allocations };
         Object.entries(draftAllocations).forEach(([idStr, val]) => {
           const invId = Number(idStr);
@@ -234,10 +234,31 @@ export function NewPayment() {
       }
       await paymentsApi.create(payload);
       qc.invalidateQueries();
+      setShowOnAccountConfirm(false);
       navigate(-1);
     } catch (e: any) {
       setErr(e.response?.data?.detail || 'Failed to record payment');
     } finally { setLoading(false); }
+  };
+
+  const onSubmit = async (data: PaymentForm) => {
+    if (loading) return;
+    if (paymentType === 'bill_adjustment' && totalAllocated > Number(data.amount)) {
+      setErr('Total allocated cannot exceed payment amount.');
+      return;
+    }
+
+    // If there are pending bills and the user is saving on account (or adjusted nothing), show confirmation alert
+    const hasPendingBills = unpaidInvoices.length > 0;
+    const isNotAdjusting = paymentType === 'on_account' || totalAllocated === 0;
+
+    if (hasPendingBills && isNotAdjusting) {
+      setPendingPaymentData(data);
+      setShowOnAccountConfirm(true);
+      return;
+    }
+
+    await executePaymentSave(data);
   };
 
   return (
@@ -309,13 +330,161 @@ export function NewPayment() {
               )}
             </div>
           )}
-          {paymentType === 'on_account' && <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, textAlign: 'center' }}>This payment will be saved to the party's account and can be applied to invoices later.</p>}
+          {paymentType === 'on_account' && (
+            <>
+              {selectedParty && unpaidInvoices.length > 0 ? (
+                <div
+                  style={{
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '12px 14px',
+                    marginBottom: 20,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                  }}
+                >
+                  <AlertTriangle size={18} color="var(--warning)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Pending Bills Notice
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 8px' }}>
+                      This party has <strong>{unpaidInvoices.length}</strong> unpaid bill{unpaidInvoices.length > 1 ? 's' : ''} totaling <strong>{formatCurrency(unpaidInvoices.reduce((s, i) => s + Number(i.balance_due), 0))}</strong>.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      style={{ fontSize: 12, padding: '4px 10px', color: 'var(--accent)', borderColor: 'var(--accent)' }}
+                      onClick={() => setPaymentType('bill_adjustment')}
+                    >
+                      Switch to Bill Adjustment
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, textAlign: 'center' }}>
+                  This payment will be saved to the party's account and can be applied to invoices later.
+                </p>
+              )}
+            </>
+          )}
 
           <button type="submit" className="btn btn-success btn-full" disabled={loading || (paymentType === 'bill_adjustment' && enteredAmount > 0 && totalAllocated > Number(enteredAmount))}>
             {loading ? 'Processing…' : 'Record Receipt'}
           </button>
         </form>
       </div>
+
+      {/* Confirmation Modal when pending bills exist but saving on account */}
+      {showOnAccountConfirm && pendingPaymentData && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowOnAccountConfirm(false)}
+          style={{
+            zIndex: 9999,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <div
+            className="modal-content"
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: 380,
+              width: '100%',
+              padding: 24,
+              borderRadius: 18,
+              background: 'var(--bg-elevated)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--warning)',
+                  flexShrink: 0,
+                }}
+              >
+                <AlertTriangle size={24} />
+              </div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                Pending Bill Adjustments
+              </h3>
+            </div>
+
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 14 }}>
+              This party has <strong>{unpaidInvoices.length}</strong> pending bill{unpaidInvoices.length > 1 ? 's' : ''} totaling <strong>{formatCurrency(unpaidInvoices.reduce((s, i) => s + Number(i.balance_due), 0))}</strong>.
+            </p>
+
+            <div
+              style={{
+                background: 'var(--bg-base)',
+                border: '1px solid var(--border)',
+                borderRadius: 12,
+                padding: '12px 14px',
+                marginBottom: 20,
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                lineHeight: 1.4,
+              }}
+            >
+              Are you okay with not adjusting and taking the on-account balance?
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{
+                  background: 'var(--accent)',
+                  borderColor: 'var(--accent)',
+                  fontWeight: 700,
+                  padding: '12px',
+                  borderRadius: 12,
+                }}
+                onClick={() => {
+                  if (pendingPaymentData) {
+                    executePaymentSave(pendingPaymentData, true);
+                  }
+                }}
+                disabled={loading}
+              >
+                {loading ? 'Saving…' : 'Yes, Take On Account'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{
+                  padding: '12px',
+                  borderRadius: 12,
+                }}
+                onClick={() => {
+                  setShowOnAccountConfirm(false);
+                  setPaymentType('bill_adjustment');
+                }}
+                disabled={loading}
+              >
+                No, Adjust Bills
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
