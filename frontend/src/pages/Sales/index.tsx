@@ -165,86 +165,97 @@ export function InvoicesList() {
           {invoices.map((inv: any) => {
             const status = getPaymentStatus(inv);
             const pct = Number(inv.amount) > 0 ? Math.round((1 - Number(inv.balance_due) / Number(inv.amount)) * 100) : 100;
+            const partyName = inv.party_name || inv.party?.name || (inv.party_id ? `Customer #${inv.party_id}` : 'Customer');
+            const initial = (partyName.trim()[0] || 'C').toUpperCase();
             return (
               <div 
                 key={inv.id} 
-                className="compact-record-card" 
+                className="invoice-big-card" 
                 onClick={() => navigate(`/invoices/new?view=${inv.id}`)}
               >
-                {/* Header: Full party name + Amount & Status */}
-                <div className="compact-record-header">
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p 
-                      className="compact-party-title" 
-                      onClick={(e) => { e.stopPropagation(); navigate(`/parties/${inv.party_id}`); }}
-                    >
-                      {inv.party_name}
-                    </p>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2, fontWeight: 500 }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{inv.invoice_number}</span> · {formatDate(inv.invoice_date)}
-                      {inv.due_date ? ` · Due ${formatDate(inv.due_date)}` : ''}
-                    </p>
+                {/* Top Row: Full-width Party Name Header */}
+                <div className="card-party-header">
+                  <div className="party-avatar-badge">
+                    {initial}
                   </div>
-
-                  <div className="compact-amount-col">
-                    <span 
-                      className="compact-record-amount" 
-                      style={{ color: status === 'paid' ? 'var(--success)' : status === 'partial' ? '#d97706' : 'var(--warning)' }}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 
+                      className="card-party-name" 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/parties/${inv.party_id}`); }}
+                      title="View Party Details"
                     >
-                      {formatCurrency(status === 'paid' ? inv.amount : inv.balance_due)}
-                    </span>
-                    <span 
-                      className="badge" 
-                      style={{ 
-                        marginTop: 2,
-                        fontSize: 10,
-                        padding: '2px 6px',
-                        background: status === 'paid' ? 'var(--success-bg)' : status === 'partial' ? 'rgba(245,158,11,0.15)' : 'var(--warning-bg)', 
-                        color: status === 'paid' ? 'var(--success)' : status === 'partial' ? '#d97706' : 'var(--warning)', 
-                      }}
-                    >
-                      {status === 'paid' ? 'Paid' : status === 'partial' ? `Partial (${pct}%)` : 'Unpaid'}
-                    </span>
+                      {partyName}
+                    </h3>
+                    <div className="card-inv-meta">
+                      <span className="card-inv-number">{inv.invoice_number}</span>
+                      <span className="meta-dot">·</span>
+                      <span>{formatDate(inv.invoice_date)}</span>
+                      {inv.due_date && (
+                        <>
+                          <span className="meta-dot">·</span>
+                          <span style={{ color: status !== 'paid' ? '#b45309' : 'inherit' }}>
+                            Due {formatDate(inv.due_date)}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Sub details: If partial or unpaid, show total bill info */}
-                {status !== 'paid' && (
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>Total: {formatCurrency(inv.amount)}</span>
-                    {status === 'partial' && (
-                      <>
-                        <span>·</span>
-                        <span style={{ color: 'var(--success)' }}>Paid: {formatCurrency(Number(inv.amount) - Number(inv.balance_due))}</span>
-                      </>
+                {/* Middle Financial Summary Box */}
+                <div className="card-financial-box">
+                  <div>
+                    <p className="financial-label">{status === 'paid' ? 'Total Paid' : 'Balance Due'}</p>
+                    <p 
+                      className="financial-value" 
+                      style={{ color: status === 'paid' ? 'var(--success)' : status === 'partial' ? '#d97706' : 'var(--danger)' }}
+                    >
+                      {formatCurrency(status === 'paid' ? inv.amount : inv.balance_due)}
+                    </p>
+                    {status !== 'paid' && (
+                      <p className="financial-sub">
+                        Bill Total: {formatCurrency(inv.amount)}
+                        {status === 'partial' && (
+                          <span style={{ color: 'var(--success)', marginLeft: 6 }}>
+                            · Paid: {formatCurrency(Number(inv.amount) - Number(inv.balance_due))}
+                          </span>
+                        )}
+                      </p>
                     )}
                   </div>
-                )}
 
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                    <span className={`status-pill ${status}`}>
+                      {status === 'paid' ? '✓ PAID' : status === 'partial' ? `⏳ PARTIAL (${pct}%)` : '⚠️ UNPAID'}
+                    </span>
+                    {inv.delivery_challan_url && (
+                      <button
+                        type="button"
+                        className="challan-badge-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setChallanModalUrl(inv.delivery_challan_url);
+                        }}
+                      >
+                        <ImageIcon size={13} />
+                        <span>Challan</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Partial Payment Progress Bar */}
                 {status === 'partial' && (
-                  <div style={{ height: 3, borderRadius: 2, background: 'var(--border)', overflow: 'hidden', width: '100%' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: 'var(--success)', borderRadius: 2 }} />
+                  <div className="card-progress-bar">
+                    <div style={{ width: `${pct}%` }} />
                   </div>
                 )}
 
-                {/* Actions Toolbar */}
-                <div className="compact-action-row" onClick={(e) => e.stopPropagation()}>
-                  {inv.delivery_challan_url && (
-                    <button
-                      type="button"
-                      className="action-pill-btn"
-                      style={{ background: 'rgba(59,130,246,0.12)', color: '#2563eb', marginRight: 'auto' }}
-                      title="View Delivery Challan"
-                      onClick={() => setChallanModalUrl(inv.delivery_challan_url)}
-                    >
-                      <ImageIcon size={12} />
-                      <span>Challan</span>
-                    </button>
-                  )}
-
+                {/* Dedicated Action Toolbar */}
+                <div className="card-actions-bar" onClick={(e) => e.stopPropagation()}>
                   <button 
-                    className="action-pill-btn" 
-                    style={{ background: 'rgba(108,99,255,0.1)', color: 'var(--accent)' }} 
+                    type="button"
+                    className="card-action-btn pdf" 
                     title="Share Invoice with Delivery Challan"
                     onClick={async () => { 
                       const party = (await partiesApi.get(inv.party_id)).data; 
@@ -252,57 +263,59 @@ export function InvoicesList() {
                       generateAndShareInvoice(fullInv, party); 
                     }}
                   >
-                    <ShareIcon size={12} />
-                    <span>PDF</span>
+                    <ShareIcon size={14} />
+                    <span>Share PDF</span>
                   </button>
 
                   <button 
-                    className="action-pill-btn" 
+                    type="button"
+                    className="card-action-btn" 
                     title="Duplicate invoice" 
-                    style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }} 
                     onClick={() => navigate(`/invoices/new?duplicate=${inv.id}`)}
                   >
-                    <Copy size={12} />
-                    <span>Copy</span>
+                    <Copy size={14} />
+                    <span>Duplicate</span>
                   </button>
 
                   {status !== 'paid' && (
                     <button 
-                      className="action-pill-btn" 
+                      type="button"
+                      className="card-action-btn pay" 
                       title="Receive payment" 
-                      style={{ background: 'rgba(16,185,129,0.18)', color: 'var(--success)', fontWeight: 700 }} 
                       onClick={() => navigate(`/payments/new?party=${inv.party_id}&invoice=${inv.id}&amount=${inv.balance_due}`)}
                     >
-                      <CreditCard size={12} />
-                      <span>Pay</span>
+                      <CreditCard size={14} />
+                      <span>Receive Pay</span>
                     </button>
                   )}
 
                   <button 
-                    className="action-pill-btn" 
+                    type="button"
+                    className="card-action-btn" 
                     title="Sales Return / Credit Note" 
-                    style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--danger)' }} 
                     onClick={() => navigate(`/vouchers/sales-return?party_id=${inv.party_id}&invoice_id=${inv.id}`)}
                   >
-                    <Undo2 size={12} />
+                    <Undo2 size={14} />
+                    <span>Return</span>
                   </button>
 
                   <button 
-                    className="action-pill-btn" 
-                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }} 
+                    type="button"
+                    className="card-action-btn" 
                     title="Edit invoice"
                     onClick={() => setSecureAction({ type: 'edit', id: inv.id })}
                   >
-                    <Edit2 size={12} />
+                    <Edit2 size={14} />
+                    <span>Edit</span>
                   </button>
 
                   <button 
-                    className="action-pill-btn" 
-                    style={{ background: 'rgba(239,68,68,0.08)', color: 'var(--danger)' }} 
+                    type="button"
+                    className="card-action-btn danger" 
                     title="Delete invoice"
                     onClick={() => setSecureAction({ type: 'delete', id: inv.id })}
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>

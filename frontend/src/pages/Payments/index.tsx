@@ -110,72 +110,71 @@ export function PaymentsList() {
         <div className="empty-state"><Plus size={48} /><h3>No receipts yet</h3><p>Record your first receipt to track collections</p></div>
       ) : (
         <div className="list-container">
-          {payments.map((p: any) => (
-            <div 
-              key={p.id} 
-              className="compact-record-card" 
-              onClick={() => navigate(`/payments/${p.id}`)}
-            >
-              {/* Header: Party Name + Amount */}
-              <div className="compact-record-header">
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p 
-                    className="compact-party-title" 
-                    onClick={(e) => { e.stopPropagation(); navigate(`/parties/${p.party_id}`); }}
-                  >
-                    {p.party_name}
-                  </p>
-                  <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 2, fontWeight: 500 }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>PMT-{String(p.id).padStart(4, '0')}</span> · {formatDate(p.payment_date)}
-                  </p>
-                </div>
-
-                <div className="compact-amount-col">
-                  <span className="compact-record-amount" style={{ color: 'var(--success)', fontSize: 16 }}>
-                    +{formatCurrency(p.amount)}
-                  </span>
-                  <span 
-                    className="badge" 
-                    style={{ 
-                      marginTop: 2,
-                      fontSize: 10,
-                      padding: '2px 6px',
-                      background: 'rgba(34,197,94,0.12)', 
-                      color: 'var(--success)', 
-                      textTransform: 'uppercase',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {(p.mode || 'cash')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Sub details & Badges */}
-              {(p.note || Number(p.discount_amount || 0) > 0 || Number(p.unallocated || 0) > 0) && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6, paddingTop: 4 }}>
-                  {p.note ? (
-                    <p style={{ fontSize: 11.5, color: 'var(--text-muted)', fontStyle: 'italic', margin: 0, flex: 1 }}>
-                      {p.note}
-                    </p>
-                  ) : <div />}
-
-                  <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
-                    {Number(p.discount_amount || 0) > 0 && (
-                      <span className="badge" style={{ fontSize: 10, background: 'rgba(234,179,8,0.15)', color: 'var(--warning)', padding: '2px 6px' }}>
-                        Disc: {formatCurrency(p.discount_amount)}
-                      </span>
-                    )}
-                    {Number(p.unallocated || 0) > 0 && (
-                      <span className="badge badge-accent" style={{ fontSize: 10, padding: '2px 6px' }}>
-                        On Acct: {formatCurrency(p.unallocated)}
-                      </span>
-                    )}
+          {payments.map((p: any) => {
+            const partyName = p.party_name || p.party?.name || (p.party_id ? `Customer #${p.party_id}` : 'Customer');
+            const initial = (partyName.trim()[0] || 'C').toUpperCase();
+            return (
+              <div 
+                key={p.id} 
+                className="invoice-big-card" 
+                onClick={() => navigate(`/payments/${p.id}`)}
+              >
+                {/* Top Row: Full-width Party Name Header */}
+                <div className="card-party-header">
+                  <div className="party-avatar-badge" style={{ background: 'rgba(16,185,129,0.12)', color: 'var(--success)', borderColor: 'rgba(16,185,129,0.25)' }}>
+                    {initial}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 
+                      className="card-party-name" 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/parties/${p.party_id}`); }}
+                      title="View Party Details"
+                    >
+                      {partyName}
+                    </h3>
+                    <div className="card-inv-meta">
+                      <span className="card-inv-number">PMT-{String(p.id).padStart(4, '0')}</span>
+                      <span className="meta-dot">·</span>
+                      <span>{formatDate(p.payment_date)}</span>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Middle Financial Box */}
+                <div className="card-financial-box">
+                  <div>
+                    <p className="financial-label">Amount Collected</p>
+                    <p className="financial-value" style={{ color: 'var(--success)' }}>
+                      +{formatCurrency(p.amount)}
+                    </p>
+                    {p.note && (
+                      <p className="financial-sub" style={{ fontStyle: 'italic', marginTop: 4 }}>
+                        "{p.note}"
+                      </p>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                    <span className="status-pill paid" style={{ textTransform: 'uppercase' }}>
+                      {p.mode || 'CASH'}
+                    </span>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {Number(p.discount_amount || 0) > 0 && (
+                        <span className="badge" style={{ fontSize: 11, background: 'rgba(234,179,8,0.18)', color: '#b45309', fontWeight: 600 }}>
+                          Disc: {formatCurrency(p.discount_amount)}
+                        </span>
+                      )}
+                      {Number(p.unallocated || 0) > 0 && (
+                        <span className="badge badge-accent" style={{ fontSize: 11, fontWeight: 600 }}>
+                          On Acct: {formatCurrency(p.unallocated)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
           {/* Pagination */}
           {totalPages > 1 && (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, padding: '20px 0' }}>

@@ -231,11 +231,11 @@ export default function ChallansList() {
           {challans.map((c: any) => {
             const isPending = c.status === 'PENDING';
             return (
-              <div key={c.id} className="compact-record-card">
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  {/* Thumbnail */}
+              <div key={c.id} className="invoice-big-card">
+                {/* Top Row: Full-width Party Name Header */}
+                <div className="card-party-header">
                   <div
-                    style={{ position: 'relative', cursor: 'pointer' }}
+                    style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
                     onClick={() => setSelectedImageModal(c.image_url)}
                     title="Click to view full photo"
                   >
@@ -243,81 +243,73 @@ export default function ChallansList() {
                       src={c.image_url}
                       alt={c.challan_number || 'Challan'}
                       className="challan-thumb"
+                      style={{ width: 56, height: 56, borderRadius: 10 }}
                     />
                     <div
                       style={{
                         position: 'absolute',
                         inset: 0,
-                        backgroundColor: 'rgba(0,0,0,0.15)',
-                        borderRadius: 8,
+                        backgroundColor: 'rgba(0,0,0,0.18)',
+                        borderRadius: 10,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: 'white',
                       }}
                     >
-                      <Eye size={16} />
+                      <Eye size={18} />
                     </div>
                   </div>
 
-                  {/* Body */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                      <p
-                        className="compact-party-title"
-                        onClick={() => {
-                          if (c.party_id) navigate(`/parties/${c.party_id}`);
-                        }}
-                      >
-                        {c.party_name || 'Customer Not Specified'}
-                      </p>
-
-                      <span
-                        className="badge"
-                        style={{
-                          fontSize: 10,
-                          padding: '2px 6px',
-                          background: isPending ? 'rgba(245, 158, 11, 0.15)' : 'var(--success-bg)',
-                          color: isPending ? '#d97706' : 'var(--success)',
-                          whiteSpace: 'nowrap',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {isPending ? '⏳ Pending Invoice' : `✅ Invoiced`}
-                      </span>
-                    </div>
-
-                    <p style={{ fontSize: 11.5, color: 'var(--text-secondary)', marginTop: 3 }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.challan_number || `DC-${c.id}`}</span>
-                      {' · '}
-                      {formatDate(c.created_at)}
+                    <h3
+                      className="card-party-name"
+                      onClick={() => {
+                        if (c.party_id) navigate(`/parties/${c.party_id}`);
+                      }}
+                      title="View Party Details"
+                    >
+                      {c.party_name || 'Customer Not Specified'}
+                    </h3>
+                    <div className="card-inv-meta">
+                      <span className="card-inv-number">{c.challan_number || `DC-${c.id}`}</span>
+                      <span className="meta-dot">·</span>
+                      <span>{formatDate(c.created_at)}</span>
                       {c.invoice_number && (
-                        <span style={{ color: 'var(--accent)', fontWeight: 600, marginLeft: 6 }}>
-                          · {c.invoice_number}
-                        </span>
+                        <>
+                          <span className="meta-dot">·</span>
+                          <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                            {c.invoice_number}
+                          </span>
+                        </>
                       )}
-                    </p>
-
-                    {c.notes && (
-                      <p style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 4, margin: '4px 0 0' }}>
-                        Note: {c.notes}
-                      </p>
-                    )}
+                    </div>
                   </div>
+
+                  <span
+                    className={`status-pill ${isPending ? 'partial' : 'paid'}`}
+                    style={{ flexShrink: 0 }}
+                  >
+                    {isPending ? '⏳ PENDING' : '✓ INVOICED'}
+                  </span>
                 </div>
 
+                {c.notes && (
+                  <div style={{ background: 'rgba(0,0,0,0.02)', padding: '8px 12px', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
+                    <strong>Note:</strong> {c.notes}
+                  </div>
+                )}
+
                 {/* Bottom Action Row */}
-                <div className="compact-action-row" style={{ marginTop: 6 }}>
+                <div className="card-actions-bar" style={{ marginTop: 2 }}>
                   {isPending && (
                     <button
                       type="button"
-                      className="action-pill-btn"
+                      className="card-action-btn pay"
                       style={{
                         background: 'var(--accent)',
                         color: '#ffffff',
-                        fontWeight: 700,
-                        padding: '5px 12px',
-                        fontSize: 12,
+                        borderColor: 'var(--accent)',
                         marginRight: 'auto',
                       }}
                       onClick={() => {
@@ -336,23 +328,21 @@ export default function ChallansList() {
 
                   <button
                     type="button"
-                    className="action-pill-btn"
-                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
+                    className="card-action-btn"
                     onClick={() => setSelectedImageModal(c.image_url)}
                     title="View full photo"
                   >
-                    <Eye size={12} />
-                    <span>View</span>
+                    <Eye size={13} />
+                    <span>View Photo</span>
                   </button>
 
                   <button
                     type="button"
-                    className="action-pill-btn"
-                    style={{ background: 'rgba(239, 68, 68, 0.08)', color: 'var(--danger)' }}
+                    className="card-action-btn danger"
                     onClick={() => handleDelete(c.id, c.challan_number)}
                     title="Delete challan"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>
